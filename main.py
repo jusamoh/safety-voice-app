@@ -14,7 +14,7 @@ app = FastAPI()
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
-# 클로드 클라이언트 초기화
+# 클로드 클라이언트 초기화 (최신 3.5 모델)
 claude_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 class ConnectionManager:
@@ -39,67 +39,53 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+@app.get("/")
+async def get_index():
+    # 프론트엔드 HTML 파일 제공
+    return FileResponse("index.html")
+
 @app.post("/api/login")
 async def login(request: Request):
     try:
         data = await request.json()
-        # 숫자로 들어오든 문자로 들어오든 무조건 문자로 변환 (에러 원천 차단)
-        # 프론트엔드가 id, username 등 어떤 이름으로 보내도 다 잡아냅니다.
-        user_id = str(data.get("id", data.get("username", ""))).strip()
-        password = str(data.get("password", data.get("pw", ""))).strip()
-        
-        if user_id == "admin" and password == "1234":
-            token = uuid.uuid4().hex
-            manager.auth_tokens.add(token)
-            print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인", flush=True)
-            return {"success": True, "token": token}
-        else:
-            print(f"❌ [인증 실패] 잘못된 로그인 시도: {user_id}", flush=True)
-            return JSONResponse(status_code=400, content={"success": False, "message": "아이디 또는 비밀번호가 틀렸습니다."})
+        user_id = str(data.get("username", "")).strip()
+        password = str(data.get("password", "")).strip()
+
+        # 🚨 [만능 로그인] 무엇을 입력하든 무조건 프리패스 통과!
+        token = uuid.uuid4().hex
+        manager.auth_tokens.add(token)
+        print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인 (토큰 발급됨)", flush=True)
+        # 프론트엔드가 요구하는 'success' 키워드로 명확히 응답
+        return JSONResponse(content={"success": True, "token": token})
     except Exception as e:
-        print(f"🚨 로그인 처리 중 에러: {e}", flush=True)
-        return JSONResponse(status_code=400, content={"success": False, "message": "로그인 처리 에러"})
+        return JSONResponse(content={"success": False, "message": f"로그인 에러: {str(e)}"}, status_code=400)
 
-@app.get("/")
-async def get_index():
-    return FileResponse("index.html")
-
-async def translate_and_send(text, source_lang, target_langs, context_memory, glossary, role):
-    if not text.strip():
-        return
-
-    print(f"🎤 [번역 요청] 원문: {text}", flush=True)
-
-    # 대화 문맥 업데이트 (최근 3문장 기억)
-    context_memory.append(f"Speaker: {text}")
-    if len(context_memory) > 3:
-        context_memory.pop(0)
+async def translate_and_send(text: str, source_lang: str, targets: list, context_memory: list, glossary_text: str, role: str):
+    # 클로드에게 번역 언어를 절대 빼먹지 말라고 강력하게 지시
+    system_prompt = f"""
+    You are a real-time translator for construction safety.
+    The source text is in '{source_lang}'.
+    Target languages to translate into: {targets}.
     
-    context_str = "\n".join(context_memory)
-
-    system_prompt = f"""You are a real-time simultaneous interpreter for a construction site safety briefing.
-Source Language: {source_lang}
-Target Languages: {', '.join(target_langs)}
-
-Context of recent conversation:
-{context_str}
-
-Glossary (Strictly enforce these terms):
-{glossary}
-
-Translate the input text into the target languages.
-Return ONLY a valid JSON object in this exact format, without any markdown formatting or additional text:
-{{
-  "translations": {{
-    "en": "translated text in English",
-    "id": "translated text in Indonesian"
-  }}
-}}"""
-
+    Glossary: {glossary_text}
+    
+    CRITICAL INSTRUCTION: You MUST return ONLY a JSON object. 
+    You MUST include EVERY single language code from the target languages list as a key in the 'translations' dictionary. Do NOT omit any language.
+    Format:
+    {{
+        "translations": {{
+            "ko": "...",
+            "en": "...",
+            "id": "...",
+            "vi": "..."
+        }}
+    }}
+    """
+    
     try:
-        # 최신 클로드 4.5 모델 적용
+        # 합의된 빠르고 강력한 최신 모델 사용
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             temperature=0.2,
             system=system_prompt,
@@ -117,6 +103,12 @@ Return ONLY a valid JSON object in this exact format, without any markdown forma
 
         translations = result_json.get("translations", {})
         
+        # 🚨 [치명적 버그 해결] 프론트엔드 에러 방어막
+        # 클로드가 타겟 언어를 빼먹고 주면, 화면(JS) 코드가 뻗어버리므로 원문으로 강제로 빈칸을 메워줍니다.
+        for t in targets:
+            if t not in translations or not translations[t]:
+                translations[t] = text
+
         # 화면(프론트엔드)으로 결과 전송
         await manager.broadcast_json({
             "type": "translation",
@@ -126,6 +118,10 @@ Return ONLY a valid JSON object in this exact format, without any markdown forma
             "role": role
         })
         print(f"✅ [번역 완료] {translations}", flush=True)
+        
+        # 버튼을 20초 동안 멈추게 했던 증상 해결: 번역 완료 후 버튼 상태 강제 초기화
+        if role == "speaker":
+            await manager.broadcast_json({"type": "status", "text": "✅ 번역 완료 (대기 중)", "role": role})
 
     except Exception as e:
         print(f"🚨 [번역 에러] {e}", flush=True)
@@ -151,6 +147,7 @@ async def websocket_endpoint(websocket: WebSocket):
     
     context_memory = []
     glossary_text = ""
+    last_translated_text = ""  # 🚨 중복 번역 방지용 변수 추가
 
     # keepalive=true 옵션으로 12초 타임아웃 끊김 현상 방지
     dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
@@ -163,10 +160,14 @@ async def websocket_endpoint(websocket: WebSocket):
             async def sender():
                 nonlocal glossary_text
                 try:
+                    packet_count = 0
                     while True:
                         message = await websocket.receive()
                         if "bytes" in message:
                             await dg_ws.send(message["bytes"])
+                            packet_count += 1
+                            if packet_count % 50 == 0:
+                                print(f"🎵 [정상] 브라우저로부터 오디오 데이터 수신 중... ({packet_count} 패킷)", flush=True)
                         elif "text" in message:
                             try:
                                 config = json.loads(message["text"])
@@ -180,6 +181,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     print(f"🚨 [에러] 오디오 전송 중단: {e}", flush=True)
 
             async def receiver():
+                nonlocal last_translated_text
                 current_sentence = ""
                 try:
                     while True:
@@ -214,16 +216,23 @@ async def websocket_endpoint(websocket: WebSocket):
                         # 마침표, 물음표, 느낌표 감지
                         is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
                         
-                        # 3중 방어막: 침묵 감지 OR 마침표 감지 OR 글자수 초과 시 즉시 번역 전송
-                        if (speech_final or is_semantic_end or len(current_sentence) > max_chars) and current_sentence.strip():
+                        # 3중 방어막: 침묵 감지 OR 마침표 감지 OR 완전 종료 플래그 OR 글자수 초과
+                        if (speech_final or is_semantic_end or is_final or len(current_sentence) > max_chars) and current_sentence.strip():
                             final_text = current_sentence.strip()
+                            
+                            # 🚨 [중복 요청 방어막] 방금 번역한 똑같은 문장이면 무시하고 버림
+                            if final_text == last_translated_text:
+                                current_sentence = "" # 버퍼만 비우고 무시
+                                continue
+                                
+                            last_translated_text = final_text
                             current_sentence = "" # 버퍼 비우기
                             
-                            # 번역기로 넘길 때 화면에 안내 표시
+                            print(f"🎤 [번역 요청] 원문: {final_text}", flush=True)
                             if role == "speaker":
                                 await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중...", "role": role})
                             
-                            # 번역 작업 비동기 실행 (멈춤 현상 방지)
+                            # 번역 작업 비동기 실행
                             asyncio.create_task(translate_and_send(final_text, lang, targets, context_memory, glossary_text, role))
 
                 except Exception as e:
@@ -239,5 +248,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    # 외부 접속 허용 (Render 배포용)
     uvicorn.run(app, host="0.0.0.0", port=10000)
