@@ -124,7 +124,7 @@ async def websocket_endpoint(
             dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}"
             headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
-            async with websockets.connect(dg_url, additional_headers=headers) as dg_ws:
+            async with websockets.connect(dg_url, extra_headers=headers) as dg_ws:
                 async def sender():
                     nonlocal glossary_text 
                     try:
