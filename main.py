@@ -23,6 +23,7 @@ if DEEPGRAM_API_KEY.startswith("여기에") or ANTHROPIC_API_KEY.startswith("여
     sys.exit(1)
 
 claude_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -137,8 +138,9 @@ async def websocket_endpoint(
                                         if config.get("type") == "config":
                                             glossary_text = config.get("glossary", "")
                                             print(f"✅ [용어집 수신 완료] {len(glossary_text)}자")
-                                    except: pass
-                    except BaseException as e:
+                                    except:
+                                        pass
+                    except Exception as e:
                         print(f"🚨 [에러] 오디오 전송 중단: {e}")
 
                 async def receiver():
@@ -158,14 +160,15 @@ async def websocket_endpoint(
 
                                 if is_final: current_sentence += " " + transcript
 
+                                # 💡 완벽하게 조율된 들여쓰기 위치 (마침표/물음표 감지)
                                 is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
 
                                 if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
                                     final_text = current_sentence.strip()
                                     current_sentence = ""  
-                                    await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중...", "role": role})
+                                    await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                     asyncio.create_task(translate_and_send(final_text, lang, targets, context_memory, glossary_text))
-                    except BaseException as e:
+                    except Exception as e:
                         print(f"🚨 [에러] 딥그램 수신 중단: {e}")
                 
                 await asyncio.gather(sender(), receiver())
@@ -176,7 +179,7 @@ async def websocket_endpoint(
         manager.disconnect(websocket)
 
 # ==========================================
-# 🧠 5. LLM 번역 및 안전 경고 로직 (Claude 4.5 Haiku)
+# 🧠 5. LLM 번역 및 안전 경고 로직 (Claude 3.5 Haiku)
 # ==========================================
 async def translate_and_send(text: str, source_lang: str, targets: str, context_memory: list, glossary_text: str):
     
@@ -184,7 +187,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
         await manager.broadcast_json({"type": "alert"})
         print(f"🚨 [경고 발송] 스마트폰 점멸 트리거 작동 (원인: '{text}')")
 
-    ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어", "그"]
+    ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어", "그", "예", "네"]
     if not text or len(text) < 2 or text.lower() in ignore_words:
         await manager.broadcast_json({"type": "status", "text": "✅ 방송 중...", "role": "speaker"})
         return
@@ -208,7 +211,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
     """
     
     try:
-        # 🔥 Anthropic 공식 최신 4.5 모델 적용 완료
+        # 🔥 회원님께서 확인해주신 현존 최신 모델 Claude 4.5 Haiku 적용 완료
         response = await claude_client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=500,
