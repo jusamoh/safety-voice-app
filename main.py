@@ -213,7 +213,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
     try:
         # 🔥 회원님께서 확인해주신 현존 최신 모델 Claude 4.5 Haiku 적용 완료
         response = await claude_client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model="claude-haiku-4-5",
                 max_tokens=500,
                 temperature=0.2, # JSON 형식을 엄격하게 지키도록 온도 낮춤
                 system=system_prompt, 
