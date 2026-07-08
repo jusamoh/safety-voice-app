@@ -395,7 +395,9 @@
                 const ep = document.getElementById('endpointingSlider').value;
                 const mx = document.getElementById('maxCharSlider').value;
 
-                ws = new WebSocket(`ws://${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}`);
+                // 현재 접속한 주소가 https면 wss(보안)를, http면 ws(일반)를 사용하도록 자동 변환합니다.
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}`);
                 
                 ws.onopen = async () => {
                     isConnected = true;
