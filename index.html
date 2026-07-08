@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>글로벌 현장 안전 통역 콘솔</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -42,6 +42,14 @@
 
         .btn-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         button { flex: 1; min-width: 130px; font-size: 15px; padding: 12px 10px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; color: white;}
+        
+        @media (max-width: 600px) {
+            .btn-group { flex-direction: column; }
+            button { width: 100%; min-width: auto; }
+            .control-panel { padding: 15px; margin-bottom: 10px; }
+            .window-container { padding-bottom: 20px; }
+        }
+
         .start-btn { background-color: #dc3545; }
         .viewer-btn { background-color: #1a73e8; }
         .clear-btn { background-color: #ffc107; color: #000; }
@@ -57,33 +65,43 @@
         .live-dictation { min-height: 28px; color: #f1c40f; font-weight: bold; font-size: 18px; }
         .placeholder-text { color: #7f8c8d; font-style: italic; }
 
-        /* 화면 분할 뷰 */
-        .window-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
-        .window { flex: 1; min-width: 100%; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 50vh; max-height: 600px; }
-        .window h3 { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
+        .window-container { display: grid; grid-template-columns: 1fr; gap: 15px; width: 100%; }
+        @media (min-width: 768px) { 
+            .window-container { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); } 
+        }
+        
+        .window { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 50vh; max-height: 600px; }
+        .window h3 { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; font-size: 18px; color: #333; }
         .content-box { flex: 1; overflow-y: auto; padding: 15px; border: 1px solid #eee; background-color: #fdfdfd; border-radius: 8px; font-size: 16px; line-height: 1.6; scroll-behavior: smooth;}
         
         .sentence { margin-bottom: 15px; border-bottom: 1px dashed #eee; padding-bottom: 10px; position: relative;}
         .draft-text { color: #9e9e9e; font-style: italic; }
-        .latest-text { color: #d93025; font-weight: bold; font-size: 18px; display: block; margin-top: 5px; }
-        .original-text { font-size: 13px; color: #666; display: block; margin-bottom: 5px; }
-        .same-lang-text { color: #333; font-weight: bold; font-size: 18px; display: block; }
+        .latest-text { color: #d93025; font-weight: bold; font-size: 18px; display: block; margin-top: 5px; word-break: keep-all; }
+        .original-text { font-size: 13px; color: #666; display: block; margin-bottom: 5px; word-break: keep-all; }
+        .same-lang-text { color: #333; font-weight: bold; font-size: 18px; display: block; word-break: keep-all; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #e9ecef; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; color: #333; min-width: auto; }
 
-        @media (min-width: 768px) { .window { min-width: 300px; max-width: 48%; } }
-
-        /* 🌟 뷰어(청중) 모드 특화 스타일 */
-        body.viewer-mode { padding: 5px; background-color: #000; color: #fff; } 
+        body.viewer-mode { padding: 0; margin: 0; background-color: #121212; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); } 
+        body.viewer-mode #appContainer { height: 100%; display: flex; flex-direction: column; }
         body.viewer-mode .header, 
         body.viewer-mode .control-panel { display: none !important; }
-        body.viewer-mode .window-container { gap: 5px; }
-        body.viewer-mode .window { height: 95vh; max-height: none; box-shadow: none; border: 1px solid #ddd; background: #fff; color:#000; }
-        body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 24px; } 
         
-        #exitViewerBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50px; padding: 10px 20px; font-size: 14px; z-index: 1000; border: none; cursor: pointer;}
+        body.viewer-mode .window-container { display: flex; flex-direction: column; gap: 2px; height: 100%; background: #000; }
+        body.viewer-mode .window { flex: 1; height: auto; max-height: none; box-shadow: none; border-radius: 0; padding: 15px 20px; background: #1e1e1e; color: #fff; margin: 0; border: none; }
+        body.viewer-mode .window h3 { color: #aaa; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px; font-size: 14px; text-align: left; }
+        body.viewer-mode .content-box { background-color: transparent; border: none; padding: 0; } 
+        
+        body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 1.4rem; color: #fff; line-height: 1.4; } 
+        @media (min-width: 768px) { body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 2rem; } }
+        body.viewer-mode .original-text { color: #aaa; font-size: 0.95rem; }
+        body.viewer-mode .draft-text { color: #ffb300; } /* 스마트폰에서 듣는 중 텍스트를 눈에 띄게 변경 */
+        body.viewer-mode .sentence { border-bottom: 1px dashed #444; }
+        body.viewer-mode .tts-btn { background: #444; color: #eee; }
+        
+        #exitViewerBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: rgba(255,255,255,0.15); backdrop-filter: blur(5px); color: white; border-radius: 50px; padding: 12px 25px; font-size: 14px; z-index: 1000; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         body.viewer-mode #exitViewerBtn { display: block; }
 
-        #reportBtn { display: none; position: fixed; bottom: 80px; right: 20px; background-color: #d32f2f; color: white; border-radius: 50px; padding: 15px 25px; z-index: 1000; border: none; font-weight: bold; font-size: 16px; cursor: pointer;}
+        #reportBtn { display: none; position: fixed; bottom: 80px; right: 20px; background-color: #d32f2f; color: white; border-radius: 50px; padding: 15px 25px; z-index: 1000; border: none; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         body.viewer-mode #reportBtn { display: block; }
 
         /* QR 모달 */
@@ -136,12 +154,29 @@
                 <div class="add-lang-box">
                     <span style="font-size: 14px; color: #555;">➕ 현장 작업자 언어 추가:</span>
                     <select id="extraLangSelect" style="padding: 5px; font-size: 14px;">
-                        <option value="id">🇮🇩 인니어</option>
+                        <!-- 🌟 아시아 권역 -->
+                        <option value="id">🇮🇩 인니어 (인도네시아)</option>
                         <option value="vi">🇻🇳 베트남어</option>
+                        <option value="th">🇹🇭 태국어</option>
+                        <option value="tl">🇵🇭 필리핀어 (타갈로그어)</option>
+                        <option value="my">🇲🇲 미얀마어</option>
+                        <option value="km">🇰🇭 캄보디아어 (크메르어)</option>
+                        <option value="ne">🇳🇵 네팔어</option>
+                        <option value="uz">🇺🇿 우즈베크어</option>
+                        <option value="kk">🇰🇿 카자흐어</option>
+                        <option value="mn">🇲🇳 몽골어</option>
+                        <option value="si">🇱🇰 스리랑카어 (싱할라어)</option>
+                        <option value="bn">🇧🇩 방글라데시어 (벵골어)</option>
+                        <option value="hi">🇮🇳 힌디어</option>
+                        <!-- 🌟 유럽/중동 권역 -->
+                        <option value="ru">🇷🇺 러시아어</option>
+                        <option value="ar">🇸🇦 아랍어</option>
                         <option value="es">🇪🇸 스페인어</option>
                         <option value="fr">🇫🇷 프랑스어</option>
                         <option value="de">🇩🇪 독일어</option>
-                        <option value="th">🇹🇭 태국어</option>
+                        <option value="pt">🇵🇹 포르투갈어</option>
+                        <option value="it">🇮🇹 이탈리아어</option>
+                        <option value="tr">🇹🇷 튀르키예어</option>
                     </select>
                     <button class="add-lang-btn" onclick="addExtraLanguage()">화면에 추가</button>
                 </div>
@@ -208,7 +243,18 @@
 </div>
 
 <script>
-    const langNames = { "ko": "🇰🇷 한국어", "id": "🇮🇩 인니어", "en": "🇺🇸 영어", "ja": "🇯🇵 일본어", "zh": "🇨🇳 중국어", "vi": "🇻🇳 베트남어", "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "th": "🇹🇭 태국어" };
+    // 🌟 추가된 언어들의 국가 코드와 이름을 자바스크립트에도 등록해주어야 화면에 예쁘게 표시됩니다.
+    const langNames = { 
+        "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
+        "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", 
+        "tl": "🇵🇭 필리핀어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 캄보디아어", 
+        "ne": "🇳🇵 네팔어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", 
+        "mn": "🇲🇳 몽골어", "si": "🇱🇰 스리랑카어", "bn": "🇧🇩 벵골어",
+        "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "hi": "🇮🇳 힌디어",
+        "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어",
+        "pt": "🇵🇹 포르투갈어", "it": "🇮🇹 이탈리아어", "tr": "🇹🇷 튀르키예어"
+    };
+
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
     let authToken = ""; 
     let transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
@@ -395,7 +441,6 @@
                 const ep = document.getElementById('endpointingSlider').value;
                 const mx = document.getElementById('maxCharSlider').value;
 
-                // 현재 접속한 주소가 https면 wss(보안)를, http면 ws(일반)를 사용하도록 자동 변환합니다.
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}`);
                 
