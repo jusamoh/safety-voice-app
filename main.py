@@ -42,7 +42,13 @@ async def login():
     token = uuid.uuid4().hex
     manager.auth_tokens.add(token)
     print(f"🔐 [인증 성공] 사용자 'admin' 로그인 (토큰 발급됨)", flush=True)
-    return {"token": token}
+    # 💡 [수정] 프론트엔드가 undefined를 띄우지 않도록 이름과 메시지를 함께 반환합니다.
+    return {
+        "token": token, 
+        "username": "admin",
+        "name": "현장 소장",
+        "message": "로그인 성공"
+    }
 
 @app.get("/")
 async def get():
