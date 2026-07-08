@@ -43,8 +43,10 @@ manager = ConnectionManager()
 async def login(request: Request):
     try:
         data = await request.json()
-        user_id = data.get("id", "").strip()
-        password = data.get("password", "").strip()
+        # 숫자로 들어오든 문자로 들어오든 무조건 문자로 변환 (에러 원천 차단)
+        # 프론트엔드가 id, username 등 어떤 이름으로 보내도 다 잡아냅니다.
+        user_id = str(data.get("id", data.get("username", ""))).strip()
+        password = str(data.get("password", data.get("pw", ""))).strip()
         
         if user_id == "admin" and password == "1234":
             token = uuid.uuid4().hex
