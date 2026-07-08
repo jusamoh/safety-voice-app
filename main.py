@@ -42,13 +42,7 @@ async def login():
     token = uuid.uuid4().hex
     manager.auth_tokens.add(token)
     print(f"🔐 [인증 성공] 사용자 'admin' 로그인 (토큰 발급됨)", flush=True)
-    # 💡 [수정] 프론트엔드가 undefined를 띄우지 않도록 이름과 메시지를 함께 반환합니다.
-    return {
-        "token": token, 
-        "username": "admin",
-        "name": "현장 소장",
-        "message": "로그인 성공"
-    }
+    return {"token": token}
 
 @app.get("/")
 async def get():
@@ -68,8 +62,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
 
     try:
         response = await claude_client.messages.create(
-            # 가장 빠르고 안정적인 최신 공식 지원 API 모델명 적용
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5-20251001",
             max_tokens=500,
             temperature=0.2,
             system=system_prompt,
