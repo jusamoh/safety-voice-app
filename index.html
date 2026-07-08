@@ -10,7 +10,7 @@
     <div class="max-w-6xl mx-auto">
         <h1 class="text-2xl font-bold mb-4 text-center">🚀 글로벌 현장 안전 통역 콘솔</h1>
         
-        <!-- 로그인/제어 영역 -->
+        <!-- 로그인 영역 -->
         <div id="loginArea" class="bg-white p-6 rounded-lg shadow-md mb-6">
             <input type="text" id="username" placeholder="관리자 ID" class="border p-2 rounded mb-2 w-full">
             <input type="password" id="password" placeholder="비밀번호" class="border p-2 rounded mb-2 w-full">
@@ -18,95 +18,132 @@
             <div id="loginStatus" class="mt-2 text-red-500 font-bold"></div>
         </div>
 
+        <!-- 메인 제어 영역 -->
         <div id="mainArea" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div id="box_ko" class="bg-white p-4 rounded shadow h-64 overflow-y-auto">
-                    <h2 class="font-bold border-b mb-2">🇰🇷 한국어 (원문)</h2>
+            <!-- 설정 및 제어판 -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <label><input type="checkbox" checked value="ko"> 한국어</label>
+                    <label><input type="checkbox" checked value="en"> 영어</label>
+                    <label><input type="checkbox" checked value="id"> 인니어</label>
+                    <label><input type="checkbox" checked value="vi"> 베트남어</label>
                 </div>
-                <div id="box_en" class="bg-white p-4 rounded shadow h-64 overflow-y-auto">
+                <div class="mb-4">
+                    <label class="block mb-1">침묵 감지: <span id="epVal">0.5</span>초</label>
+                    <input type="range" id="endpointingSlider" min="0.1" max="1.5" step="0.1" value="0.5" class="w-full" oninput="updateVal('epVal', this.value)">
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1">최대 문장 길이: <span id="mxVal">50</span>자</label>
+                    <input type="range" id="maxCharSlider" min="30" max="150" step="5" value="50" class="w-full" oninput="updateVal('mxVal', this.value)">
+                </div>
+                <textarea id="glossary" placeholder="현장 용어집 (예: 비계=Scaffolding)" class="border p-2 rounded w-full h-20 mb-2"></textarea>
+                <div class="flex gap-2">
+                    <button onclick="updateGlossary()" class="bg-yellow-500 text-white px-4 py-2 rounded">용어집 적용</button>
+                    <button onclick="showQR()" class="bg-purple-600 text-white px-4 py-2 rounded">📱 QR코드 띄우기</button>
+                </div>
+            </div>
+
+            <!-- 통역 화면 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div id="box_ko" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-blue-500">
+                    <h2 class="font-bold border-b mb-2">🇰🇷 한국어</h2>
+                </div>
+                <div id="box_en" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-green-500">
                     <h2 class="font-bold border-b mb-2">🇺🇸 영어</h2>
                 </div>
-                <div id="box_id" class="bg-white p-4 rounded shadow h-64 overflow-y-auto">
+                <div id="box_id" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-yellow-500">
                     <h2 class="font-bold border-b mb-2">🇮🇩 인니어</h2>
                 </div>
-                <div id="box_vi" class="bg-white p-4 rounded shadow h-64 overflow-y-auto">
+                <div id="box_vi" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-red-500">
                     <h2 class="font-bold border-b mb-2">🇻🇳 베트남어</h2>
                 </div>
             </div>
-            <button id="micBtn" onclick="toggleMic()" class="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg w-full text-lg">🎤 마이크 켜기</button>
-            <div id="statusBtn" class="mt-4 p-2 bg-blue-100 text-center rounded">대기 중...</div>
+            
+            <button id="micBtn" onclick="toggleMic()" class="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg w-full text-lg mb-2">🎤 마이크 켜기</button>
+            <div id="statusBtn" class="p-2 bg-blue-100 text-center rounded">현장 지시 대기 중...</div>
         </div>
     </div>
 
     <script>
         let ws;
         let isMicOn = false;
+        let authToken = "";
+
+        function updateVal(id, val) { document.getElementById(id).innerText = val; }
 
         async function login() {
             const username = document.getElementById('username').value;
             const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ username }) });
             const data = await res.json();
             if (data.success) {
+                authToken = data.token;
                 document.getElementById('loginArea').classList.add('hidden');
                 document.getElementById('mainArea').classList.remove('hidden');
-                initWS(data.token);
+                initWS();
             } else {
                 document.getElementById('loginStatus').innerText = data.message;
             }
         }
 
-        function initWS(token) {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${token}&lang=ko&targets=en,id,vi&role=speaker`);
+        function initWS() {
+            const lang = "ko";
+            const targets = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value).join(',');
+            const ep = document.getElementById('endpointingSlider').value;
+            const mx = document.getElementById('maxCharSlider').value;
+            
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${lang}&targets=${targets}&role=speaker&endpointing=${ep}&max_chars=${mx}`);
             
             ws.onmessage = async (event) => {
                 const res = JSON.parse(event.data);
                 
                 if (res.type === "status") {
-                    const statusBtn = document.getElementById('statusBtn');
-                    if (statusBtn) statusBtn.innerText = res.text;
+                    document.getElementById('statusBtn').innerText = res.text;
                 } 
                 else if (res.type === "interim") {
                     const box = document.getElementById(`box_${res.source_lang}`);
                     if (box) {
-                        if (!window.currentSentenceId) window.currentSentenceId = "msg_" + Date.now();
-                        let div = document.getElementById(window.currentSentenceId);
-                        if (!div) {
-                            div = document.createElement('div');
-                            div.id = window.currentSentenceId;
-                            box.appendChild(div);
+                        let interim = box.querySelector('.interim-msg');
+                        if (!interim) {
+                            interim = document.createElement('div');
+                            interim.className = "interim-msg text-gray-500 italic text-sm";
+                            box.appendChild(interim);
                         }
-                        div.innerHTML = `<span style="color:gray;">듣는 중 ✍️: ${res.text}</span>`;
+                        interim.innerText = "듣는 중 ✍️: " + res.text;
                         box.scrollTop = box.scrollHeight;
                     }
                 } 
                 else if (res.type === "translation") {
-                    // 번역 완료 데이터를 모든 언어 창에 뿌림
-                    const langs = ['ko', ...Object.keys(res.translations)];
+                    const langs = ['ko', 'en', 'id', 'vi'];
                     langs.forEach(lang => {
                         const box = document.getElementById(`box_${lang}`);
-                        if (box) {
-                            // 기존 듣는 중이던 메시지가 있으면 제거하거나 덮어쓰기
-                            let div = document.getElementById(window.currentSentenceId);
-                            if (!div) {
-                                div = document.createElement('div');
-                                box.appendChild(div);
-                            }
-                            
-                            const text = (lang === res.source_lang) ? res.original : (res.translations[lang] || res.original);
-                            div.innerHTML = `<span style="color:#000; font-weight:bold; font-size:16px;">${text}</span>`;
-                            box.scrollTop = box.scrollHeight;
-                        }
+                        if (!box) return;
+
+                        // 1. 기존 '듣는 중' 메시지 제거
+                        let interim = box.querySelector('.interim-msg');
+                        if (interim) interim.remove();
+
+                        // 2. 최종 번역 결과 표시
+                        const text = (lang === res.source_lang) ? res.original : (res.translations[lang] || res.original);
+                        const finalDiv = document.createElement('div');
+                        finalDiv.className = "mb-2 p-2 border-b font-bold text-lg animate-pulse";
+                        finalDiv.innerText = text;
+                        box.appendChild(finalDiv);
+                        box.scrollTop = box.scrollHeight;
                     });
-                    window.currentSentenceId = null; // 초기화
                 }
             };
+        }
+
+        function updateGlossary() {
+            ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossary').value }));
+            alert("용어집이 적용되었습니다.");
         }
 
         async function toggleMic() {
             if (!isMicOn) {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                // 이 부분에 실제 오디오 스트리밍 전송 로직이 필요합니다.
+                // 웹소켓을 통한 오디오 전송 로직이 필요함
                 document.getElementById('micBtn').innerText = "🛑 마이크 끄기";
                 document.getElementById('micBtn').classList.replace('bg-green-600', 'bg-red-600');
                 isMicOn = true;
