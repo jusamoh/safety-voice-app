@@ -62,7 +62,8 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
 
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            # 가장 빠르고 안정적인 최신 공식 지원 API 모델명 적용
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             temperature=0.2,
             system=system_prompt,
@@ -92,7 +93,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
         await manager.broadcast_json({"type": "status", "text": "방송 중...", "role": role})
 
     except Exception as e:
-        print(f"🚨 Translation Error: {e}", flush=True)
+        print(f"🚨 [에러] 번역 에러: {e}", flush=True)
         await manager.broadcast_json({"type": "status", "text": "❌ 번역 에러 (로그 확인)", "role": role})
 
 @app.websocket("/ws")
@@ -156,14 +157,16 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(None), lan
                             speech_final = dg_json.get("speech_final", False)
                             transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
                             
-                            if not transcript: continue
-                            await manager.broadcast_json({"type": "interim", "text": transcript, "role": role, "source_lang": lang})
+                            # 💡 텍스트가 있을 때만 회색 글씨(interim)와 문장 누적 처리
+                            if transcript:
+                                await manager.broadcast_json({"type": "interim", "text": transcript, "role": role, "source_lang": lang})
+                                if is_final: 
+                                    current_sentence += " " + transcript
 
-                            if is_final: current_sentence += " " + transcript
-
-                            # 💡 [문맥 기반 절단] 들여쓰기 위치 완벽 교정 완료
+                            # 💡 마침표 감지
                             is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
 
+                            # 💡 [버그 수정 완료] 빈 텍스트(transcript="")로 들어와도 speech_final(침묵)이면 무시하지 않고 강제로 문장을 자릅니다!
                             if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
                                 final_text = current_sentence.strip()
                                 current_sentence = ""  
