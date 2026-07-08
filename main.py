@@ -42,14 +42,21 @@ manager = ConnectionManager()
 @app.post("/api/login")
 async def login(request: Request):
     try:
-        # 스마트폰 키보드 자동완성(공백) 에러를 막기 위해 무조건 로그인 성공 처리
-        token = uuid.uuid4().hex
-        manager.auth_tokens.add(token)
-        print("🔐 [인증 성공] 현장 관리자 접속 승인 (무조건 통과)", flush=True)
-        return {"token": token}
+        data = await request.json()
+        user_id = data.get("id", "").strip()
+        password = data.get("password", "").strip()
+        
+        if user_id == "admin" and password == "1234":
+            token = uuid.uuid4().hex
+            manager.auth_tokens.add(token)
+            print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인", flush=True)
+            return {"success": True, "token": token}
+        else:
+            print(f"❌ [인증 실패] 잘못된 로그인 시도: {user_id}", flush=True)
+            return JSONResponse(status_code=400, content={"success": False, "message": "아이디 또는 비밀번호가 틀렸습니다."})
     except Exception as e:
         print(f"🚨 로그인 처리 중 에러: {e}", flush=True)
-        return JSONResponse(status_code=400, content={"error": "로그인 에러"})
+        return JSONResponse(status_code=400, content={"success": False, "message": "로그인 처리 에러"})
 
 @app.get("/")
 async def get_index():
