@@ -9,17 +9,16 @@
         * { box-sizing: border-box; }
         body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; transition: all 0.3s ease; }
         
-        /* 🔐 로그인 스크린 스타일 */
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        /* 🔐 로그인 스크린 및 작업자 세팅 오버레이 */
+        .overlay-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 90%; max-width: 400px; text-align: center; }
         .login-box h2 { margin-top: 0; color: #1a73e8; margin-bottom: 20px; }
         .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; outline: none; }
         .login-input:focus { border-color: #1a73e8; }
-        .login-btn { background-color: #1a73e8; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .login-btn { background-color: #1a73e8; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .login-btn:hover { background-color: #1557b0; }
         .error-msg { color: #dc3545; font-size: 14px; margin-bottom: 15px; display: none; }
 
-        /* 기존 앱 UI 스타일 */
         #appContainer { display: none; } 
         .header { text-align: center; margin-bottom: 20px; }
         .header span.user-badge { background: #28a745; color: white; font-size: 12px; padding: 4px 8px; border-radius: 20px; vertical-align: middle; margin-left: 10px; }
@@ -42,16 +41,14 @@
 
         .btn-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         button { flex: 1; min-width: 130px; font-size: 15px; padding: 12px 10px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; color: white;}
-        
         @media (max-width: 600px) {
             .btn-group { flex-direction: column; }
             button { width: 100%; min-width: auto; }
             .control-panel { padding: 15px; margin-bottom: 10px; }
-            .window-container { padding-bottom: 20px; }
         }
 
         .start-btn { background-color: #dc3545; }
-        .viewer-btn { background-color: #1a73e8; }
+        .viewer-btn { background-color: #1a73e8; display: none; } /* 이제 뷰어 모드는 모바일에서만 접근 */
         .clear-btn { background-color: #ffc107; color: #000; }
         .download-btn { background-color: #6c757d; }
         .qr-btn { background-color: #20c997; color: white; width: 100%; margin-top: 10px; }
@@ -76,12 +73,13 @@
         
         .sentence { margin-bottom: 15px; border-bottom: 1px dashed #eee; padding-bottom: 10px; position: relative;}
         .draft-text { color: #9e9e9e; font-style: italic; }
-        .latest-text { color: #d93025; font-weight: bold; font-size: 18px; display: block; margin-top: 5px; word-break: keep-all; }
-        .original-text { font-size: 13px; color: #666; display: block; margin-bottom: 5px; word-break: keep-all; }
-        .same-lang-text { color: #333; font-weight: bold; font-size: 18px; display: block; word-break: keep-all; }
+        .latest-text { color: #d93025; font-weight: bold; font-size: 18px; display: block; margin-top: 5px; }
+        .original-text { font-size: 13px; color: #666; display: block; margin-bottom: 5px; }
+        .same-lang-text { color: #333; font-weight: bold; font-size: 18px; display: block; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #e9ecef; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; color: #333; min-width: auto; }
 
-        body.viewer-mode { padding: 0; margin: 0; background-color: #121212; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); } 
+        /* 🌟 모바일 뷰어(청중) 모드 및 PTT 통신 스타일 */
+        body.viewer-mode { padding: 0; margin: 0; background-color: #121212; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: 90px; } 
         body.viewer-mode #appContainer { height: 100%; display: flex; flex-direction: column; }
         body.viewer-mode .header, 
         body.viewer-mode .control-panel { display: none !important; }
@@ -91,22 +89,20 @@
         body.viewer-mode .window h3 { color: #aaa; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px; font-size: 14px; text-align: left; }
         body.viewer-mode .content-box { background-color: transparent; border: none; padding: 0; } 
         
-        body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 1.4rem; color: #fff; line-height: 1.4; } 
-        @media (min-width: 768px) { body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 2rem; } }
-        body.viewer-mode .original-text { color: #aaa; font-size: 0.95rem; }
-        body.viewer-mode .draft-text { color: #ffb300; } /* 스마트폰에서 듣는 중 텍스트를 눈에 띄게 변경 */
+        body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 1.6rem; color: #fff; line-height: 1.4; } 
+        body.viewer-mode .original-text { color: #aaa; font-size: 1rem; }
+        body.viewer-mode .draft-text { color: #ffb300; } 
         body.viewer-mode .sentence { border-bottom: 1px dashed #444; }
         body.viewer-mode .tts-btn { background: #444; color: #eee; }
-        
-        #exitViewerBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: rgba(255,255,255,0.15); backdrop-filter: blur(5px); color: white; border-radius: 50px; padding: 12px 25px; font-size: 14px; z-index: 1000; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        body.viewer-mode #exitViewerBtn { display: block; }
 
-        #reportBtn { display: none; position: fixed; bottom: 80px; right: 20px; background-color: #d32f2f; color: white; border-radius: 50px; padding: 15px 25px; z-index: 1000; border: none; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        body.viewer-mode #reportBtn { display: block; }
+        /* 🎤 작업자용 Push-to-talk 하단 바 */
+        #workerControlPanel { display: none; position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); background: #000; border-top: 1px solid #333; z-index: 1000; }
+        .ptt-btn { width: 100%; padding: 20px; font-size: 20px; border-radius: 12px; background-color: #d32f2f; color: white; font-weight: bold; border: none; cursor: pointer; transition: 0.1s; box-shadow: 0 4px 10px rgba(0,0,0,0.5); user-select: none; -webkit-user-select: none; }
+        .ptt-btn:active { transform: scale(0.97); }
 
         /* QR 모달 */
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
-        .qr-box { background: white; padding: 30px; border-radius: 15px; text-align: center; }
+        .qr-box { background: white; padding: 30px; border-radius: 15px; text-align: center; color:#333; }
         #qrcode { margin: 20px auto; display: flex; justify-content: center; }
         .close-qr-btn { margin-top: 20px; background-color: #dc3545; }
     </style>
@@ -114,14 +110,46 @@
 <body>
 
 <!-- 🔐 로그인 스크린 -->
-<div id="loginOverlay">
+<div id="loginOverlay" class="overlay-screen">
     <div class="login-box">
-        <h2>🚀 AI 안전 통역 로그인</h2>
-        <p style="color:#666; font-size:14px; margin-bottom:20px;">유료 구독 사용자만 이용 가능한 시스템입니다.</p>
+        <h2>🚀 현장 관리자 로그인</h2>
         <div id="errorMsg" class="error-msg">아이디 또는 비밀번호가 틀렸습니다.</div>
         <input type="text" id="username" class="login-input" placeholder="아이디 (예: admin)">
         <input type="password" id="password" class="login-input" placeholder="비밀번호" onkeyup="if(event.key==='Enter') attemptLogin()">
         <button class="login-btn" onclick="attemptLogin()">로그인</button>
+    </div>
+</div>
+
+<!-- 👷 작업자 접속 세팅 스크린 (QR 스캔 시 표시) -->
+<div id="workerSetupOverlay" class="overlay-screen" style="display: none;">
+    <div class="login-box">
+        <h2>👷 접속 언어 선택</h2>
+        <p style="color:#666; font-size:15px; margin-bottom:25px;">본인의 모국어를 선택하고 입장하세요.</p>
+        <select id="workerMyLang" class="login-input" style="font-size:18px; padding:15px; margin-bottom:20px; height:auto;">
+            <!-- 🌟 아시아 권역 -->
+            <option value="id" selected>🇮🇩 인니어 (인도네시아)</option>
+            <option value="vi">🇻🇳 베트남어 (Việt Nam)</option>
+            <option value="th">🇹🇭 태국어 (ไทย)</option>
+            <option value="tl">🇵🇭 필리핀어 (Tagalog)</option>
+            <option value="my">🇲🇲 미얀마어 (မြန်မာ)</option>
+            <option value="km">🇰🇭 캄보디아어 (Khmer)</option>
+            <option value="ne">🇳🇵 네팔어 (नेपाली)</option>
+            <option value="uz">🇺🇿 우즈베크어 (Oʻzbek)</option>
+            <option value="kk">🇰🇿 카자흐어 (Қазақ)</option>
+            <option value="mn">🇲🇳 몽골어 (Монгол)</option>
+            <option value="si">🇱🇰 스리랑카어 (සිංහလ)</option>
+            <option value="bn">🇧🇩 벵골어 (বাংলা)</option>
+            <!-- 🌟 유럽/글로벌 권역 -->
+            <option value="en">🇺🇸 영어 (English)</option>
+            <option value="zh">🇨🇳 중국어 (中文)</option>
+            <option value="ja">🇯🇵 일본어 (日本語)</option>
+            <option value="ru">🇷🇺 러시아어 (Русский)</option>
+            <option value="ar">🇸🇦 아랍어 (العربية)</option>
+            <option value="hi">🇮🇳 힌디어 (हिन्दी)</option>
+            <option value="es">🇪🇸 스페인어 (Español)</option>
+            <option value="fr">🇫🇷 프랑스어 (Français)</option>
+        </select>
+        <button class="login-btn" style="background-color: #28a745;" onclick="startWorkerMode()">✅ 입장하기</button>
     </div>
 </div>
 
@@ -144,41 +172,13 @@
             </div>
             
             <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
-                <label>🌐 2. 번역 화면 선택:</label>
+                <label>🌐 2. 관리자 PC 모니터링 화면 (선택):</label>
+                <p style="font-size: 13px; color: #666; margin-top: 0;">※ 작업자는 본인 스마트폰에서 알아서 언어를 선택하므로, 여기서는 PC 화면에 띄워둘 모니터링용 언어만 선택하세요.</p>
                 <div class="checkbox-group" id="targetCheckboxes">
                     <label><input type="checkbox" value="ko" checked> 🇰🇷 한국어</label>
                     <label><input type="checkbox" value="en" checked> 🇺🇸 영어</label>
-                    <label><input type="checkbox" value="zh" checked> 🇨🇳 중국어</label>
-                    <label><input type="checkbox" value="ja" checked> 🇯🇵 일본어</label>
-                </div>
-                <div class="add-lang-box">
-                    <span style="font-size: 14px; color: #555;">➕ 현장 작업자 언어 추가:</span>
-                    <select id="extraLangSelect" style="padding: 5px; font-size: 14px;">
-                        <!-- 🌟 아시아 권역 -->
-                        <option value="id">🇮🇩 인니어 (인도네시아)</option>
-                        <option value="vi">🇻🇳 베트남어</option>
-                        <option value="th">🇹🇭 태국어</option>
-                        <option value="tl">🇵🇭 필리핀어 (타갈로그어)</option>
-                        <option value="my">🇲🇲 미얀마어</option>
-                        <option value="km">🇰🇭 캄보디아어 (크메르어)</option>
-                        <option value="ne">🇳🇵 네팔어</option>
-                        <option value="uz">🇺🇿 우즈베크어</option>
-                        <option value="kk">🇰🇿 카자흐어</option>
-                        <option value="mn">🇲🇳 몽골어</option>
-                        <option value="si">🇱🇰 스리랑카어 (싱할라어)</option>
-                        <option value="bn">🇧🇩 방글라데시어 (벵골어)</option>
-                        <option value="hi">🇮🇳 힌디어</option>
-                        <!-- 🌟 유럽/중동 권역 -->
-                        <option value="ru">🇷🇺 러시아어</option>
-                        <option value="ar">🇸🇦 아랍어</option>
-                        <option value="es">🇪🇸 스페인어</option>
-                        <option value="fr">🇫🇷 프랑스어</option>
-                        <option value="de">🇩🇪 독일어</option>
-                        <option value="pt">🇵🇹 포르투갈어</option>
-                        <option value="it">🇮🇹 이탈리아어</option>
-                        <option value="tr">🇹🇷 튀르키예어</option>
-                    </select>
-                    <button class="add-lang-btn" onclick="addExtraLanguage()">화면에 추가</button>
+                    <label><input type="checkbox" value="id" checked> 🇮🇩 인니어</label>
+                    <label><input type="checkbox" value="vi" checked> 🇻🇳 베트남어</label>
                 </div>
             </div>
 
@@ -204,7 +204,7 @@
                     <button style="background-color: #17a2b8; padding: 5px 10px; font-size: 13px; min-width: auto; border: none; color: white; border-radius: 5px; cursor: pointer;" onclick="document.getElementById('glossaryFile').click()">📁 불러오기</button>
                     <input type="file" id="glossaryFile" accept=".txt,.csv" style="display: none;" onchange="loadGlossaryFile(event)">
                 </div>
-                <textarea id="glossaryInput" rows="2" style="width: 100%; border-radius: 5px; padding: 10px; border: 1px solid #ccc;" placeholder="예: 비계=Scaffolding"></textarea>
+                <textarea id="glossaryInput" rows="2" style="width: 100%; border-radius: 5px; padding: 10px; border: 1px solid #ccc;" placeholder="예: 비계=Scaffolding, 개구부=Opening"></textarea>
             </div>
             
             <button class="qr-btn" onclick="showQRCode()">📱 작업자용 스마트폰 QR코드 띄우기</button>
@@ -214,7 +214,6 @@
 
         <div class="btn-group">
             <button id="speakerBtn" class="start-btn" onclick="toggleConnection('speaker')">🎤 [PC] 마이크 켜기</button>
-            <button id="viewerBtn" class="viewer-btn" onclick="toggleConnection('viewer')">👀 [내 PC] 뷰어 모드 전환</button>
             <button class="clear-btn" onclick="clearAllLogs()">🗑️ 화면 지우기</button>
             <button id="downloadBtn" class="download-btn" onclick="downloadTranscript()">📄 기록 저장</button>
             <button class="clear-btn" style="background:#dc3545; color:#fff;" onclick="logout()">🔒 로그아웃</button>
@@ -225,57 +224,57 @@
         </div>
     </div>
 
+    <!-- 번역 화면들이 표시될 공간 -->
     <div class="window-container" id="windowContainer"></div>
 </div>
 
-<button id="exitViewerBtn" onclick="exitViewerMode()">⚙️ 설정 패널 열기</button>
-<button id="reportBtn" onclick="toggleReportMode()">🚨 위험 상황 보고</button>
+<!-- 🎤 작업자용 PTT (무전기) 하단 바 -->
+<div id="workerControlPanel">
+    <button id="pttBtn" class="ptt-btn" onclick="toggleWorkerMic(event)">
+        🎤 터치하여 보고하기
+    </button>
+</div>
 
 <div id="qrModal">
     <div class="qr-box">
         <h2>스마트폰 카메라로 스캔하세요</h2>
-        <p style="color: #666; font-size: 14px;">작업자는 별도 로그인 없이 즉시 접속됩니다.</p>
-        <p style="color: #666; font-size: 12px; margin-bottom: 0;">현재 접속 주소: <span id="currentUrlTxt" style="font-weight:bold;"></span></p>
+        <p style="color: #666; font-size: 14px;">작업자는 본인의 모국어를 선택하고 즉시 접속합니다.</p>
         <div id="qrcode"></div>
-        <p style="color: #d93025; font-size: 13px; font-weight:bold;">※ 주의: '127.0.0.1'이나 'localhost'로 접속된 상태에서는 <br>스마트폰에서 접속할 수 없습니다. PC의 내부 IP(예: 192.168.x.x)로 접속해주세요.</p>
-        <button class="close-qr-btn" onclick="document.getElementById('qrModal').style.display='none'">닫기</button>
+        <p style="color: #d93025; font-size: 13px; font-weight:bold;">※ PC의 내부 IP(또는 외부 URL)로 접속해주세요.</p>
+        <button class="close-qr-btn" style="padding:10px 20px; border:none; color:white; border-radius:5px;" onclick="document.getElementById('qrModal').style.display='none'">닫기</button>
     </div>
 </div>
 
 <script>
-    // 🌟 추가된 언어들의 국가 코드와 이름을 자바스크립트에도 등록해주어야 화면에 예쁘게 표시됩니다.
     const langNames = { 
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
-        "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", 
-        "tl": "🇵🇭 필리핀어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 캄보디아어", 
-        "ne": "🇳🇵 네팔어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", 
-        "mn": "🇲🇳 몽골어", "si": "🇱🇰 스리랑카어", "bn": "🇧🇩 벵골어",
-        "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "hi": "🇮🇳 힌디어",
-        "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어",
-        "pt": "🇵🇹 포르투갈어", "it": "🇮🇹 이탈리아어", "tr": "🇹🇷 튀르키예어"
+        "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어", 
+        "my": "🇲🇲 미얀마어", "km": "🇰🇭 캄보디아어", "ne": "🇳🇵 네팔어", "uz": "🇺🇿 우즈베크어", 
+        "kk": "🇰🇿 카자흐어", "mn": "🇲🇳 몽골어", "si": "🇱🇰 싱할라어", "bn": "🇧🇩 벵골어",
+        "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "hi": "🇮🇳 힌디어", "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어"
     };
 
-    let ws = null, mediaRecorder = null, stream = null, isConnected = false;
+    let ws = null, stream = null, isConnected = false;
+    let managerMediaRecorder = null;
+    let workerMediaRecorder = null;
     let authToken = ""; 
     let transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
     let currentSentenceId = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
+    const qrMgrLang = urlParams.get('mgr_lang') || 'ko'; // QR코드에 심어진 관리자의 언어
 
+    // 🚀 접속 분기 처리 (관리자 vs 작업자)
     if (roomToken) {
         authToken = roomToken;
         document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        document.body.classList.add('viewer-mode');
-        setTimeout(() => toggleConnection('viewer'), 500);
+        document.getElementById('workerSetupOverlay').style.display = 'flex'; // 작업자는 세팅 창으로 이동
     } else {
-        const savedToken = localStorage.getItem('auth_token');
-        const savedUser = localStorage.getItem('auth_user');
-        if (savedToken) {
-            authToken = savedToken;
-            unlockApp(savedUser);
-        }
+        // 항상 새롭게 로그인하도록 기존 브라우저 저장 기록 강제 삭제 및 로그인 창 띄우기
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        document.getElementById('loginOverlay').style.display = 'flex';
     }
 
     async function attemptLogin() {
@@ -293,16 +292,13 @@
 
             if (data.success) {
                 authToken = data.token;
-                localStorage.setItem('auth_token', authToken);
-                localStorage.setItem('auth_user', data.username);
+                // 자동 로그인을 방지하기 위해 localStorage 저장 로직 제거됨
                 unlockApp(data.username);
             } else {
                 err.style.display = 'block';
                 err.innerText = data.message;
             }
-        } catch (e) {
-            alert("서버와 연결할 수 없습니다. 서버가 켜져 있는지 확인하세요.");
-        }
+        } catch (e) { alert("서버와 연결할 수 없습니다."); }
     }
 
     function unlockApp(username) {
@@ -312,70 +308,88 @@
     }
 
     function logout() {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
+        // 로그아웃 시 단순히 페이지를 새로고침하여 초기화
         window.location.reload();
     }
 
-    function showQRCode() {
-        const currentUrl = window.location.href.split('?')[0];
-        document.getElementById('currentUrlTxt').innerText = currentUrl;
+    // 👷 작업자(Worker) 입장 프로세스
+    function startWorkerMode() {
+        document.getElementById('workerSetupOverlay').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
         
-        const qrContainer = document.getElementById('qrcode');
-        qrContainer.innerHTML = ""; 
+        // 뷰어 모드(UI 숨김 및 풀스크린 적용)
+        document.body.classList.add('viewer-mode');
         
-        const qrUrl = `${currentUrl}?room_token=${authToken}`;
+        // 하단 무전기 버튼 활성화
+        document.getElementById('workerControlPanel').style.display = 'block';
         
-        new QRCode(qrContainer, {
-            text: qrUrl,
-            width: 200, height: 200,
-            colorDark : "#000000", colorLight : "#ffffff"
-        });
-        document.getElementById('qrModal').style.display = 'flex';
+        const workerLang = document.getElementById('workerMyLang').value;
+        
+        // 작업자의 화면에는 본인의 언어 창 딱 1개만 생성
+        document.getElementById('windowContainer').innerHTML = 
+            `<div class="window"><h3>${langNames[workerLang] || workerLang} 수신 중</h3><div id="box_${workerLang}" class="content-box"></div></div>`;
+        
+        toggleConnection('worker'); 
     }
 
-    function exitViewerMode() {
-        document.body.classList.remove('viewer-mode');
-        if (isConnected) toggleConnection('viewer'); 
-    }
+    let isWorkerMicActive = false;
 
-    function triggerAlert() {
-        document.body.style.backgroundColor = "#b71c1c";
-        setTimeout(() => { document.body.style.backgroundColor = document.body.classList.contains('viewer-mode') ? "#000" : "#f4f6f9"; }, 300);
-        setTimeout(() => { document.body.style.backgroundColor = "#b71c1c"; }, 600);
-        setTimeout(() => { document.body.style.backgroundColor = document.body.classList.contains('viewer-mode') ? "#000" : "#f4f6f9"; }, 900);
-        alert("⚠️ [관리자 경고] 즉시 현장 안전을 확보하세요!");
-    }
-
-    let isReporting = false;
-    async function toggleReportMode() {
-        if (!isReporting) {
-            try {
-                const reportStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(reportStream);
-                mediaRecorder.ondataavailable = (e) => { if (ws && ws.readyState === 1) ws.send(e.data); };
-                mediaRecorder.start(250);
-                document.getElementById('reportBtn').innerText = "🛑 보고 종료";
-                document.getElementById('reportBtn').style.backgroundColor = "#333";
-                isReporting = true;
-            } catch(e) { alert("마이크 권한이 필요합니다."); }
+    // 🎤 무전기(PTT) 버튼 이벤트 (토글 방식)
+    async function toggleWorkerMic(event) {
+        if(event) event.preventDefault();
+        const btn = document.getElementById('pttBtn');
+        
+        if (!isWorkerMicActive) {
+            // 마이크 켜기 (녹음 시작)
+            btn.style.backgroundColor = "#28a745";
+            btn.innerText = "🎙️ 보고 수신 중... (다시 터치하면 전송)";
+            btn.classList.add('active'); // 애니메이션 효과 추가
+            
+            if (!stream) {
+                try { stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } }); } 
+                catch(e) { 
+                    alert("마이크 권한이 필요합니다."); 
+                    btn.style.backgroundColor = "#d32f2f";
+                    btn.innerText = "🎤 터치하여 보고하기";
+                    btn.classList.remove('active');
+                    return; 
+                }
+            }
+            
+            if(ws && ws.readyState === 1) {
+                workerMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                workerMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0 && ws.readyState === 1) ws.send(e.data); };
+                workerMediaRecorder.start(250);
+                isWorkerMicActive = true;
+            }
         } else {
-            mediaRecorder.stop();
-            document.getElementById('reportBtn').innerText = "🚨 위험 상황 보고";
-            document.getElementById('reportBtn').style.backgroundColor = "#d32f2f";
-            isReporting = false;
+            // 마이크 끄기 (전송)
+            btn.style.backgroundColor = "#d32f2f";
+            btn.innerText = "🎤 터치하여 보고하기";
+            btn.classList.remove('active');
+            
+            if (workerMediaRecorder && workerMediaRecorder.state !== 'inactive') {
+                workerMediaRecorder.stop();
+            }
+            isWorkerMicActive = false;
         }
     }
 
-    function loadGlossaryFile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('glossaryInput').value = e.target.result;
-            alert("✅ 현장 안전 용어집 파일이 로드되었습니다.");
-        };
-        reader.readAsText(file, "UTF-8");
+    // 📱 QR 코드 띄우기
+    function showQRCode() {
+        const currentUrl = window.location.href.split('?')[0];
+        const mgrLang = document.getElementById('speakerLang').value;
+        const qrContainer = document.getElementById('qrcode');
+        qrContainer.innerHTML = ""; 
+        
+        // QR코드에 관리자(방장)의 언어 코드를 심어서 보냅니다.
+        const qrUrl = `${currentUrl}?room_token=${authToken}&mgr_lang=${mgrLang}`;
+        
+        new QRCode(qrContainer, {
+            text: qrUrl, width: 200, height: 200,
+            colorDark : "#000000", colorLight : "#ffffff"
+        });
+        document.getElementById('qrModal').style.display = 'flex';
     }
 
     function clearAllLogs() {
@@ -383,22 +397,6 @@
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
         transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
         document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">화면이 초기화되었습니다.</span>`;
-    }
-
-    function downloadTranscript() {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([transcriptLog], { type: 'text/plain' }));
-        a.download = `현장지시기록_${new Date().toISOString().slice(0,10)}.txt`;
-        a.click();
-    }
-
-    function addExtraLanguage() {
-        const select = document.getElementById('extraLangSelect');
-        const langCode = select.value;
-        if (document.querySelector(`input[value="${langCode}"]`)) return alert("이미 추가된 언어입니다.");
-        const newLabel = document.createElement('label');
-        newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> ${langNames[langCode]}`;
-        document.getElementById('targetCheckboxes').appendChild(newLabel);
     }
 
     function speakTargetText(text, lang) {
@@ -412,34 +410,36 @@
         window.speechSynthesis.speak(msg);
     }
 
-    function updateStatus(text) {
-        const box = document.getElementById('statusBox');
-        box.innerText = text;
-        if (text.includes("번역 중")) box.style.background = "#f39c12"; 
-        else if (text.includes("방송 중")) box.style.background = "#28a745"; 
-        else box.style.background = "#6c757d"; 
-    }
-
     async function toggleConnection(role) {
-        const speakerBtn = document.getElementById('speakerBtn');
-        const viewerBtn = document.getElementById('viewerBtn');
-        const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+        let spkLang = "";
+        let targetLangs = [];
         
-        if (targetLangs.length === 0) return alert("번역 화면을 선택해주세요!");
+        if (role === 'speaker') {
+            spkLang = document.getElementById('speakerLang').value;
+            targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+            if (targetLangs.length === 0) return alert("번역 화면을 최소 1개 이상 선택해주세요!");
+            
+            // 관리자 화면 렌더링
+            let winHtml = targetLangs.map(lang => `<div class="window"><h3>${langNames[lang] || lang}</h3><div id="box_${lang}" class="content-box"></div></div>`).join('');
+            
+            // 🚨 관리자 전용 '현장 작업자 보고 채널' 창을 맨 앞에 추가
+            winHtml = `
+            <div class="window" id="workerReportsWindow" style="border: 3px solid #d32f2f;">
+                <h3 style="background:#d32f2f; color:white; padding:10px; margin:-15px -15px 10px; border-radius:8px 8px 0 0;">🚨 현장 작업자 보고 수신함</h3>
+                <div id="box_reports" class="content-box"></div>
+            </div>` + winHtml;
+            
+            document.getElementById('windowContainer').innerHTML = winHtml;
+            
+        } else if (role === 'worker') {
+            spkLang = document.getElementById('workerMyLang').value;
+            targetLangs = [qrMgrLang]; // 작업자의 타겟은 무조건 관리자의 언어
+        }
 
         if (!isConnected) {
             try {
-                if (role === 'viewer') document.body.classList.add('viewer-mode');
-
-                if (document.getElementById('windowContainer').innerHTML.trim() === "" || role === 'viewer') {
-                    document.getElementById('windowContainer').innerHTML = targetLangs.map(lang => 
-                        `<div class="window"><h3>${langNames[lang] || lang}</h3><div id="box_${lang}" class="content-box"></div></div>`
-                    ).join('');
-                }
-
-                const spkLang = document.getElementById('speakerLang').value;
-                const ep = document.getElementById('endpointingSlider').value;
-                const mx = document.getElementById('maxCharSlider').value;
+                const ep = role === 'speaker' ? document.getElementById('endpointingSlider').value : 700;
+                const mx = role === 'speaker' ? document.getElementById('maxCharSlider').value : 50;
 
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}`);
@@ -449,85 +449,135 @@
                     if (role === 'speaker') {
                         ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossaryInput').value }));
                         stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
-                        speakerBtn.innerText = "🛑 지시 종료";
-                        speakerBtn.classList.add('active');
-                        updateStatus("✅ 관리자 마이크 연결됨 (현장 방송 중)");
+                        document.getElementById('speakerBtn').innerText = "🛑 지시 종료";
+                        document.getElementById('speakerBtn').classList.add('active');
+                        document.getElementById('statusBox').innerText = "✅ 관리자 마이크 연결됨 (현장 방송 중)";
+                        document.getElementById('statusBox').style.background = "#28a745";
                         
-                        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-                        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0 && ws.readyState === 1) ws.send(e.data); };
-                        mediaRecorder.start(250); 
-                    } else {
-                        viewerBtn.innerText = "🛑 수신 종료";
-                        viewerBtn.classList.add('active');
-                        updateStatus("👀 작업자 모드 접속 완료");
+                        managerMediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                        managerMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0 && ws.readyState === 1) ws.send(e.data); };
+                        managerMediaRecorder.start(250); 
                     }
                 };
 
+                // 메시지 수신 로직 (양방향 처리)
                 ws.onmessage = (event) => {
                     const res = JSON.parse(event.data);
                     
-                    if (res.type === "alert") triggerAlert();
-                    else if (res.type === "interim") {
-                        document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
-                        if (!currentSentenceId) currentSentenceId = "msg_" + Date.now();
-
-                        targetLangs.forEach(lang => {
-                            const box = document.getElementById(`box_${lang}`);
-                            if (box) {
-                                let div = document.getElementById(`${currentSentenceId}_${lang}`);
-                                if (!div) {
-                                    div = document.createElement('div');
-                                    div.id = `${currentSentenceId}_${lang}`;
-                                    div.className = 'sentence';
-                                    box.appendChild(div);
-                                }
-                                div.innerHTML = `<span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>`;
-                                box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                    if (res.type === "interim") {
+                        if (res.role === "speaker") {
+                            // 관리자가 말할 때 -> 기존 로직
+                            if(!document.body.classList.contains('viewer-mode')) {
+                                document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                             }
-                        });
-                    } else if (res.type === "status") {
-                        updateStatus(res.text);
-                    } else if (res.type === "translation") {
-                        document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">현장 지시 대기 중...</span>`;
-                        const data = res.data;
-                        transcriptLog += `원문: ${data.original}\n`;
-
-                        targetLangs.forEach(lang => {
-                            if(data.translations[lang]) {
+                            if (!currentSentenceId) currentSentenceId = "msg_" + Date.now();
+                            const boxes = document.body.classList.contains('viewer-mode') ? [document.getElementById('workerMyLang').value] : targetLangs;
+                            boxes.forEach(lang => {
                                 const box = document.getElementById(`box_${lang}`);
-                                if (!box) return;
-                                
-                                const div = document.getElementById(`${currentSentenceId}_${lang}`) || document.createElement('div');
-                                div.className = 'sentence';
-                                div.id = "";
-                                
-                                const isSame = (res.source_lang === lang);
-                                const transText = data.translations[lang];
-                                const safeText = transText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-                                const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
-                                
-                                if (isSame) div.innerHTML = `<span class="same-lang-text">${transText}</span> ${ttsBtnHTML}`;
-                                else div.innerHTML = `<span class="original-text">원문: ${data.original}</span><span class="latest-text">${transText}</span> ${ttsBtnHTML}`;
-                                
-                                if (!document.getElementById(`${currentSentenceId}_${lang}`)) box.appendChild(div);
-                                transcriptLog += `- ${lang}: ${transText}\n`;
+                                if (box) {
+                                    let div = document.getElementById(`${currentSentenceId}_${lang}`);
+                                    if (!div) { div = document.createElement('div'); div.id = `${currentSentenceId}_${lang}`; div.className = 'sentence'; box.appendChild(div); }
+                                    div.innerHTML = `<span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>`;
+                                    box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                                }
+                            });
+                        } else if (res.role === "worker") {
+                            // 작업자가 말할 때 -> 관리자 화면의 '수신함'에 듣는 중 표시
+                            const box = document.getElementById('box_reports');
+                            if (box && !document.body.classList.contains('viewer-mode')) {
+                                if (!currentSentenceId) currentSentenceId = "worker_msg_" + Date.now();
+                                let div = document.getElementById(currentSentenceId);
+                                if (!div) { div = document.createElement('div'); div.id = currentSentenceId; div.className = 'sentence'; box.appendChild(div); }
+                                div.innerHTML = `<span class="draft-text" style="color:#d32f2f;">무전 수신 중 🚨: ${res.text} ...</span>`;
                                 box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                             }
-                        });
-                        transcriptLog += `----------------------------------------\n`;
-                        currentSentenceId = null; 
+                        }
+                    } 
+                    else if (res.type === "translation") {
+                        const data = res.data;
+                        
+                        if (res.role === "speaker") {
+                            // 관리자 발화 최종 번역
+                            if(!document.body.classList.contains('viewer-mode')) {
+                                document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">현장 지시 대기 중...</span>`;
+                            }
+                            transcriptLog += `[지시] 원문: ${data.original}\n`;
+
+                            const boxes = document.body.classList.contains('viewer-mode') ? [document.getElementById('workerMyLang').value] : targetLangs;
+                            boxes.forEach(lang => {
+                                if(data.translations[lang]) {
+                                    const box = document.getElementById(`box_${lang}`);
+                                    if (!box) return;
+                                    const div = document.getElementById(`${currentSentenceId}_${lang}`) || document.createElement('div');
+                                    div.className = 'sentence'; div.id = "";
+                                    
+                                    const transText = data.translations[lang];
+                                    const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${transText.replace(/'/g, "&#39;")}', '${lang}')">🔊 듣기</button>`;
+                                    
+                                    if (res.source_lang === lang) div.innerHTML = `<span class="same-lang-text">${transText}</span> ${ttsBtnHTML}`;
+                                    else div.innerHTML = `<span class="original-text">원문: ${data.original}</span><span class="latest-text">${transText}</span> ${ttsBtnHTML}`;
+                                    
+                                    if (!document.getElementById(`${currentSentenceId}_${lang}`)) box.appendChild(div);
+                                    transcriptLog += `- ${lang}: ${transText}\n`;
+                                    box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                                }
+                            });
+                            currentSentenceId = null; 
+                        } 
+                        else if (res.role === "worker") {
+                            // 작업자 발화 최종 번역
+                            // 1. 관리자 화면 (수신함) 업데이트
+                            const box = document.getElementById('box_reports');
+                            if (box && !document.body.classList.contains('viewer-mode')) {
+                                const div = document.getElementById(currentSentenceId) || document.createElement('div');
+                                div.className = 'sentence'; div.id = "";
+                                
+                                const mgrLang = document.getElementById('speakerLang').value;
+                                const transText = data.translations[mgrLang] || data.translations['ko'] || data.original;
+                                
+                                div.innerHTML = `
+                                    <div style="background:#fce4e4; padding:12px; border-radius:8px; border-left:5px solid #d32f2f;">
+                                        <span style="display:inline-block; background:#d32f2f; color:white; padding:3px 8px; border-radius:12px; font-size:12px; margin-bottom:8px; font-weight:bold;">👷 작업자 발신 (${langNames[res.source_lang] || res.source_lang})</span>
+                                        <span class="original-text">원문: ${data.original}</span>
+                                        <span class="latest-text" style="color:#d32f2f; font-size:22px; display:block; margin-top:5px;">${transText}</span>
+                                    </div>
+                                `;
+                                if (!document.getElementById(currentSentenceId)) box.appendChild(div);
+                                box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                            }
+                            
+                            // 2. 작업자 본인 화면 (피드백) 업데이트
+                            if (document.body.classList.contains('viewer-mode')) {
+                                const workerLang = document.getElementById('workerMyLang').value;
+                                const workerBox = document.getElementById(`box_${workerLang}`);
+                                if (workerBox) {
+                                    const div = document.createElement('div');
+                                    div.className = 'sentence';
+                                    div.innerHTML = `
+                                        <div style="background:#e6f4ea; padding:12px; border-radius:8px; border-left:5px solid #28a745; margin-top:10px;">
+                                            <span style="color:#28a745; font-weight:bold; font-size:13px; display:block; margin-bottom:5px;">📤 나의 보고 전송 완료</span>
+                                            <span class="latest-text" style="color:#333; font-size:18px;">${data.original}</span>
+                                        </div>
+                                    `;
+                                    workerBox.appendChild(div);
+                                    workerBox.scrollTo({ top: workerBox.scrollHeight, behavior: 'smooth' });
+                                }
+                            }
+                            currentSentenceId = null;
+                        }
+                    } else if (res.type === "status" && res.role === "speaker") {
+                        if(document.getElementById('statusBox')) document.getElementById('statusBox').innerText = res.text;
                     }
                 };
                 
                 ws.onclose = (e) => {
-                    if(e.code === 1008) {
-                        alert("인증이 만료되었거나 유효하지 않습니다. 다시 로그인해주세요.");
-                        logout();
-                    } else resetUI();
+                    if(e.code === 1008) { alert("인증이 만료되었습니다. 다시 로그인해주세요."); logout(); } 
+                    else resetUI();
                 };
             } catch (err) { alert("연결 오류가 발생했습니다."); }
         } else {
-            if (mediaRecorder) mediaRecorder.stop();
+            if (managerMediaRecorder) managerMediaRecorder.stop();
+            if (workerMediaRecorder) workerMediaRecorder.stop();
             if (stream) stream.getTracks().forEach(t => t.stop());
             if (ws) ws.close();
             resetUI();
@@ -536,12 +586,12 @@
 
     function resetUI() {
         isConnected = false;
-        document.body.classList.remove('viewer-mode');
-        document.getElementById('speakerBtn').innerText = "🎤 [PC] 마이크 켜기";
-        document.getElementById('viewerBtn').innerText = "👀 [스마트폰] 작업자 접속";
-        document.getElementById('speakerBtn').classList.remove('active');
-        document.getElementById('viewerBtn').classList.remove('active');
-        updateStatus("시스템 대기 중");
+        if(document.getElementById('speakerBtn')) {
+            document.getElementById('speakerBtn').innerText = "🎤 [PC] 마이크 켜기";
+            document.getElementById('speakerBtn').classList.remove('active');
+            document.getElementById('statusBox').innerText = "시스템 대기 중";
+            document.getElementById('statusBox').style.background = "#6c757d";
+        }
     }
 </script>
 </body>
