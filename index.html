@@ -121,7 +121,7 @@
     <div id="viewerTopBar">
         <label style="color:white; font-weight:bold; margin-right:10px;">🌐 내 언어 선택:</label>
         <select id="viewerLangSelect" onchange="filterViewerWindows()">
-            <option value="all">전체 언어 보기 (Show All)</option>
+            <option value="" disabled selected>선택 / Select</option>
         </select>
     </div>
 
@@ -234,6 +234,12 @@
         </div>
     </div>
 
+    <!-- 뷰어 모드 전용 안내 메시지 -->
+    <div id="viewerPlaceholder" style="display: none; color: white; text-align: center; margin-top: 50px; font-size: 18px; line-height: 1.6; width: 100%;">
+        👆 상단의 <b>[🌐 내 언어 선택]</b> 메뉴를 눌러<br>본인의 국가 언어를 1개 선택해주세요.<br><br>
+        <span style="font-size: 14px; color: #ccc;">Please select your language from the top menu.</span>
+    </div>
+
     <!-- 반응형 번역 창 컨테이너 -->
     <div class="window-container" id="windowContainer"></div>
 </div>
@@ -290,15 +296,26 @@
 
     // 💡 선택된 언어만 화면에 남기는 필터 함수 (작업자 뷰어용)
     function filterViewerWindows() {
+        // 관리자 모드일 때는 뷰어 필터가 작동하지 않도록 차단
+        if (!document.body.classList.contains('viewer-mode')) return;
+
         const selected = document.getElementById('viewerLangSelect').value;
         const windows = document.querySelectorAll('.window-container .window');
+        const placeholder = document.getElementById('viewerPlaceholder');
+        let hasVisibleWindow = false;
+
         windows.forEach(win => {
-            if (selected === 'all' || win.id === `win_${selected}`) {
+            if (selected && win.id === `win_${selected}`) {
                 win.style.display = 'flex';
+                hasVisibleWindow = true;
             } else {
                 win.style.display = 'none';
             }
         });
+
+        if (placeholder) {
+            placeholder.style.display = hasVisibleWindow ? 'none' : 'block';
+        }
     }
 
     // 💡 방송이 도착했을 때 해당 언어의 창이 없으면 즉시 자동 생성해주는 마법의 함수
@@ -347,6 +364,17 @@
     }
 
     window.addEventListener('load', () => {
+        // 💡 뷰어용 드롭다운에 모든 언어 미리 채워넣기
+        const viewerSelect = document.getElementById('viewerLangSelect');
+        Object.keys(langNames).forEach(code => {
+            if (!viewerSelect.querySelector(`option[value="${code}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.innerText = langNames[code];
+                viewerSelect.appendChild(opt);
+            }
+        });
+
         document.querySelectorAll('#targetCheckboxes input').forEach(cb => {
             cb.addEventListener('change', updateWindows);
         });
@@ -411,6 +439,7 @@
 
     function exitViewerMode() {
         document.body.classList.remove('viewer-mode');
+        document.getElementById('viewerPlaceholder').style.display = 'none';
         if (isConnected) toggleConnection('viewer'); 
     }
 
@@ -507,7 +536,13 @@
 
         if (!isConnected) {
             try {
-                if (role === 'viewer') document.body.classList.add('viewer-mode');
+                if (role === 'viewer') {
+                    document.body.classList.add('viewer-mode');
+                    const placeholder = document.getElementById('viewerPlaceholder');
+                    if (placeholder && !document.getElementById('viewerLangSelect').value) {
+                        placeholder.style.display = 'block';
+                    }
+                }
 
                 const spkLang = document.getElementById('speakerLang').value;
                 const ep = document.getElementById('endpointingSlider').value;
@@ -608,6 +643,7 @@
     function resetUI() {
         isConnected = false;
         document.body.classList.remove('viewer-mode');
+        document.getElementById('viewerPlaceholder').style.display = 'none';
         document.getElementById('speakerBtn').innerText = "🎤 [PC] 마이크 켜기";
         document.getElementById('viewerBtn').innerText = "👀 [스마트폰] 작업자 접속";
         document.getElementById('speakerBtn').classList.remove('active');
@@ -617,3 +653,6 @@
 </script>
 </body>
 </html>
+```
+
+저장하신 후 렌더가 배포를 마치면, 강력 새로고침(`Ctrl` + `F5`)을 하시고 스마트폰으로 다시 QR 코드를 스캔해 보세요! 한층 더 직관적이고 깔끔해진 작업자 전용 화면을 보실 수 있습니다.
