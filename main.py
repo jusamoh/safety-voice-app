@@ -15,10 +15,8 @@ from anthropic import AsyncAnthropic
 # ==========================================
 # 💡 1. API 키 로드 및 안전장치
 # ==========================================
-# os.environ.get()을 사용하여 클라우드 서버의 환경 변수에서 키를 몰래 가져옵니다.
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-
 
 if DEEPGRAM_API_KEY.startswith("여기에") or ANTHROPIC_API_KEY.startswith("여기에"):
     print("❌ 오류: main.py 파일 내부에 실제 API 키를 입력해주세요.")
@@ -113,6 +111,8 @@ async def websocket_endpoint(
     await manager.connect(websocket)
     context_memory = [] 
     glossary_text = ""
+    # 💡 프론트엔드에서 실시간으로 체크박스를 바꾸면 서버의 이 변수가 업데이트됩니다.
+    dynamic_targets = targets 
 
     try:
         if role == "viewer":
@@ -126,7 +126,7 @@ async def websocket_endpoint(
 
             async with websockets.connect(dg_url, extra_headers=headers) as dg_ws:
                 async def sender():
-                    nonlocal glossary_text 
+                    nonlocal glossary_text, dynamic_targets # 💡 nonlocal 선언으로 실시간 업데이트 가능하도록 설정
                     try:
                         while True:
                             message = await websocket.receive()
@@ -137,8 +137,12 @@ async def websocket_endpoint(
                                     try:
                                         config = json.loads(message.get("text"))
                                         if config.get("type") == "config":
-                                            glossary_text = config.get("glossary", "")
-                                            print(f"✅ [용어집 수신 완료] {len(glossary_text)}자")
+                                            if "glossary" in config:
+                                                glossary_text = config.get("glossary", "")
+                                            # 💡 체크박스 변경 시 서버의 타겟 언어를 즉시 변경하여 번역 지시 업데이트
+                                            if "targets" in config:
+                                                dynamic_targets = config.get("targets", dynamic_targets)
+                                                print(f"🔄 [타겟 언어 실시간 변경됨] 현재 타겟: {dynamic_targets}")
                                     except:
                                         pass
                     except:
@@ -161,14 +165,14 @@ async def websocket_endpoint(
 
                                 if is_final: current_sentence += " " + transcript
 
-                                # 문장의 끝이 마침표, 물음표, 느낌표로 끝나는지 확인하는 로직 추가
                             is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
 
                             if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
                                 final_text = current_sentence.strip()
                                 current_sentence = ""  
                                 await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                asyncio.create_task(translate_and_send(final_text, lang, targets, context_memory, glossary_text))
+                                # 💡 번역 지시를 내릴 때, 업데이트된 'dynamic_targets'를 클로드에게 전달
+                                asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, context_memory, glossary_text))
                     except:
                         pass
                 await asyncio.gather(sender(), receiver())
@@ -183,7 +187,6 @@ async def websocket_endpoint(
 # ==========================================
 async def translate_and_send(text: str, source_lang: str, targets: str, context_memory: list, glossary_text: str):
     
-    # 🚨 현장 위험 키워드 감지 시 스마트폰 점멸 경고
     if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
         await manager.broadcast_json({"type": "alert"})
         print(f"🚨 [경고 발송] 스마트폰 점멸 트리거 작동 (원인: '{text}')")
@@ -216,7 +219,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
     {{"original": "clean current sentence", "translations": {{"lang_code_1": "result", "lang_code_2": "result"}}}}
     """
     try:
-        # 🔥 최신 4.5 모델 적용 완료
         response = await claude_client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=500,
