@@ -158,14 +158,20 @@ async def websocket_endpoint(websocket: WebSocket):
     lang = websocket.query_params.get("lang", "ko")
     targets = websocket.query_params.get("targets", "en").split(",")
     role = websocket.query_params.get("role", "speaker")
-    endpointing = websocket.query_params.get("endpointing", "500")
+    
+    raw_ep = websocket.query_params.get("endpointing", "0.5")
+    try:
+        endpointing_ms = int(float(raw_ep) * 1000)
+    except ValueError:
+        endpointing_ms = 500
+        
     max_chars = int(websocket.query_params.get("max_chars", "50"))
     
     context_memory = []
     glossary_text = ""
     last_translated_text = ""
 
-    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
+    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing_ms}&keepalive=true"
     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
     try:
