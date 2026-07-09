@@ -364,16 +364,21 @@
     }
 
     window.addEventListener('load', () => {
-        // 💡 뷰어용 드롭다운에 모든 언어 미리 채워넣기
+        // 💡 뷰어용 드롭다운 초기화: 모든 언어가 아닌 '감독관이 QR로 넘겨준 언어'만 채우기
         const viewerSelect = document.getElementById('viewerLangSelect');
-        Object.keys(langNames).forEach(code => {
-            if (!viewerSelect.querySelector(`option[value="${code}"]`)) {
-                const opt = document.createElement('option');
-                opt.value = code;
-                opt.innerText = langNames[code];
-                viewerSelect.appendChild(opt);
-            }
-        });
+        const urlTargets = new URLSearchParams(window.location.search).get('targets');
+
+        if (urlTargets) {
+            // QR코드(URL)로 전달받은 감독관의 언어 목록만 드롭다운에 추가
+            urlTargets.split(',').forEach(code => {
+                if (!viewerSelect.querySelector(`option[value="${code}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.innerText = langNames[code] || code;
+                    viewerSelect.appendChild(opt);
+                }
+            });
+        }
 
         document.querySelectorAll('#targetCheckboxes input').forEach(cb => {
             cb.addEventListener('change', updateWindows);
@@ -427,7 +432,9 @@
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ""; 
         
-        const qrUrl = `${currentUrl}?room_token=${authToken}`;
+        // 💡 QR 코드 주소(URL)에 현재 감독관이 체크한 번역 언어 목록(targets)을 함께 묶어서 전송!
+        const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+        const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${targetLangs.join(',')}`;
         
         new QRCode(qrContainer, {
             text: qrUrl,
@@ -653,3 +660,6 @@
 </script>
 </body>
 </html>
+```
+
+저장하신 후 렌더가 배포를 마치면, 강력 새로고침(`Ctrl` + `F5`)을 하시고 스마트폰으로 다시 QR 코드를 스캔해 보세요! 한층 더 직관적이고 깔끔해진 작업자 전용 화면을 보실 수 있습니다.
