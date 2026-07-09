@@ -3,64 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글로벌 현장 안전 통역 콘솔</title>
+    <title>글로벌 현장 안전 통역 콘솔 (Master)</title>
+    <!-- Tailwind CSS 적용 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 스크롤바 미려하게 다듬기 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-2xl font-bold mb-4 text-center">🚀 글로벌 현장 안전 통역 콘솔</h1>
+<body class="bg-slate-100 p-4 text-slate-800 font-sans">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-extrabold mb-6 text-center text-slate-900 drop-shadow-sm">🚀 글로벌 현장 안전 통역 콘솔</h1>
         
         <!-- 로그인 영역 -->
-        <div id="loginArea" class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <input type="text" id="username" placeholder="관리자 ID" class="border p-2 rounded mb-2 w-full">
-            <input type="password" id="password" placeholder="비밀번호" class="border p-2 rounded mb-2 w-full">
-            <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">로그인</button>
-            <div id="loginStatus" class="mt-2 text-red-500 font-bold"></div>
+        <div id="loginArea" class="bg-white p-8 rounded-xl shadow-lg mb-6 max-w-md mx-auto transition-all">
+            <h2 class="text-xl font-bold mb-4 text-center text-slate-700">관리자 접속</h2>
+            <input type="text" id="username" placeholder="아이디 (admin)" class="border border-slate-300 p-3 rounded-lg mb-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="password" placeholder="비밀번호 (1234)" class="border border-slate-300 p-3 rounded-lg mb-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-500" onkeydown="if(event.key==='Enter') login()">
+            <button onclick="login()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-3 rounded-lg w-full transition-colors shadow-md">로그인</button>
+            <div id="loginStatus" class="mt-3 text-red-500 font-semibold text-center text-sm"></div>
         </div>
 
         <!-- 메인 제어 영역 -->
-        <div id="mainArea" class="hidden">
+        <div id="mainArea" class="hidden animate-fade-in">
             <!-- 설정 및 제어판 -->
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <label><input type="checkbox" checked value="ko"> 한국어</label>
-                    <label><input type="checkbox" checked value="en"> 영어</label>
-                    <label><input type="checkbox" checked value="id"> 인니어</label>
-                    <label><input type="checkbox" checked value="vi"> 베트남어</label>
+            <div class="bg-white p-6 rounded-xl shadow-md mb-6 border-t-4 border-slate-800">
+                
+                <!-- 언어 선택 -->
+                <h3 class="font-bold text-slate-700 mb-2">🌐 모니터링 대상 언어</h3>
+                <div class="flex flex-wrap gap-4 mb-5 p-3 bg-slate-50 rounded-lg border">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="targets" checked value="ko" class="w-4 h-4 text-blue-600"> 
+                        <span class="font-medium">🇰🇷 한국어</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="targets" checked value="en" class="w-4 h-4 text-green-600"> 
+                        <span class="font-medium">🇺🇸 영어</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="targets" checked value="id" class="w-4 h-4 text-yellow-600"> 
+                        <span class="font-medium">🇮🇩 인니어</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="targets" checked value="vi" class="w-4 h-4 text-red-600"> 
+                        <span class="font-medium">🇻🇳 베트남어</span>
+                    </label>
                 </div>
-                <div class="mb-4">
-                    <label class="block mb-1">침묵 감지: <span id="epVal">0.5</span>초</label>
-                    <input type="range" id="endpointingSlider" min="0.1" max="1.5" step="0.1" value="0.5" class="w-full" oninput="updateVal('epVal', this.value)">
+
+                <h3 class="font-bold text-slate-700 mb-2">⚙️ 통역 최적화 설정</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5 p-3 bg-slate-50 rounded-lg border">
+                    <div>
+                        <label class="flex justify-between mb-1 font-medium text-sm text-slate-600">
+                            <span>침묵 감지 (Endpointing)</span>
+                            <span id="epVal" class="text-blue-600 font-bold">0.5초</span>
+                        </label>
+                        <input type="range" id="endpointingSlider" min="0.1" max="1.5" step="0.1" value="0.5" class="w-full accent-blue-600" oninput="updateVal('epVal', this.value + '초')">
+                    </div>
+                    <div>
+                        <label class="flex justify-between mb-1 font-medium text-sm text-slate-600">
+                            <span>최대 문장 길이 (강제 절단)</span>
+                            <span id="mxVal" class="text-blue-600 font-bold">50자</span>
+                        </label>
+                        <input type="range" id="maxCharSlider" min="30" max="150" step="5" value="50" class="w-full accent-blue-600" oninput="updateVal('mxVal', this.value + '자')">
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block mb-1">최대 문장 길이: <span id="mxVal">50</span>자</label>
-                    <input type="range" id="maxCharSlider" min="30" max="150" step="5" value="50" class="w-full" oninput="updateVal('mxVal', this.value)">
-                </div>
-                <textarea id="glossary" placeholder="현장 용어집 (예: 비계=Scaffolding)" class="border p-2 rounded w-full h-20 mb-2"></textarea>
-                <div class="flex gap-2">
-                    <button onclick="updateGlossary()" class="bg-yellow-500 text-white px-4 py-2 rounded">용어집 적용</button>
-                    <button onclick="showQR()" class="bg-purple-600 text-white px-4 py-2 rounded">📱 QR코드 띄우기</button>
+
+                <h3 class="font-bold text-slate-700 mb-2">📚 현장 안전 용어집 (Glossary)</h3>
+                <textarea id="glossary" placeholder="예: 비계=Scaffolding, 개구부=Opening, 아시바=Scaffolding" class="border border-slate-300 p-3 rounded-lg w-full h-24 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="updateGlossary()" class="bg-slate-700 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg shadow font-medium transition-colors">
+                        💾 용어집 서버에 주입
+                    </button>
+                    <button onclick="showQR()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg shadow font-medium transition-colors">
+                        📱 작업자용 QR코드 띄우기
+                    </button>
                 </div>
             </div>
 
-            <!-- 통역 화면 -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div id="box_ko" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-blue-500">
-                    <h2 class="font-bold border-b mb-2">🇰🇷 한국어</h2>
+            <!-- 통역 화면 패널 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
+                    <div class="bg-blue-50 p-3 border-b-2 border-blue-500 font-extrabold text-blue-900 text-center">🇰🇷 한국어 (원문)</div>
+                    <div id="box_ko" class="p-4 h-72 overflow-y-auto bg-slate-50"></div>
                 </div>
-                <div id="box_en" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-green-500">
-                    <h2 class="font-bold border-b mb-2">🇺🇸 영어</h2>
+                <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
+                    <div class="bg-green-50 p-3 border-b-2 border-green-500 font-extrabold text-green-900 text-center">🇺🇸 영어</div>
+                    <div id="box_en" class="p-4 h-72 overflow-y-auto bg-slate-50"></div>
                 </div>
-                <div id="box_id" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-yellow-500">
-                    <h2 class="font-bold border-b mb-2">🇮🇩 인니어</h2>
+                <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
+                    <div class="bg-yellow-50 p-3 border-b-2 border-yellow-500 font-extrabold text-yellow-900 text-center">🇮🇩 인니어</div>
+                    <div id="box_id" class="p-4 h-72 overflow-y-auto bg-slate-50"></div>
                 </div>
-                <div id="box_vi" class="bg-white p-4 rounded shadow h-64 overflow-y-auto border-t-4 border-red-500">
-                    <h2 class="font-bold border-b mb-2">🇻🇳 베트남어</h2>
+                <div class="bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
+                    <div class="bg-red-50 p-3 border-b-2 border-red-500 font-extrabold text-red-900 text-center">🇻🇳 베트남어</div>
+                    <div id="box_vi" class="p-4 h-72 overflow-y-auto bg-slate-50"></div>
                 </div>
             </div>
             
-            <button id="micBtn" onclick="toggleMic()" class="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg w-full text-lg mb-2">🎤 마이크 켜기</button>
-            <div id="statusBtn" class="p-2 bg-blue-100 text-center rounded">현장 지시 대기 중...</div>
+            <button id="micBtn" onclick="toggleMic()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-full shadow-xl w-full text-xl font-black mb-4 transition-all transform hover:scale-[1.01]">
+                🎤 마이크 켜기 (통역 시작)
+            </button>
+            <div id="statusBtn" class="p-3 bg-slate-800 text-white text-center rounded-lg font-medium shadow-inner">
+                대기 중... 마이크를 켜주세요.
+            </div>
         </div>
     </div>
 
@@ -68,87 +117,188 @@
         let ws;
         let isMicOn = false;
         let authToken = "";
+        let mediaRecorder = null;
 
-        function updateVal(id, val) { document.getElementById(id).innerText = val; }
+        // 슬라이더 텍스트 실시간 업데이트
+        function updateVal(id, val) { 
+            document.getElementById(id).innerText = val; 
+        }
 
         async function login() {
-            const username = document.getElementById('username').value;
-            const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ username }) });
-            const data = await res.json();
-            if (data.success) {
-                authToken = data.token;
-                document.getElementById('loginArea').classList.add('hidden');
-                document.getElementById('mainArea').classList.remove('hidden');
-                initWS();
-            } else {
-                document.getElementById('loginStatus').innerText = data.message;
+            // 공백을 없애서 입력 실수를 완벽 방어합니다.
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const statusDiv = document.getElementById('loginStatus');
+            
+            statusDiv.innerText = "로그인 중...";
+
+            try {
+                const res = await fetch('/api/login', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password }) 
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    document.getElementById('loginArea').style.display = 'none';
+                    document.getElementById('mainArea').classList.remove('hidden');
+                    initWS();
+                } else {
+                    // 백엔드가 보내주는 message 키를 정확히 읽어 undefined 방어!
+                    statusDiv.innerText = data.message || "아이디 또는 비밀번호가 틀렸습니다.";
+                }
+            } catch (err) {
+                statusDiv.innerText = "서버와 연결할 수 없습니다. 주소를 확인해주세요.";
             }
         }
 
         function initWS() {
             const lang = "ko";
-            const targets = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value).join(',');
+            // 선택된 타겟 언어들을 콤마로 연결
+            const targets = Array.from(document.querySelectorAll('input[name="targets"]:checked')).map(i => i.value).join(',');
             const ep = document.getElementById('endpointingSlider').value;
             const mx = document.getElementById('maxCharSlider').value;
             
+            // HTTPS 환경에서는 보안 웹소켓(wss)으로 자동 전환하는 똑똑한 로직
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${lang}&targets=${targets}&role=speaker&endpointing=${ep}&max_chars=${mx}`);
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${lang}&targets=${targets}&role=speaker&endpointing=${ep}&max_chars=${mx}`;
             
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log("WebSocket 연결 완료!");
+            };
+
             ws.onmessage = async (event) => {
                 const res = JSON.parse(event.data);
                 
+                // 서버 상태 메시지 업데이트
                 if (res.type === "status") {
                     document.getElementById('statusBtn').innerText = res.text;
                 } 
+                // 듣는 중... (Interim) 메시지 실시간 표출
                 else if (res.type === "interim") {
                     const box = document.getElementById(`box_${res.source_lang}`);
                     if (box) {
                         let interim = box.querySelector('.interim-msg');
                         if (!interim) {
                             interim = document.createElement('div');
-                            interim.className = "interim-msg text-gray-500 italic text-sm";
+                            // 애니메이션과 함께 부드럽게 등장
+                            interim.className = "interim-msg text-slate-500 italic text-sm mt-2 p-2 bg-slate-200/50 rounded-lg animate-pulse";
                             box.appendChild(interim);
                         }
                         interim.innerText = "듣는 중 ✍️: " + res.text;
                         box.scrollTop = box.scrollHeight;
                     }
                 } 
+                // 최종 번역 완료 (Translation) 메시지 확정 표출
                 else if (res.type === "translation") {
                     const langs = ['ko', 'en', 'id', 'vi'];
+                    
                     langs.forEach(lang => {
                         const box = document.getElementById(`box_${lang}`);
                         if (!box) return;
 
-                        // 1. 기존 '듣는 중' 메시지 제거
+                        // 1. 기존에 떠있던 회색 "듣는 중..." 텍스트를 즉시 깔끔하게 삭제합니다.
                         let interim = box.querySelector('.interim-msg');
                         if (interim) interim.remove();
 
-                        // 2. 최종 번역 결과 표시
-                        const text = (lang === res.source_lang) ? res.original : (res.translations[lang] || res.original);
+                        // 2. 서버에서 받은 번역 텍스트를 꺼냅니다.
+                        // (클로드가 빼먹었을 경우를 대비한 철벽 방어막: 원문 출력)
+                        const finalString = res.translations[lang] || res.original;
+
+                        // 3. 확정된 텍스트를 진한 글씨로 화면에 박아줍니다.
                         const finalDiv = document.createElement('div');
-                        finalDiv.className = "mb-2 p-2 border-b font-bold text-lg animate-pulse";
-                        finalDiv.innerText = text;
+                        finalDiv.className = "mb-3 p-3 bg-white border-l-4 border-slate-700 rounded shadow-sm text-slate-800 font-semibold text-lg leading-relaxed";
+                        finalDiv.innerText = finalString;
+                        
                         box.appendChild(finalDiv);
+                        
+                        // 스크롤을 맨 아래로 자동 이동
                         box.scrollTop = box.scrollHeight;
                     });
                 }
             };
+
+            ws.onclose = () => {
+                document.getElementById('statusBtn').innerText = "🚨 서버와 연결이 끊어졌습니다. 새로고침 해주세요.";
+                document.getElementById('statusBtn').classList.replace('bg-slate-800', 'bg-red-600');
+            };
         }
 
         function updateGlossary() {
-            ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossary').value }));
-            alert("용어집이 적용되었습니다.");
+            const glossaryText = document.getElementById('glossary').value;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "config", glossary: glossaryText }));
+                alert("✅ 용어집이 서버와 AI에 성공적으로 주입되었습니다!");
+            } else {
+                alert("🚨 서버와 연결되어 있지 않습니다.");
+            }
         }
 
+        // 구글 차트 API를 이용한 팝업 QR코드 생성기
+        function showQR() {
+            const currentUrl = encodeURIComponent(window.location.href);
+            const qrUrl = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${currentUrl}`;
+            
+            const qrWindow = window.open("", "_blank", "width=350,height=400,top=200,left=200");
+            qrWindow.document.write(`
+                <div style="text-align:center; font-family:sans-serif; padding-top:20px;">
+                    <h2 style="color:#333;">작업자 뷰어 접속 QR코드</h2>
+                    <p style="color:#666; font-size:14px;">스마트폰 기본 카메라로 스캔하세요</p>
+                    <img src="${qrUrl}" alt="QR Code" style="margin-top:15px; border:2px solid #ddd; border-radius:10px; padding:10px;" />
+                </div>
+            `);
+        }
+
+        // 마이크 스트리밍 완벽 구현
         async function toggleMic() {
+            const micBtn = document.getElementById('micBtn');
+            const statusBtn = document.getElementById('statusBtn');
+
             if (!isMicOn) {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                // 웹소켓을 통한 오디오 전송 로직이 필요함
-                document.getElementById('micBtn').innerText = "🛑 마이크 끄기";
-                document.getElementById('micBtn').classList.replace('bg-green-600', 'bg-red-600');
-                isMicOn = true;
+                try {
+                    // 브라우저 마이크 권한 요청
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // 오디오를 잘게 쪼개어 서버로 스트리밍 전송 (MediaRecorder API)
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        // 웹소켓이 열려있고 데이터가 있을 때만 전송 (에러 원천 차단)
+                        if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(event.data);
+                        }
+                    };
+                    
+                    // 0.25초 단위로 아주 잘게 쪼개서 서버로 쏘아줍니다 (초저지연 실시간 구현)
+                    mediaRecorder.start(250); 
+                    
+                    micBtn.innerHTML = "🛑 마이크 끄기 (통역 중지)";
+                    micBtn.classList.replace('bg-emerald-600', 'bg-red-600');
+                    micBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-red-500');
+                    
+                    statusBtn.innerHTML = "🎙️ 현장 지시 수신 중... (마이크 작동 중)";
+                    statusBtn.classList.replace('bg-slate-800', 'bg-blue-600');
+                    
+                    isMicOn = true;
+                } catch (err) {
+                    alert("🚨 마이크 권한이 차단되었거나 장치를 찾을 수 없습니다. 브라우저 설정에서 마이크를 허용해주세요!");
+                    console.error("Mic error: ", err);
+                }
             } else {
-                window.location.reload();
+                // 마이크 끄기
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    // 스트림 트랙 완벽 종료
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop()); 
+                }
+                
+                // 깔끔한 시스템 재시작을 위해 새로고침
+                window.location.reload(); 
             }
         }
     </script>
