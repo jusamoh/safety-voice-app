@@ -285,14 +285,9 @@
         document.getElementById('appContainer').style.display = 'block';
         document.body.classList.add('viewer-mode');
         setTimeout(() => toggleConnection('viewer'), 500);
-    } else {
-        const savedToken = localStorage.getItem('auth_token');
-        const savedUser = localStorage.getItem('auth_user');
-        if (savedToken) {
-            authToken = savedToken;
-            unlockApp(savedUser);
-        }
-    }
+    } 
+    // 💡 기존에 있던 else { localStorage 검사하여 자동 로그인하는 로직 } 전체를 삭제했습니다.
+    // 이렇게 하면 QR 코드(room_token)로 들어온 작업자가 아닌 이상, 항상 로그인 화면(loginOverlay)에 머물게 됩니다.
 
     // 💡 선택된 언어만 화면에 남기는 필터 함수 (작업자 뷰어용)
     function filterViewerWindows() {
