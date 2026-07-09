@@ -145,7 +145,7 @@ async def websocket_endpoint(
                                                 glossary_text = config.get("glossary", "")
                                             if "targets" in config:
                                                 dynamic_targets = config.get("targets", dynamic_targets)
-                                                print(f"🔄 [타겟 언어 실시간 변경됨] 현재 타겟: {dynamic_targets}", flush=True)
+                                                print(f"🔄 [타겟 언어 실시간 변경됨] 현재 타겟: {dynamic_targets}")
                                     except:
                                         pass
                     except:
@@ -153,55 +153,55 @@ async def websocket_endpoint(
 
                 async def receiver():
                     current_sentence = ""
-                    last_translated_text = ""
+                    last_translated_text = ""  # 중복 번역 방지를 위한 기억 장치
                     try:
                         while True:
                             dg_result = await dg_ws.recv()
                             dg_json = json.loads(dg_result)
                             
-                            if dg_json.get("type") == "Metadata": continue
-
-                            is_final = dg_json.get("is_final", False)
-                            speech_final = dg_json.get("speech_final", False)
-                            transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
-                            
-                            if transcript:
-                                current_sentence = transcript
-
-                            if current_sentence.strip():
-                                # 💡 뷰어들에게 현재 방송 중인 언어 목록을 함께 넘겨줍니다.
-                                current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
-                                await manager.broadcast_json({
-                                    "type": "interim", 
-                                    "text": current_sentence,
-                                    "targets": current_targets_list
-                                })
-
-                            if is_final: current_sentence += " " + transcript
-
-                            is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
-
-                            if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
-                                final_text = current_sentence.strip()
+                            if dg_json.get("type") == "Results":
+                                is_final = dg_json.get("is_final", False)
+                                speech_final = dg_json.get("speech_final", False)
+                                transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
                                 
-                                if final_text == last_translated_text:
+                                # 💡 1. 뷰어들에게 실시간 텍스트 표시 (텍스트 증식 버그 수정)
+                                if transcript or current_sentence:
+                                    display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
+                                    current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
+                                    await manager.broadcast_json({
+                                        "type": "interim", 
+                                        "text": display_text.strip(),
+                                        "targets": current_targets_list
+                                    })
+
+                                # 💡 2. 문장이 확정되었을 때만 뒤로 이어 붙임 (2배 반복 버그 차단)
+                                if is_final and transcript:
+                                    if current_sentence:
+                                        current_sentence += " " + transcript
+                                    else:
+                                        current_sentence = transcript
+
+                                # 💡 3. 마침표, 물음표 등 문맥 끝맺음 감지
+                                is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
+
+                                # 💡 4. 번역 트리거 발동 조건 (침묵 OR 글자수 초과 OR 마침표)
+                                if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
+                                    final_text = current_sentence.strip()
+                                    
+                                    # 💡 5. 이전에 보낸 문장과 다를 때만 번역기로 전송 (2번 번역 버그 완벽 차단)
+                                    if final_text != last_translated_text:
+                                        last_translated_text = final_text
+                                        await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
+                                        asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, context_memory, glossary_text))
+                                    
+                                    # 번역 처리가 끝나면 현재 누적된 문장을 비움
                                     current_sentence = ""
-                                    continue
-                                
-                                last_translated_text = final_text
-                                current_sentence = ""  
-                                await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, context_memory, glossary_text))
                     except:
                         pass
                 await asyncio.gather(sender(), receiver())
                 
     except Exception as e:
-        print(f"🚨 웹소켓/Deepgram 에러 발생: {e}", flush=True)
-    finally:
-        manager.disconnect(websocket)
-
-# ==========================================
+        print(f"🚨 웹소켓/Deepgram 에러 발생: {e}")
 # 🧠 5. LLM 번역 및 안전 경고 로직 (Claude 4.5 Haiku)
 # ==========================================
 async def translate_and_send(text: str, source_lang: str, targets: str, context_memory: list, glossary_text: str):
