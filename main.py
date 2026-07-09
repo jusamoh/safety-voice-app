@@ -6,9 +6,9 @@ import re
 import secrets 
 from datetime import datetime
 import websockets
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 
@@ -42,20 +42,25 @@ USER_DB = {
     "hyundai": "hdec1234"     
 }
 
-ACTIVE_TOKENS = {}
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+ACTIVE_TOKENS = set()
 
 @app.post("/api/login")
-async def login(req: LoginRequest):
-    if req.username in USER_DB and USER_DB[req.username] == req.password:
-        token = secrets.token_hex(16)
-        ACTIVE_TOKENS[token] = req.username
-        print(f"🔐 [인증 성공] 사용자 '{req.username}' 로그인 (토큰 발급됨)")
-        return {"success": True, "token": token, "username": req.username}
-    return {"success": False, "message": "아이디 또는 비밀번호가 올바르지 않습니다."}
+async def login(request: Request):
+    try:
+        data = await request.json()
+        user_id = str(data.get("username", data.get("id", ""))).strip()
+        password = str(data.get("password", "")).strip()
+        
+        if user_id in USER_DB and USER_DB[user_id] == password:
+            token = secrets.token_hex(16)
+            ACTIVE_TOKENS.add(token)
+            print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인 (토큰 발급됨)", flush=True)
+            return JSONResponse(content={"success": True, "token": token, "username": user_id})
+        else:
+            print(f"❌ [인증 실패] ID: {user_id}, PW: {password}", flush=True)
+            return JSONResponse(content={"success": False, "message": "아이디 또는 비밀번호가 틀렸습니다."}, status_code=401)
+    except Exception as e:
+        return JSONResponse(content={"success": False, "message": f"로그인 에러: {str(e)}"}, status_code=400)
 
 # ==========================================
 # 🌐 3. 라우팅 및 웹소켓 관리자
@@ -104,14 +109,13 @@ async def websocket_endpoint(
     max_chars: int = Query(50)    
 ):
     if token not in ACTIVE_TOKENS:
-        print("❌ [보안 경고] 유효하지 않은 토큰으로 통역 서버 접근 시도 차단됨")
+        print("❌ [보안 경고] 유효하지 않은 토큰으로 통역 서버 접근 시도 차단됨", flush=True)
         await websocket.close(code=1008, reason="Unauthorized")
         return
 
     await manager.connect(websocket)
     context_memory = [] 
     glossary_text = ""
-    # 💡 프론트엔드에서 실시간으로 체크박스를 바꾸면 서버의 이 변수가 업데이트됩니다.
     dynamic_targets = targets 
 
     try:
@@ -119,14 +123,14 @@ async def websocket_endpoint(
             while True:
                 data = await websocket.receive()
                 if "bytes" in data:
-                    print(f"📩 [현장 보고] 노동자로부터 위험 보고 수신됨")
+                    print(f"📩 [현장 보고] 노동자로부터 위험 보고 수신됨", flush=True)
         else:
-            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}"
+            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
             headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
             async with websockets.connect(dg_url, extra_headers=headers) as dg_ws:
                 async def sender():
-                    nonlocal glossary_text, dynamic_targets # 💡 nonlocal 선언으로 실시간 업데이트 가능하도록 설정
+                    nonlocal glossary_text, dynamic_targets 
                     try:
                         while True:
                             message = await websocket.receive()
@@ -139,10 +143,9 @@ async def websocket_endpoint(
                                         if config.get("type") == "config":
                                             if "glossary" in config:
                                                 glossary_text = config.get("glossary", "")
-                                            # 💡 체크박스 변경 시 서버의 타겟 언어를 즉시 변경하여 번역 지시 업데이트
                                             if "targets" in config:
                                                 dynamic_targets = config.get("targets", dynamic_targets)
-                                                print(f"🔄 [타겟 언어 실시간 변경됨] 현재 타겟: {dynamic_targets}")
+                                                print(f"🔄 [타겟 언어 실시간 변경됨] 현재 타겟: {dynamic_targets}", flush=True)
                                     except:
                                         pass
                     except:
@@ -150,35 +153,51 @@ async def websocket_endpoint(
 
                 async def receiver():
                     current_sentence = ""
+                    last_translated_text = ""
                     try:
                         while True:
                             dg_result = await dg_ws.recv()
                             dg_json = json.loads(dg_result)
                             
-                            if dg_json.get("type") == "Results":
-                                is_final = dg_json.get("is_final", False)
-                                speech_final = dg_json.get("speech_final", False)
-                                transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
-                                
-                                if not transcript: continue
-                                await manager.broadcast_json({"type": "interim", "text": transcript})
+                            if dg_json.get("type") == "Metadata": continue
 
-                                if is_final: current_sentence += " " + transcript
+                            is_final = dg_json.get("is_final", False)
+                            speech_final = dg_json.get("speech_final", False)
+                            transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
+                            
+                            if transcript:
+                                current_sentence = transcript
+
+                            if current_sentence.strip():
+                                # 💡 뷰어들에게 현재 방송 중인 언어 목록을 함께 넘겨줍니다.
+                                current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
+                                await manager.broadcast_json({
+                                    "type": "interim", 
+                                    "text": current_sentence,
+                                    "targets": current_targets_list
+                                })
+
+                            if is_final: current_sentence += " " + transcript
 
                             is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
 
                             if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
                                 final_text = current_sentence.strip()
+                                
+                                if final_text == last_translated_text:
+                                    current_sentence = ""
+                                    continue
+                                
+                                last_translated_text = final_text
                                 current_sentence = ""  
                                 await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                # 💡 번역 지시를 내릴 때, 업데이트된 'dynamic_targets'를 클로드에게 전달
                                 asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, context_memory, glossary_text))
                     except:
                         pass
                 await asyncio.gather(sender(), receiver())
                 
     except Exception as e:
-        print(f"🚨 웹소켓/Deepgram 에러 발생: {e}")
+        print(f"🚨 웹소켓/Deepgram 에러 발생: {e}", flush=True)
     finally:
         manager.disconnect(websocket)
 
@@ -189,7 +208,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
     
     if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
         await manager.broadcast_json({"type": "alert"})
-        print(f"🚨 [경고 발송] 스마트폰 점멸 트리거 작동 (원인: '{text}')")
+        print(f"🚨 [경고 발송] 스마트폰 점멸 트리거 작동 (원인: '{text}')", flush=True)
 
     ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
     if not text or len(text) < 2 or text.lower() in ignore_words:
@@ -239,12 +258,12 @@ async def translate_and_send(text: str, source_lang: str, targets: str, context_
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
         
     except Exception as e:
-        print(f"Translation Error: {e}")
+        print(f"Translation Error: {e}", flush=True)
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
 
 if __name__ == "__main__":
     import multiprocessing
     import uvicorn
     multiprocessing.freeze_support()
-    print("🚀 실시간 글로벌 현장 안전 통역 서버를 시작합니다... (http://0.0.0.0:8000)")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print("🚀 실시간 글로벌 현장 안전 통역 서버를 시작합니다... (http://0.0.0.0:10000)")
+    uvicorn.run(app, host="0.0.0.0", port=10000)

@@ -73,13 +73,18 @@
         @media (min-width: 768px) { .window { min-width: 300px; max-width: 48%; } }
 
         /* 🌟 뷰어(청중) 모드 특화 스타일 */
-        body.viewer-mode { padding: 5px; background-color: #000; color: #fff; } 
+        body.viewer-mode { padding: 5px; background-color: #000; color: #fff; padding-top: 60px; } 
         body.viewer-mode .header, 
         body.viewer-mode .control-panel { display: none !important; }
         body.viewer-mode .window-container { gap: 5px; }
         body.viewer-mode .window { height: 95vh; max-height: none; box-shadow: none; border: 1px solid #ddd; background: #fff; color:#000; }
         body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 24px; } 
         
+        /* 뷰어용 상단 언어 선택바 */
+        #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #333; padding: 10px; z-index: 1000; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        body.viewer-mode #viewerTopBar { display: block; }
+        #viewerTopBar select { padding: 8px 15px; font-size: 16px; border-radius: 5px; background: #fff; color: #000; font-weight: bold; border:none; outline:none; }
+
         #exitViewerBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50px; padding: 10px 20px; font-size: 14px; z-index: 1000; border: none; cursor: pointer;}
         body.viewer-mode #exitViewerBtn { display: block; }
 
@@ -112,6 +117,14 @@
         <h1>🌍 글로벌 다국어 현장 안전 콘솔 🎙️<span id="userBadge" class="user-badge"></span></h1>
     </div>
 
+    <!-- 🌐 뷰어 모드 전용 상단 언어 선택바 -->
+    <div id="viewerTopBar">
+        <label style="color:white; font-weight:bold; margin-right:10px;">🌐 내 언어 선택:</label>
+        <select id="viewerLangSelect" onchange="filterViewerWindows()">
+            <option value="all">전체 언어 보기 (Show All)</option>
+        </select>
+    </div>
+
     <div class="control-panel">
         <div class="lang-section">
             <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
@@ -136,17 +149,43 @@
                 <div class="add-lang-box">
                     <span style="font-size: 14px; color: #555;">➕ 현장 작업자 언어 추가:</span>
                     <select id="extraLangSelect" style="padding: 5px; font-size: 14px;">
-                        <option value="id">🇮🇩 인니어</option>
-                        <option value="vi">🇻🇳 베트남어</option>
-                        <option value="es">🇪🇸 스페인어</option>
-                        <option value="fr">🇫🇷 프랑스어</option>
-                        <option value="de">🇩🇪 독일어</option>
-                        <option value="th">🇹🇭 태국어</option>
-                        <option value="mn">🇲🇳 몽골어</option>
-                        <option value="uz">🇺🇿 우즈베크어</option>
-                        <option value="ru">🇷🇺 러시아어</option>
-                        <option value="ar">🇸🇦 아랍어</option>
-                        <option value="tl">🇵🇭 필리핀어(타갈로그)</option>
+                        <!-- 40개 국어로 대폭 확장된 드롭다운 -->
+                        <option value="id">🇮🇩 인니어 (Indonesian)</option>
+                        <option value="vi">🇻🇳 베트남어 (Vietnamese)</option>
+                        <option value="es">🇪🇸 스페인어 (Spanish)</option>
+                        <option value="fr">🇫🇷 프랑스어 (French)</option>
+                        <option value="de">🇩🇪 독일어 (German)</option>
+                        <option value="th">🇹🇭 태국어 (Thai)</option>
+                        <option value="mn">🇲🇳 몽골어 (Mongolian)</option>
+                        <option value="uz">🇺🇿 우즈베크어 (Uzbek)</option>
+                        <option value="ru">🇷🇺 러시아어 (Russian)</option>
+                        <option value="ar">🇸🇦 아랍어 (Arabic)</option>
+                        <option value="tl">🇵🇭 필리핀어 (Tagalog)</option>
+                        <option value="hi">🇮🇳 힌디어 (Hindi)</option>
+                        <option value="bn">🇧🇩 벵골어 (Bengali)</option>
+                        <option value="ne">🇳🇵 네팔어 (Nepali)</option>
+                        <option value="my">🇲🇲 미얀마어 (Burmese)</option>
+                        <option value="km">🇰🇭 크메르어 (Khmer)</option>
+                        <option value="si">🇱🇰 싱할라어 (Sinhala)</option>
+                        <option value="ur">🇵🇰 우르두어 (Urdu)</option>
+                        <option value="fa">🇮🇷 페르시아어 (Persian)</option>
+                        <option value="tr">🇹🇷 튀르키예어 (Turkish)</option>
+                        <option value="ms">🇲🇾 말레이어 (Malay)</option>
+                        <option value="sw">🇰🇪 스와힐리어 (Swahili)</option>
+                        <option value="pt">🇵🇹 포르투갈어 (Portuguese)</option>
+                        <option value="it">🇮🇹 이탈리아어 (Italian)</option>
+                        <option value="nl">🇳🇱 네덜란드어 (Dutch)</option>
+                        <option value="pl">🇵🇱 폴란드어 (Polish)</option>
+                        <option value="sv">🇸🇪 스웨덴어 (Swedish)</option>
+                        <option value="da">🇩🇰 덴마크어 (Danish)</option>
+                        <option value="no">🇳🇴 노르웨이어 (Norwegian)</option>
+                        <option value="fi">🇫🇮 핀란드어 (Finnish)</option>
+                        <option value="el">🇬🇷 그리스어 (Greek)</option>
+                        <option value="cs">🇨🇿 체코어 (Czech)</option>
+                        <option value="ro">🇷🇴 루마니아어 (Romanian)</option>
+                        <option value="hu">🇭🇺 헝가리어 (Hungarian)</option>
+                        <option value="he">🇮🇱 히브리어 (Hebrew)</option>
+                        <option value="uk">🇺🇦 우크라이나어 (Ukrainian)</option>
                     </select>
                     <button class="add-lang-btn" onclick="addExtraLanguage()">화면에 추가</button>
                 </div>
@@ -214,11 +253,16 @@
 </div>
 
 <script>
-    // 🌐 언어 매핑 확장
+    // 🌐 40개 국어로 확장된 언어 매핑
     const langNames = { 
-        "ko": "🇰🇷 한국어", "id": "🇮🇩 인니어", "en": "🇺🇸 영어", "ja": "🇯🇵 일본어", "zh": "🇨🇳 중국어", 
+        "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "id": "🇮🇩 인니어", "ja": "🇯🇵 일본어", "zh": "🇨🇳 중국어", 
         "vi": "🇻🇳 베트남어", "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "th": "🇹🇭 태국어",
-        "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "tl": "🇵🇭 필리핀어"
+        "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "tl": "🇵🇭 필리핀어",
+        "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ne": "🇳🇵 네팔어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 크메르어",
+        "si": "🇱🇰 싱할라어", "ur": "🇵🇰 우르두어", "fa": "🇮🇷 페르시아어", "tr": "🇹🇷 튀르키예어", "ms": "🇲🇾 말레이어",
+        "sw": "🇰🇪 스와힐리어", "pt": "🇵🇹 포르투갈어", "it": "🇮🇹 이탈리아어", "nl": "🇳🇱 네덜란드어", "pl": "🇵🇱 폴란드어",
+        "sv": "🇸🇪 스웨덴어", "da": "🇩🇰 덴마크어", "no": "🇳🇴 노르웨이어", "fi": "🇫🇮 핀란드어", "el": "🇬🇷 그리스어",
+        "cs": "🇨🇿 체코어", "ro": "🇷🇴 루마니아어", "hu": "🇭🇺 헝가리어", "he": "🇮🇱 히브리어", "uk": "🇺🇦 우크라이나어"
     };
     
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
@@ -244,45 +288,69 @@
         }
     }
 
-    // 💡 [핵심] 체크박스 상태에 따라 번역 창을 즉시 켜고 끄는 마법의 함수
+    // 💡 선택된 언어만 화면에 남기는 필터 함수 (작업자 뷰어용)
+    function filterViewerWindows() {
+        const selected = document.getElementById('viewerLangSelect').value;
+        const windows = document.querySelectorAll('.window-container .window');
+        windows.forEach(win => {
+            if (selected === 'all' || win.id === `win_${selected}`) {
+                win.style.display = 'flex';
+            } else {
+                win.style.display = 'none';
+            }
+        });
+    }
+
+    // 💡 방송이 도착했을 때 해당 언어의 창이 없으면 즉시 자동 생성해주는 마법의 함수
+    function ensureWindowExists(lang) {
+        let box = document.getElementById(`box_${lang}`);
+        if (!box) {
+            const container = document.getElementById('windowContainer');
+            const win = document.createElement('div');
+            win.className = 'window';
+            win.id = `win_${lang}`;
+            win.innerHTML = `<h3>${langNames[lang] || lang}</h3><div id="box_${lang}" class="content-box"></div>`;
+            container.appendChild(win);
+            box = document.getElementById(`box_${lang}`);
+
+            // 뷰어 모드일 때 상단 드롭다운에 옵션 자동 추가
+            if (document.body.classList.contains('viewer-mode')) {
+                const select = document.getElementById('viewerLangSelect');
+                if (!select.querySelector(`option[value="${lang}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = lang;
+                    opt.innerText = langNames[lang] || lang;
+                    select.appendChild(opt);
+                }
+            }
+            filterViewerWindows(); // 생성 직후 현재 필터 상태(내 언어만 보기)를 적용
+        }
+        return box;
+    }
+
     function updateWindows() {
         const container = document.getElementById('windowContainer');
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
 
-        // 1. 체크된 언어의 창이 없으면 새로 만들기
-        checkedLangs.forEach(lang => {
-            let win = document.getElementById(`win_${lang}`);
-            if (!win) {
-                win = document.createElement('div');
-                win.className = 'window';
-                win.id = `win_${lang}`;
-                win.innerHTML = `<h3>${langNames[lang] || lang}</h3><div id="box_${lang}" class="content-box"></div>`;
-                container.appendChild(win);
-            }
-            win.style.display = 'flex'; // 화면에 보이기
-        });
+        checkedLangs.forEach(lang => { ensureWindowExists(lang); });
 
-        // 2. 체크 해제된 창 숨기기 (기록 유지를 위해 DOM 삭제 대신 display: none 사용)
         Array.from(container.children).forEach(windowDiv => {
             const lang = windowDiv.id.replace('win_', '');
-            if (!checkedLangs.includes(lang)) {
-                windowDiv.style.display = 'none';
-            }
+            if (!checkedLangs.includes(lang)) windowDiv.style.display = 'none';
+            else windowDiv.style.display = 'flex';
         });
 
-        // 3. 만약 마이크 방송 중(웹소켓 연결됨)이라면, 서버(백엔드)에 변경된 언어 목록을 실시간으로 쏴줌
         if (ws && ws.readyState === 1 && isConnected) {
             ws.send(JSON.stringify({ type: "config", targets: checkedLangs.join(',') }));
             console.log("🌐 서버로 타겟 언어 실시간 변경 요청 전송:", checkedLangs.join(','));
         }
     }
 
-    // 창이 처음 열릴 때 기존 체크박스들에 이벤트 리스너(클릭 감지) 부착
     window.addEventListener('load', () => {
         document.querySelectorAll('#targetCheckboxes input').forEach(cb => {
             cb.addEventListener('change', updateWindows);
         });
-        updateWindows(); // 최초 화면 렌더링
+        updateWindows(); 
     });
 
     async function attemptLogin() {
@@ -407,7 +475,6 @@
         newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> ${langNames[langCode]}`;
         document.getElementById('targetCheckboxes').appendChild(newLabel);
         
-        // 새로 추가된 체크박스에도 클릭 감지기 부착 및 창 즉시 띄우기
         newLabel.querySelector('input').addEventListener('change', updateWindows);
         updateWindows();
     }
@@ -436,7 +503,7 @@
         const viewerBtn = document.getElementById('viewerBtn');
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         
-        if (targetLangs.length === 0) return alert("번역 화면을 선택해주세요!");
+        if (role === 'speaker' && targetLangs.length === 0) return alert("번역 화면을 선택해주세요!");
 
         if (!isConnected) {
             try {
@@ -446,14 +513,12 @@
                 const ep = document.getElementById('endpointingSlider').value;
                 const mx = document.getElementById('maxCharSlider').value;
 
-                // 보안 웹소켓 감지
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}`);
                 
                 ws.onopen = async () => {
                     isConnected = true;
                     if (role === 'speaker') {
-                        // 처음 연결 시 용어집과 타겟 언어 설정을 서버에 쏨
                         ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossaryInput').value, targets: targetLangs.join(',') }));
                         stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
                         speakerBtn.innerText = "🛑 지시 종료";
@@ -478,21 +543,22 @@
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = "msg_" + Date.now();
 
-                        // 듣는 중 회색 글씨는 현재 "체크된" 언어 창에만 뿌림
-                        const currentTargets = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
-                        currentTargets.forEach(lang => {
-                            const box = document.getElementById(`box_${lang}`);
-                            if (box) {
-                                let div = document.getElementById(`${currentSentenceId}_${lang}`);
-                                if (!div) {
-                                    div = document.createElement('div');
-                                    div.id = `${currentSentenceId}_${lang}`;
-                                    div.className = 'sentence';
-                                    box.appendChild(div);
-                                }
-                                div.innerHTML = `<span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>`;
-                                box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                        // 백엔드에서 쏴주는 현재 방송 중인 언어 목록을 기반으로 화면 그리기
+                        let langsToUpdate = [];
+                        if (document.body.classList.contains('viewer-mode')) langsToUpdate = res.targets || [];
+                        else langsToUpdate = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+
+                        langsToUpdate.forEach(lang => {
+                            const box = ensureWindowExists(lang);
+                            let div = document.getElementById(`${currentSentenceId}_${lang}`);
+                            if (!div) {
+                                div = document.createElement('div');
+                                div.id = `${currentSentenceId}_${lang}`;
+                                div.className = 'sentence';
+                                box.appendChild(div);
                             }
+                            div.innerHTML = `<span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>`;
+                            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                         });
                     } else if (res.type === "status") {
                         updateStatus(res.text);
@@ -501,14 +567,11 @@
                         const data = res.data;
                         transcriptLog += `원문: ${data.original}\n`;
 
-                        // 번역 완료 글씨는 서버가 보내준 모든 언어를 해당 창에 넣음 (창이 display:none 이라도 데이터는 들어감)
                         Object.keys(data.translations).forEach(lang => {
-                            const box = document.getElementById(`box_${lang}`);
-                            if (!box) return;
-                            
+                            const box = ensureWindowExists(lang);
                             const div = document.getElementById(`${currentSentenceId}_${lang}`) || document.createElement('div');
                             div.className = 'sentence';
-                            div.id = ""; // ID 제거하여 다음 문장과 겹치지 않게 함
+                            div.id = ""; // ID 초기화
                             
                             const isSame = (res.source_lang === lang);
                             const transText = data.translations[lang];
