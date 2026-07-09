@@ -86,11 +86,6 @@
         #reportBtn { display: none; position: fixed; bottom: 80px; right: 20px; background-color: #d32f2f; color: white; border-radius: 50px; padding: 15px 25px; z-index: 1000; border: none; font-weight: bold; font-size: 16px; cursor: pointer;}
         body.viewer-mode #reportBtn { display: block; }
 
-        #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #333; padding: 10px; z-index: 1000; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        body.viewer-mode { padding-top: 60px; } /* 상단바가 화면을 가리지 않게 공간 확보 */
-        body.viewer-mode #viewerTopBar { display: block; }
-        #viewerTopBar select { padding: 8px 15px; font-size: 16px; border-radius: 5px; background: #fff; color: #000; font-weight: bold; border:none; outline:none; }
-
         /* QR 모달 */
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
         .qr-box { background: white; padding: 30px; border-radius: 15px; text-align: center; }
@@ -206,13 +201,6 @@
 
 <button id="exitViewerBtn" onclick="exitViewerMode()">⚙️ 설정 패널 열기</button>
 <button id="reportBtn" onclick="toggleReportMode()">🚨 위험 상황 보고</button>
-
-<div id="viewerTopBar">
-    <label style="color:white; font-weight:bold; margin-right:10px;">🌐 내 언어 선택:</label>
-    <select id="viewerLangSelect" onchange="filterViewerWindows()">
-        <option value="all">전체 언어 보기</option>
-    </select>
-</div>
 
 <div id="qrModal">
     <div class="qr-box">
@@ -418,18 +406,10 @@
         const newLabel = document.createElement('label');
         newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> ${langNames[langCode]}`;
         document.getElementById('targetCheckboxes').appendChild(newLabel);
-    }
-
-    function filterViewerWindows() {
-        const selected = document.getElementById('viewerLangSelect').value;
-        const windows = document.querySelectorAll('.window-container .window');
-        windows.forEach(win => {
-            if (selected === 'all' || win.id === `win_${selected}`) {
-                win.style.display = 'flex';
-            } else {
-                win.style.display = 'none';
-            }
-        });
+        
+        // 새로 추가된 체크박스에도 클릭 감지기 부착 및 창 즉시 띄우기
+        newLabel.querySelector('input').addEventListener('change', updateWindows);
+        updateWindows();
     }
 
     function speakTargetText(text, lang) {
@@ -449,18 +429,18 @@
         if (text.includes("번역 중")) box.style.background = "#f39c12"; 
         else if (text.includes("방송 중")) box.style.background = "#28a745"; 
         else box.style.background = "#6c757d"; 
-                if (document.getElementById('windowContainer').innerHTML.trim() === "" || role === 'viewer') {
-                    document.getElementById('windowContainer').innerHTML = targetLangs.map(lang => 
-                        `<div class="window" id="win_${lang}"><h3>${langNames[lang] || lang}</h3><div id="box_${lang}" class="content-box"></div></div>`
-                    ).join('');
+    }
 
-                    // 💡 뷰어 모드일 때 관리자가 쏜 언어 목록을 기반으로 선택 메뉴 자동 채우기
-                    if (role === 'viewer') {
-                        const viewerSelect = document.getElementById('viewerLangSelect');
-                        viewerSelect.innerHTML = '<option value="all">전체 언어 보기</option>' + 
-                            targetLangs.map(lang => `<option value="${lang}">${langNames[lang] || lang}</option>`).join('');
-                    }
-                }
+    async function toggleConnection(role) {
+        const speakerBtn = document.getElementById('speakerBtn');
+        const viewerBtn = document.getElementById('viewerBtn');
+        const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+        
+        if (targetLangs.length === 0) return alert("번역 화면을 선택해주세요!");
+
+        if (!isConnected) {
+            try {
+                if (role === 'viewer') document.body.classList.add('viewer-mode');
 
                 const spkLang = document.getElementById('speakerLang').value;
                 const ep = document.getElementById('endpointingSlider').value;
