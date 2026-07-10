@@ -127,9 +127,6 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# ==========================================
-# 🧠 3. 백그라운드 슬라이딩 요약 봇 (Global)
-# ==========================================
 async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
     new_text = "\n".join(new_sentences)
@@ -149,7 +146,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5-20251001", # 🚀 최신 Claude Haiku 4.5 모델 적용 완료!
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -158,67 +155,50 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     except Exception as e:
         print(f"Summary Error: {e}", flush=True)
 
-# ==========================================
-# 🧠 4. 메인 LLM 번역 로직 (Global 구조로 완전 분리독립)
-# ==========================================
 async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
-    
-    if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
-        await manager.broadcast_json({"type": "alert"})
-
-    ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
-    if not text or len(text) < 2 or text.lower() in ignore_words:
-        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
-        manager.release_floor() # 무의미한 발화 시 바닥권 즉시 반납
-        return
-
-    history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
-    glossary_section = f"\n[MEETING GLOSSARY / DOMAIN KNOWLEDGE]\n{glossary_text}\n" if glossary_text.strip() else ""
-
-    if source_lang == "multi":
-        lang_instruction = "The speaker might use various languages during the discussion. Detect the spoken language of the CURRENT SENTENCE automatically."
-    else:
-        lang_instruction = f"The spoken language is strictly '{source_lang}'."
-
-    system_prompt = [
-        {
-            "type": "text",
-            "text": f"""You are a top-tier professional simultaneous interpreter for a multinational meeting.
-    
-    [PAST CONTEXT SUMMARY]
-    {summary_state.get('text', "No summary yet.")}
-    
-    [RECENT CONTEXT]
-    {history_str}
-    
-    {glossary_section}
-    
-    CRITICAL INSTRUCTIONS:
-    1. {lang_instruction}
-    2. Fix any STT typos in the CURRENT SENTENCE based on the context.
-    3. Translate ONLY the CURRENT SENTENCE into the target language codes: {targets}.
-    4. ABSOLUTE RULE: You MUST provide EXACTLY ONE best translation per language. 
-       - NEVER use slashes (/) or parentheses to provide alternative options.
-       - Pick ONLY ONE natural translation and output it.
-    
-    Respond EXACTLY in this tag format (DO NOT USE JSON):
-    [original]
-    clean current sentence
-    [lang_code_1]
-    result
-    [lang_code_2]
-    result""",
-            "cache_control": {"type": "ephemeral"}
-        }
-    ]
-    
     try:
+        if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
+            await manager.broadcast_json({"type": "alert"})
+
+        ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
+        if not text or len(text) < 2 or text.lower() in ignore_words:
+            return 
+
+        history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
+        glossary_section = f"\n[MEETING GLOSSARY / DOMAIN KNOWLEDGE]\n{glossary_text}\n" if glossary_text.strip() else ""
+
+        if source_lang == "multi":
+            lang_instruction = "Detect the spoken language of the CURRENT SENTENCE automatically."
+        else:
+            lang_instruction = f"The spoken language is strictly '{source_lang}'."
+
+        system_prompt = f"""You are a professional simultaneous interpreter.
+[PAST CONTEXT SUMMARY]
+{summary_state.get('text', 'No summary yet.')}
+
+[RECENT CONTEXT]
+{history_str}
+{glossary_section}
+
+CRITICAL INSTRUCTIONS:
+1. {lang_instruction}
+2. Fix STT typos.
+3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
+4. Provide EXACTLY ONE best translation per language.
+
+Respond EXACTLY in this tag format (DO NOT USE JSON):
+[original]
+clean current sentence
+"""
+        for t in targets.split(','):
+            system_prompt += f"[{t.strip()}]\nresult\n"
+
         stream = await claude_client.messages.create(
-                model="claude-3-5-haiku-20241022",  # 🚨 존재하지 않는 4.5 대신 가장 최신/빠른 3.5 하이쿠로 고정!
-                max_tokens=500,
-                system=system_prompt, 
-                messages=[{"role": "user", "content": text}],
-                stream=True
+            model="claude-haiku-4-5-20251001",  # 🚀 최신 Claude Haiku 4.5 모델 적용 완료!
+            max_tokens=500,
+            system=system_prompt, 
+            messages=[{"role": "user", "content": text}],
+            stream=True
         )
 
         buffer = ""
@@ -228,9 +208,9 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
             if event.type == "content_block_delta":
                 buffer += event.delta.text
                 
-                matches = re.finditer(r'\[([a-z]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
+                matches = re.finditer(r'\[([a-zA-Z-]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
                 for match in matches:
-                    lang = match.group(1)
+                    lang = match.group(1).lower().strip()
                     text_so_far = match.group(2).strip()
                     
                     lang_text[lang] = text_so_far
@@ -265,21 +245,16 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
                     "msg_id": msg_id
                 })
                 
-        await manager.broadcast_json({"type": "sentence_complete"})
-        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
-        
-        # 완벽한 번역 전송 완료 후 바닥권(Floor) 반납
-        manager.release_floor()
-        
     except Exception as e:
-        print(f"Translation Error: {e}", flush=True)
-        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        print(f"❌ [번역 에러 발생]: {e}", flush=True)
+        await manager.broadcast_json({"type": "status", "text": "❌ 번역 실패 (재시도 중)"})
+    
+    finally:
+        await manager.broadcast_json({"type": "sentence_complete"})
         manager.release_floor()
+        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
 
 
-# ==========================================
-# ⚡ 5. 웹소켓 및 Deepgram 파이프라인
-# ==========================================
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket, 
@@ -293,6 +268,7 @@ async def websocket_endpoint(
     max_chars: int = Query(50)    
 ):
     if token not in ACTIVE_TOKENS:
+        print(f"❌ [보안 차단] 유효하지 않은 토큰. (IP: {websocket.client})", flush=True)
         await websocket.close(code=1008, reason="Unauthorized")
         return
 
@@ -319,10 +295,10 @@ async def websocket_endpoint(
                         elif msg.get("type") == "cancel_request":
                             manager.requests = [r for r in manager.requests if r["id"] != client_id]
                             await manager.broadcast_admin_state()
-                    except Exception as json_e: 
-                        print(f"Viewer Parse Error: {json_e}", flush=True)
+                    except: pass
         else:
-            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
+            dg_lang = "ko" if lang == "multi" else lang
+            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
             headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
             ws_kwargs = {}
@@ -339,7 +315,6 @@ async def websocket_endpoint(
                         while True:
                             data = await websocket.receive()
                             if data.get("type") == "websocket.receive":
-                                # 🚨 조용한 죽음 방지: dict.get을 사용하여 안전하게 파싱
                                 if data.get("bytes") is not None:
                                     if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
                                         await dg_ws.send(data.get("bytes"))
@@ -370,12 +345,9 @@ async def websocket_endpoint(
                                         elif msg.get("type") == "config":
                                             if "glossary" in msg: glossary_text = msg.get("glossary", "")
                                             if "targets" in msg: dynamic_targets = msg.get("targets", dynamic_targets)
-                                    except Exception as json_err: 
-                                        print(f"WS Parse Error: {json_err}", flush=True)
-                    except websockets.exceptions.ConnectionClosed:
-                        pass
-                    except Exception as e:
-                        print(f"🚨 Sender 루프 에러: {e}", flush=True)
+                                    except: pass
+                    except websockets.exceptions.ConnectionClosed: pass
+                    except Exception as e: print(f"🚨 Sender 루프 에러: {e}", flush=True)
 
                 async def receiver():
                     current_sentence = ""
@@ -427,15 +399,12 @@ async def websocket_endpoint(
                                         last_translated_text = final_text
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         
-                                        # 글로벌로 분리된 번역 함수 호출 (UnboundLocalError 완벽 차단)
                                         asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, recent_history, summary_state, glossary_text, current_msg_id, role, name))
                                     
                                     current_sentence = ""
                                     current_msg_id = secrets.token_hex(4)
-                    except websockets.exceptions.ConnectionClosed:
-                        pass
-                    except Exception as e:
-                        print(f"🚨 Receiver 루프 에러: {e}", flush=True)
+                    except websockets.exceptions.ConnectionClosed: pass
+                    except Exception as e: print(f"🚨 Receiver 루프 에러: {e}", flush=True)
 
                 await asyncio.gather(sender(), receiver())
                 

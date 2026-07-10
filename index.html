@@ -48,10 +48,10 @@
         label.form-label { font-weight: 600; font-size: 14px; color: var(--text-muted); display: block; margin-bottom: 8px; }
         select.styled-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 15px; outline: none; background: #fafafa; cursor: pointer; }
         
-        .chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .chip-group { display: flex; flex-wrap: wrap; gap: 10px; min-height: 40px; padding: 5px 0;}
         .lang-chip { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 30px; background: var(--bg-color); border: 1px solid var(--border); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; user-select: none; color: var(--text-muted);}
         .lang-chip input[type="checkbox"] { display: none; }
-        .lang-chip:has(input:checked) { background: #e8f0fe; border-color: var(--primary); color: var(--primary); font-weight: 700; }
+        .lang-chip:has(input:checked) { background: #e8f0fe; border-color: var(--primary); color: var(--primary); font-weight: 700; box-shadow: 0 2px 6px rgba(26,115,232,0.2);}
         .lang-chip:hover { border-color: #b0bec5; }
         
         .add-lang-wrapper { display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; }
@@ -69,12 +69,11 @@
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; transition: 0.2s; }
         .btn-danger:hover { background: var(--danger-hover); }
-        
         .btn-icon { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-full { width: 100%; padding: 12px; font-size: 15px; }
 
-        /* 사회자 마이크 제어 버튼 CSS */
-        .admin-mute-btn { opacity: 0.4; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(50%); }
+        /* 사회자 마이크 제어 버튼 CSS - 시각적 피드백 강화 */
+        .admin-mute-btn { opacity: 0.4; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(80%); }
         .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 800; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); filter: grayscale(0%); }
 
         .status-banner { max-width: 1400px; margin: 0 auto 20px; padding: 15px 20px; background: #3c4043; color: white; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -105,7 +104,6 @@
         .tts-btn { position: absolute; right: 0; top: 0; background: #f1f3f4; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); font-weight: 600; }
         .tts-btn:hover { background: #e8eaed; }
 
-        /* 반응형 뷰어 및 토론자 모드 */
         body.viewer-mode, body.speaker-mode { background-color: #000; color: #fff; padding: 0; }
         body.viewer-mode .navbar, body.speaker-mode .navbar, 
         body.viewer-mode .dashboard-layout, body.speaker-mode .dashboard-layout,
@@ -141,6 +139,7 @@
 
         .slider-group { display: flex; gap: 15px; }
 
+        /* 완벽한 반응형(Responsive) 처리 */
         @media (max-width: 768px) {
             .navbar { flex-direction: column; padding: 15px; gap: 15px; text-align: center; }
             .nav-actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
@@ -192,24 +191,27 @@
     </div>
     <div id="speakerStatusBar" class="speaker-status-bar status-free">🟢 마이크 개방됨 (자유롭게 발언하세요)</div>
 
-    <!-- 대시보드 레이아웃 -->
+    <!-- STREAMING_CHUNK:대시보드 모듈 1: 방송 채널 및 공유 (언어 선택 위->아래 흐름 반영) -->
     <div class="dashboard-layout" id="dashboardLayout">
         
         <div class="card">
             <div class="card-header"><span>📺</span> 방송 채널 및 공유</div>
             
-            <div class="add-lang-wrapper">
-                <select id="extraLangSelect" class="styled-select" style="flex:1; padding: 8px;">
-                    <!-- 60개국 스크립트 채움 -->
-                </select>
-                <button class="btn-primary" style="padding: 8px 15px;" onclick="addExtraLanguage()">추가</button>
+            <div>
+                <label class="form-label">번역할 언어 선택 (추가)</label>
+                <div class="add-lang-wrapper">
+                    <select id="extraLangSelect" class="styled-select" style="flex:1; padding: 8px;">
+                        <!-- 60개국 스크립트 채움 -->
+                    </select>
+                    <button class="btn-primary" style="padding: 8px 15px;" onclick="addExtraLanguage()">추가</button>
+                </div>
             </div>
 
             <div style="margin-top: 5px;">
-                <label class="form-label">활성화된 번역 화면</label>
+                <label class="form-label" style="font-size: 12px;">선택된 번역 화면</label>
                 <div class="chip-group" id="targetCheckboxes">
-                    <!-- 기본은 한국어 하나만 노출 -->
-                    <label class="lang-chip"><input type="checkbox" value="ko" checked> <span>🇰🇷 한국어</span></label>
+                    <!-- 한국어는 기본으로 고정 -->
+                    <label class="lang-chip"><input type="checkbox" value="ko" checked disabled> <span>🇰🇷 한국어</span></label>
                 </div>
             </div>
 
@@ -259,20 +261,19 @@
             <div class="card-header" style="color: var(--danger);"><span>👑</span> 사회자 제어 센터</div>
             
             <div style="flex:1; background: #fff; border: 1px solid #fad2cf; border-radius: 8px; padding: 10px;">
-                <label class="form-label" style="font-size:12px; margin-top:0;">🙋‍♂️ 발언 요청 대기열</label>
+                <label class="form-label" style="font-size:12px; margin-top:0;">🙋‍♂️ 청중 발언 요청 대기열</label>
                 <ul id="requestList" class="req-list">
                     <li style="color:var(--text-muted); font-size:13px; text-align:center; padding: 20px 0;">대기 중인 요청이 없습니다.</li>
                 </ul>
             </div>
 
             <div style="display:flex; gap: 10px;">
-                <button id="btnMuteAll" class="btn-danger btn-full btn-icon admin-mute-btn" onclick="adminMuteAll()">🛑 전체 음소거</button>
-                <button id="btnUnmuteAll" class="btn-primary btn-full btn-icon admin-mute-btn selected" style="background:#1e8e3e;" onclick="adminUnmuteAll()">✔️ 🟢 음소거 해제</button>
+                <button id="btnMuteAll" class="btn-danger btn-full btn-icon admin-mute-btn" onclick="adminMuteAll()">🛑 토론 전체 음소거</button>
+                <button id="btnUnmuteAll" class="btn-primary btn-full btn-icon admin-mute-btn selected" style="background:#1e8e3e;" onclick="adminUnmuteAll()">✔️ 🟢 토론 음소거 해제</button>
             </div>
         </div>
     </div>
 
-    <!-- 라이브 상태 및 마이크 바 -->
     <div class="status-banner" id="statusBanner">
         <div class="status-text">
             <span id="statusIndicator" class="status-dot"></span>
@@ -323,15 +324,7 @@
         "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ur": "🇵🇰 우르두어", "si": "🇱🇰 싱할라어",
         "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", "ru": "🇷🇺 러시아어",
         "ar": "🇸🇦 아랍어", "tr": "🇹🇷 튀르키예어", "es": "🇪🇸 스페인어", "pt": "🇵🇹 포르투갈어",
-        "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어",
-        "nl": "🇳🇱 네덜란드어", "sv": "🇸🇪 스웨덴어", "uk": "🇺🇦 우크라이나어", "ro": "🇷🇴 루마니아어",
-        "cs": "🇨🇿 체코어", "hu": "🇭🇺 헝가리어", "el": "🇬🇷 그리스어", "bg": "🇧🇬 불가리아어",
-        "sr": "🇷🇸 세르비아어", "hr": "🇭🇷 크로아티아어", "sk": "🇸🇰 슬로바키아어", "da": "🇩🇰 덴마크어",
-        "fi": "🇫🇮 핀란드어", "no": "🇳🇴 노르웨이어", "ca": "🇪🇸 카탈루냐어", "lt": "🇱🇹 리투아니아어",
-        "sl": "🇸🇮 슬로베니아어", "lv": "🇱🇻 라트비아어", "et": "🇪🇪 에스토니아어", "fa": "🇮🇷 페르시아어",
-        "he": "🇮🇱 히브리어", "sw": "🇰🇪 스와힐리어", "am": "🇪🇹 암하라어", "yo": "🇳🇬 요루바어",
-        "zu": "🇿🇦 줄루어", "af": "🇿🇦 아프리칸스어", "ta": "🇮🇳 타밀어", "te": "🇮🇳 텔루구어",
-        "mr": "🇮🇳 마라티어", "gu": "🇮🇳 구자라트어", "kn": "🇮🇳 칸나다어", "ml": "🇮🇳 말라얄람어"
+        "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어"
     };
 
     const clientId = "usr_" + Math.random().toString(36).substring(2, 8);
@@ -384,7 +377,7 @@
         const placeholder = document.getElementById('viewerPlaceholder');
         let hasVisibleWindow = false;
 
-        // UI 겹침 방지: 선택되지 않은 창은 DOM에서 완전히 내용을 삭제하여 메모리 및 화면 충돌 차단
+        // UI 겹침 완전 방지: 선택되지 않은 창은 내용물(innerHTML)까지 완전히 날려버려서 DOM 충돌을 차단
         windows.forEach(win => {
             if (selected && win.id === `win_${selected}`) {
                 win.style.display = 'flex';
@@ -425,6 +418,9 @@
     function updateWindows() {
         const container = document.getElementById('windowContainer');
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+        
+        // ko(한국어)는 checked 상태라도 value 추출 로직에서 disabled된 것은 제외될 수 있으므로 강제 포함 보장
+        if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
 
         checkedLangs.forEach(lang => { ensureWindowExists(lang); });
 
@@ -496,8 +492,10 @@
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ""; 
         
-        const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
-        const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${targetLangs.join(',')}&role=${roleType}`;
+        const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+        if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
+        
+        const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${checkedLangs.join(',')}&role=${roleType}`;
         
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드";
@@ -542,39 +540,41 @@
             btn.style.backgroundColor = "var(--warning)";
             btn.style.color = "#202124";
             isRequested = true;
+            showToast("사회자에게 발언을 요청했습니다.");
         } else {
             ws.send(JSON.stringify({type: "cancel_request"}));
             btn.innerHTML = "🙋‍♂️ 발언 요청하기";
             btn.style.backgroundColor = "var(--danger)";
             btn.style.color = "#fff";
             isRequested = false;
+            showToast("발언 요청을 취소했습니다.");
         }
     }
 
     function updateSpeakerStatusBar() {
         const bar = document.getElementById('speakerStatusBar');
         
-        // 💡 관리자 마이크 UI 상태 동기화 피드백 추가
+        // 관리자 제어 버튼 UI 피드백 적용
         const btnMute = document.getElementById('btnMuteAll');
         const btnUnmute = document.getElementById('btnUnmuteAll');
         if (btnMute && btnUnmute) {
             if (isAdminMuted) {
                 btnMute.classList.add('selected');
-                btnMute.innerHTML = "✔️ 🛑 전체 음소거 (작동중)";
+                btnMute.innerHTML = "✔️ 🛑 토론 전체 음소거 (작동중)";
                 btnUnmute.classList.remove('selected');
-                btnUnmute.innerHTML = "🟢 음소거 해제";
+                btnUnmute.innerHTML = "🟢 토론 음소거 해제";
             } else {
                 btnUnmute.classList.add('selected');
-                btnUnmute.innerHTML = "✔️ 🟢 음소거 해제 (작동중)";
+                btnUnmute.innerHTML = "✔️ 🟢 토론 음소거 해제 (작동중)";
                 btnMute.classList.remove('selected');
-                btnMute.innerHTML = "🛑 전체 음소거";
+                btnMute.innerHTML = "🛑 토론 전체 음소거";
             }
         }
 
         if (!bar) return;
         bar.className = 'speaker-status-bar'; 
         if (isAdminMuted) {
-            bar.innerHTML = "🛑 사회자에 의해 전체 음소거 됨";
+            bar.innerHTML = "🛑 사회자에 의해 토론 전체 음소거 됨";
             bar.classList.add('status-muted');
         } else if (currentFloor === null) {
             bar.innerHTML = "🟢 마이크 개방됨 (자유롭게 발언하세요)";
@@ -628,7 +628,7 @@
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
         transcriptLog = "=== 실시간 현장 지시 기록 ===\n\n";
         document.getElementById('liveDictation').innerHTML = "";
-        showToast("화면이 초기화되었습니다.");
+        showToast("화면이 깔끔하게 초기화되었습니다.");
     }
 
     function downloadTranscript() {
@@ -642,7 +642,7 @@
         const select = document.getElementById('extraLangSelect');
         const langCode = select.value;
         if (document.querySelector(`#targetCheckboxes input[value="${langCode}"]`)) {
-            showToast("이미 화면에 추가된 언어입니다.", true);
+            showToast("이미 추가된 언어 화면입니다.", true);
             return;
         }
         
@@ -653,6 +653,7 @@
         
         newLabel.querySelector('input').addEventListener('change', updateWindows);
         updateWindows();
+        showToast(`${langNames[langCode]} 채널이 추가되었습니다.`);
     }
 
     function speakTargetText(text, lang) {
@@ -684,11 +685,7 @@
         const speakerBtn = document.getElementById('speakerBtn');
         const viewerBtn = document.getElementById('viewerBtn');
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
-        
-        if (role === 'speaker' && targetLangs.length === 0) {
-            showToast("방송 채널(번역 화면)을 1개 이상 선택해주세요.", true);
-            return;
-        }
+        if (!targetLangs.includes('ko')) targetLangs.unshift('ko');
 
         if (!isConnected) {
             try {
@@ -758,15 +755,15 @@
                     else if (res.type === "floor_state") {
                         currentFloor = res.floor_owner;
                         isAdminMuted = res.is_admin_muted;
-                        updateSpeakerStatusBar(); // 💡 이 함수 안에서 관리자 버튼 UI도 함께 변경됨
+                        updateSpeakerStatusBar(); 
                     }
                     else if (res.type === "speak_approved") {
-                        showToast("✅ 사회자가 발언권을 승인했습니다!");
+                        showToast("✅ 사회자가 발언권을 승인했습니다! 토론자 모드로 전환됩니다.");
                         resetUI(); 
                         const newParams = new URLSearchParams(window.location.search);
                         newParams.set('role', 'speaker'); 
                         window.history.replaceState({}, '', `${window.location.pathname}?${newParams}`);
-                        location.reload(); 
+                        setTimeout(() => location.reload(), 1000); 
                     }
                     else if (res.type === "alert") triggerAlert();
                     else if (res.type === "interim") {
@@ -776,6 +773,8 @@
                         let langsToUpdate = (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))
                             ? res.targets || [] 
                             : Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+                            
+                        if (!langsToUpdate.includes('ko')) langsToUpdate.push('ko');
 
                         langsToUpdate.forEach(lang => {
                             const box = ensureWindowExists(lang);
@@ -817,7 +816,7 @@
                             if (isSame) div.innerHTML = `<span class="same-lang-text">${cleanText}</span> ${ttsBtnHTML}`;
                             else div.innerHTML = `<span class="original-text">원문: ${res.original_text || "..." }</span><span class="latest-text">${cleanText}</span> ${ttsBtnHTML}`;
                             
-                            if (lang === document.querySelectorAll('#targetCheckboxes input:checked')[0]?.value) {
+                            if (lang === 'ko') {
                                 transcriptLog += `원문: ${res.original_text}\n`;
                             }
                             transcriptLog += `- ${lang}: ${cleanText}\n`;
