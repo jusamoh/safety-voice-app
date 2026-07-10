@@ -46,7 +46,11 @@
         .viewer-btn { background-color: #1a73e8; }
         .clear-btn { background-color: #ffc107; color: #000; }
         .download-btn { background-color: #6c757d; }
-        .qr-btn { background-color: #20c997; color: white; width: 100%; margin-top: 10px; }
+        
+        /* QR 버튼 스타일 세분화 */
+        .qr-btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .qr-btn { background-color: #20c997; color: white; flex: 1; }
+        .qr-speaker-btn { background-color: #fd7e14; color: white; flex: 1; }
         
         button.active { background-color: #28a745; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); } }
@@ -115,7 +119,6 @@
         <h1>🌍 글로벌 다국어 현장 안전 콘솔 🎙️<span id="userBadge" class="user-badge"></span></h1>
     </div>
 
-    <!-- 🌐 뷰어 모드 전용 상단 언어 선택바 -->
     <div id="viewerTopBar">
         <label style="color:white; font-weight:bold; margin-right:10px;">🌐 내 언어 선택:</label>
         <select id="viewerLangSelect" onchange="filterViewerWindows()">
@@ -126,18 +129,20 @@
     <div class="control-panel">
         <div class="lang-section">
             <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
-                <label>🗣️ 1. 관리자(발표자) 언어:</label>
-                <select id="speakerLang">
-                    <option value="ko" selected>🇰🇷 한국어</option>
+                <label>🗣️ 1. 내 발화 언어 선택:</label>
+                <select id="speakerLang" style="font-weight: bold; color: #1a73e8; border: 2px solid #1a73e8;">
+                    <option value="ko" selected>🇰🇷 한국어 고정 (속도/안정성 최상)</option>
+                    <option value="multi">🌐 자동 감지 (다국어 자유 토론용)</option>
                     <option value="en">🇺🇸 영어</option>
                     <option value="id">🇮🇩 인니어</option>
                     <option value="ja">🇯🇵 일본어</option>
                     <option value="zh">🇨🇳 중국어</option>
                 </select>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">※ 토론 시 '자동 감지'를 선택하면 AI가 한국어, 영어 등을 스스로 구별합니다.</p>
             </div>
             
             <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
-                <label>🌐 2. 번역 화면 선택:</label>
+                <label>🌐 2. 번역 화면 선택 (기본 제공):</label>
                 <div class="checkbox-group" id="targetCheckboxes">
                     <label><input type="checkbox" value="ko" checked> 🇰🇷 한국어</label>
                     <label><input type="checkbox" value="en" checked> 🇺🇸 영어</label>
@@ -145,21 +150,35 @@
                     <label><input type="checkbox" value="ja" checked> 🇯🇵 일본어</label>
                 </div>
                 <div class="add-lang-box">
-                    <span style="font-size: 14px; color: #555;">➕ 현장 작업자 언어 추가:</span>
+                    <span style="font-size: 14px; color: #555;">➕ 추가 언어 (총 30개국 지원):</span>
+                    <!-- 💡 30개 언어 리스트 업데이트 -->
                     <select id="extraLangSelect" style="padding: 5px; font-size: 14px;">
                         <option value="id">🇮🇩 인니어 (Indonesian)</option>
                         <option value="vi">🇻🇳 베트남어 (Vietnamese)</option>
-                        <option value="es">🇪🇸 스페인어 (Spanish)</option>
-                        <option value="fr">🇫🇷 프랑스어 (French)</option>
-                        <option value="de">🇩🇪 독일어 (German)</option>
                         <option value="th">🇹🇭 태국어 (Thai)</option>
-                        <option value="mn">🇲🇳 몽골어 (Mongolian)</option>
-                        <option value="uz">🇺🇿 우즈베크어 (Uzbek)</option>
-                        <option value="ru">🇷🇺 러시아어 (Russian)</option>
-                        <option value="ar">🇸🇦 아랍어 (Arabic)</option>
                         <option value="tl">🇵🇭 필리핀어 (Tagalog)</option>
+                        <option value="ms">🇲🇾 말레이어 (Malay)</option>
+                        <option value="my">🇲🇲 미얀마어 (Burmese)</option>
+                        <option value="km">🇰🇭 크메르어 (Khmer)</option>
+                        <option value="ne">🇳🇵 네팔어 (Nepali)</option>
                         <option value="hi">🇮🇳 힌디어 (Hindi)</option>
                         <option value="bn">🇧🇩 벵골어 (Bengali)</option>
+                        <option value="ur">🇵🇰 우르두어 (Urdu)</option>
+                        <option value="si">🇱🇰 싱할라어 (Sinhalese)</option>
+                        <option value="mn">🇲🇳 몽골어 (Mongolian)</option>
+                        <option value="uz">🇺🇿 우즈베크어 (Uzbek)</option>
+                        <option value="kk">🇰🇿 카자흐어 (Kazakh)</option>
+                        <option value="ru">🇷🇺 러시아어 (Russian)</option>
+                        <option value="ar">🇸🇦 아랍어 (Arabic)</option>
+                        <option value="tr">🇹🇷 튀르키예어 (Turkish)</option>
+                        <option value="es">🇪🇸 스페인어 (Spanish)</option>
+                        <option value="pt">🇵🇹 포르투갈어 (Portuguese)</option>
+                        <option value="fr">🇫🇷 프랑스어 (French)</option>
+                        <option value="de">🇩🇪 독일어 (German)</option>
+                        <option value="it">🇮🇹 이탈리아어 (Italian)</option>
+                        <option value="pl">🇵🇱 폴란드어 (Polish)</option>
+                        <option value="nl">🇳🇱 네덜란드어 (Dutch)</option>
+                        <option value="sv">🇸🇪 스웨덴어 (Swedish)</option>
                     </select>
                     <button class="add-lang-btn" onclick="addExtraLanguage()">화면에 추가</button>
                 </div>
@@ -169,8 +188,8 @@
                 <label>⚙️ 3. 통역 최적화 설정:</label>
                 <div class="slider-box">
                     <div class="slider-item">
-                        <label>침묵 감지 <span id="endpointVal">0.7초</span></label>
-                        <input type="range" id="endpointingSlider" min="100" max="1500" step="100" value="700" 
+                        <label>침묵 감지 <span id="endpointVal">0.5초</span></label>
+                        <input type="range" id="endpointingSlider" min="100" max="1500" step="100" value="500" 
                                oninput="document.getElementById('endpointVal').innerText = (this.value/1000).toFixed(1) + '초'">
                     </div>
                     <div class="slider-item">
@@ -190,13 +209,16 @@
                 <textarea id="glossaryInput" rows="2" style="width: 100%; border-radius: 5px; padding: 10px; border: 1px solid #ccc;" placeholder="예: 비계=Scaffolding"></textarea>
             </div>
             
-            <button class="qr-btn" onclick="showQRCode()">📱 작업자용 스마트폰 QR코드 띄우기</button>
+            <div class="qr-btn-group">
+                <button class="qr-btn" onclick="showQRCode('viewer')">👀 청중(뷰어)용 QR코드 띄우기</button>
+                <button class="qr-speaker-btn" onclick="showQRCode('speaker')">🎙️ 토론자(발언자)용 QR코드 띄우기</button>
+            </div>
         </div>
 
         <div id="statusBox" class="status-box">시스템 대기 중</div>
 
         <div class="btn-group">
-            <button id="speakerBtn" class="start-btn" onclick="toggleConnection('speaker')">🎤 [PC] 마이크 켜기</button>
+            <button id="speakerBtn" class="start-btn" onclick="toggleConnection('speaker')">🎤 [마이크 켜기 / 끄기]</button>
             <button id="viewerBtn" class="viewer-btn" onclick="toggleConnection('viewer')">👀 [내 PC] 뷰어 모드 전환</button>
             <button class="clear-btn" onclick="clearAllLogs()">🗑️ 화면 지우기</button>
             <button id="downloadBtn" class="download-btn" onclick="downloadTranscript()">📄 기록 저장</button>
@@ -222,21 +244,24 @@
 
 <div id="qrModal">
     <div class="qr-box">
-        <h2>스마트폰 카메라로 스캔하세요</h2>
-        <p style="color: #666; font-size: 14px;">작업자는 별도 로그인 없이 즉시 접속됩니다.</p>
-        <p style="color: #666; font-size: 12px; margin-bottom: 0;">현재 접속 주소: <span id="currentUrlTxt" style="font-weight:bold;"></span></p>
+        <h2 id="qrTitle">스마트폰 카메라로 스캔하세요</h2>
+        <p id="qrDesc" style="color: #666; font-size: 14px;">작업자는 별도 로그인 없이 즉시 접속됩니다.</p>
         <div id="qrcode"></div>
-        <p style="color: #d93025; font-size: 13px; font-weight:bold;">※ 주의: '127.0.0.1'이나 'localhost'로 접속된 상태에서는 <br>스마트폰에서 접속할 수 없습니다. PC의 내부 IP(예: 192.168.x.x)로 접속해주세요.</p>
         <button class="close-qr-btn" onclick="document.getElementById('qrModal').style.display='none'">닫기</button>
     </div>
 </div>
 
 <script>
-    const langNames = { 
-        "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "id": "🇮🇩 인니어", "ja": "🇯🇵 일본어", "zh": "🇨🇳 중국어", 
-        "vi": "🇻🇳 베트남어", "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "th": "🇹🇭 태국어",
-        "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "tl": "🇵🇭 필리핀어",
-        "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어"
+    // 💡 30개 국어 데이터베이스 매핑
+    const langNames = {
+        "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
+        "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
+        "ms": "🇲🇾 말레이어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 크메르어", "ne": "🇳🇵 네팔어",
+        "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ur": "🇵🇰 우르두어", "si": "🇱🇰 싱할라어",
+        "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", "ru": "🇷🇺 러시아어",
+        "ar": "🇸🇦 아랍어", "tr": "🇹🇷 튀르키예어", "es": "🇪🇸 스페인어", "pt": "🇵🇹 포르투갈어",
+        "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어",
+        "nl": "🇳🇱 네덜란드어", "sv": "🇸🇪 스웨덴어"
     };
     
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
@@ -246,13 +271,22 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
+    const urlRole = urlParams.get('role') || 'viewer';
 
     if (roomToken) {
         authToken = roomToken;
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
-        document.body.classList.add('viewer-mode');
-        setTimeout(() => toggleConnection('viewer'), 500);
+        
+        if (urlRole === 'viewer') {
+            document.body.classList.add('viewer-mode');
+            setTimeout(() => toggleConnection('viewer'), 500);
+        } else if (urlRole === 'speaker') {
+            setTimeout(() => {
+                alert("🎤 토론자(발언자) 모드로 접속되었습니다. 즉시 발언을 시작하실 수 있습니다.");
+                toggleConnection('speaker');
+            }, 500);
+        }
     } 
 
     function filterViewerWindows() {
@@ -374,15 +408,22 @@
         window.location.reload();
     }
 
-    function showQRCode() {
+    function showQRCode(roleType) {
         const currentUrl = window.location.href.split('?')[0];
-        document.getElementById('currentUrlTxt').innerText = currentUrl;
         
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ""; 
         
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
-        const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${targetLangs.join(',')}`;
+        const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${targetLangs.join(',')}&role=${roleType}`;
+        
+        if (roleType === 'speaker') {
+            document.getElementById('qrTitle').innerText = "🎙️ 토론자(발언자)용 QR코드";
+            document.getElementById('qrDesc').innerText = "스캔 즉시 마이크가 켜지며 발언 권한을 얻습니다.";
+        } else {
+            document.getElementById('qrTitle').innerText = "👀 청중(뷰어)용 QR코드";
+            document.getElementById('qrDesc').innerText = "스캔 시 번역 자막을 수신하는 화면으로 연결됩니다.";
+        }
         
         new QRCode(qrContainer, {
             text: qrUrl,
@@ -470,7 +511,7 @@
         if (lang === 'id') msg.lang = 'id-ID';
         else if (lang === 'en') msg.lang = 'en-US';
         else if (lang === 'ko') msg.lang = 'ko-KR';
-        else msg.lang = lang; 
+        else msg.lang = lang; // 브라우저가 ISO 코드를 인식하여 해당 국가의 TTS 음성을 재생합니다.
         window.speechSynthesis.speak(msg);
     }
 
@@ -511,9 +552,9 @@
                     if (role === 'speaker') {
                         ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossaryInput').value, targets: targetLangs.join(',') }));
                         stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
-                        speakerBtn.innerText = "🛑 지시 종료";
+                        speakerBtn.innerText = "🛑 지시/발언 종료";
                         speakerBtn.classList.add('active');
-                        updateStatus("✅ 관리자 마이크 연결됨 (현장 방송 중)");
+                        updateStatus("✅ 마이크 연결됨 (현장 방송 중)");
                         
                         mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                         mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0 && ws.readyState === 1) ws.send(e.data); };
@@ -521,7 +562,7 @@
                     } else {
                         viewerBtn.innerText = "🛑 수신 종료";
                         viewerBtn.classList.add('active');
-                        updateStatus("👀 작업자 모드 접속 완료");
+                        updateStatus("👀 청중(뷰어) 모드 수신 중");
                     }
                 };
 
@@ -570,12 +611,12 @@
                             box.appendChild(div);
                         }
 
-                        // 💡 [핵심] 프론트엔드 슬래시(/) 필터링 로직: 화면에 그리기 직전에 자르기
                         const rawText = res.text || "";
                         const cleanText = rawText.split('/')[0].trim();
                         const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
-                        const isSame = (res.source_lang === lang);
+                        const isMultiMode = (document.getElementById('speakerLang').value === 'multi');
+                        const isSame = (!isMultiMode && res.source_lang === lang);
                         
                         if (res.type === "stream_update") {
                             if (isSame) {
@@ -635,7 +676,7 @@
         const viewerBtn = document.getElementById('viewerBtn');
         
         if (speakerBtn) {
-            speakerBtn.innerText = "🎤 [PC] 마이크 켜기";
+            speakerBtn.innerText = "🎤 [마이크 켜기 / 끄기]";
             speakerBtn.classList.remove('active');
         }
         if (viewerBtn) {
