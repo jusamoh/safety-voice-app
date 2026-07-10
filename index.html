@@ -224,22 +224,19 @@
         <div class="card">
             <div class="card-header"><span>📺</span> 방송 채널 및 공유</div>
             
-            <div>
-                <label class="form-label">활성화된 번역 화면</label>
-                <div class="chip-group" id="targetCheckboxes">
-                    <!-- 스크립트로 칩 생성됨 -->
-                    <label class="lang-chip"><input type="checkbox" value="ko" checked> <span>🇰🇷 한국어</span></label>
-                    <label class="lang-chip"><input type="checkbox" value="en" checked> <span>🇺🇸 영어</span></label>
-                    <label class="lang-chip"><input type="checkbox" value="zh" checked> <span>🇨🇳 중국어</span></label>
-                    <label class="lang-chip"><input type="checkbox" value="id" checked> <span>🇮🇩 인니어</span></label>
-                </div>
-            </div>
-
             <div class="add-lang-wrapper">
                 <select id="extraLangSelect" class="styled-select" style="flex:1; padding: 8px;">
                     <!-- 60개국 스크립트 채움 -->
                 </select>
                 <button class="btn-primary" style="padding: 8px 15px;" onclick="addExtraLanguage()">추가</button>
+            </div>
+
+            <div style="margin-top: 5px;">
+                <label class="form-label">활성화된 번역 화면</label>
+                <div class="chip-group" id="targetCheckboxes">
+                    <!-- 스크립트로 칩 생성됨 -->
+                    <label class="lang-chip"><input type="checkbox" value="ko" checked> <span>🇰🇷 한국어</span></label>
+                </div>
             </div>
 
             <div style="margin-top: auto; border-top: 1px dashed var(--border); padding-top: 15px; display: flex; gap: 10px;">
@@ -339,7 +336,7 @@
     window.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('extraLangSelect');
         Object.keys(langNames).forEach(code => {
-            if (!['ko', 'en', 'zh', 'id'].includes(code)) {
+            if (!['ko'].includes(code)) {
                 const opt = document.createElement('option');
                 opt.value = code; opt.innerText = langNames[code];
                 select.appendChild(opt);
