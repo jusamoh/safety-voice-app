@@ -35,16 +35,11 @@ app.add_middleware(
 USER_DB = {
     "admin": "1234",          
     "samsung": "sam1234",     
-    "hyundai": "hdec1234"     
+    "hyundai": "hdec1234",
+    "speaker": "speaker1234"     
 }
 
 ACTIVE_TOKENS = set()
-
-# 💡 [핵심] 청중이 말할 때 어떤 언어로 번역할지 알려주는 '전역 기억 장치'
-ROOM_STATE = {
-    "targets": "ko,en,zh,id",
-    "glossary": ""
-}
 
 @app.post("/api/login")
 async def login(request: Request):
@@ -133,7 +128,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # ==========================================
-# 🧠 4. 백그라운드 슬라이딩 요약 봇
+# 🧠 3. 백그라운드 슬라이딩 요약 봇 (Global)
 # ==========================================
 async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
@@ -154,15 +149,137 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
         summary_state["text"] = response.content[0].text.strip()
         print(f"\n🧠 [비서 요약 봇] 문맥 압축 완료: {summary_state['text']}\n", flush=True)
     except Exception as e:
-        pass
+        print(f"Summary Error: {e}", flush=True)
 
+# ==========================================
+# 🧠 4. 메인 LLM 번역 로직 (Global 구조로 완전 분리독립)
+# ==========================================
+async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
+    
+    if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
+        await manager.broadcast_json({"type": "alert"})
+
+    ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
+    if not text or len(text) < 2 or text.lower() in ignore_words:
+        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        manager.release_floor() # 무의미한 발화 시 바닥권 즉시 반납
+        return
+
+    history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
+    glossary_section = f"\n[MEETING GLOSSARY / DOMAIN KNOWLEDGE]\n{glossary_text}\n" if glossary_text.strip() else ""
+
+    if source_lang == "multi":
+        lang_instruction = "The speaker might use various languages during the discussion. Detect the spoken language of the CURRENT SENTENCE automatically."
+    else:
+        lang_instruction = f"The spoken language is strictly '{source_lang}'."
+
+    system_prompt = [
+        {
+            "type": "text",
+            "text": f"""You are a top-tier professional simultaneous interpreter for a multinational meeting.
+    
+    [PAST CONTEXT SUMMARY]
+    {summary_state.get('text', "No summary yet.")}
+    
+    [RECENT CONTEXT]
+    {history_str}
+    
+    {glossary_section}
+    
+    CRITICAL INSTRUCTIONS:
+    1. {lang_instruction}
+    2. Fix any STT typos in the CURRENT SENTENCE based on the context.
+    3. Translate ONLY the CURRENT SENTENCE into the target language codes: {targets}.
+    4. ABSOLUTE RULE: You MUST provide EXACTLY ONE best translation per language. 
+       - NEVER use slashes (/) or parentheses to provide alternative options.
+       - Pick ONLY ONE natural translation and output it.
+    
+    Respond EXACTLY in this tag format (DO NOT USE JSON):
+    [original]
+    clean current sentence
+    [lang_code_1]
+    result
+    [lang_code_2]
+    result""",
+            "cache_control": {"type": "ephemeral"}
+        }
+    ]
+    
+    try:
+        stream = await claude_client.messages.create(
+                model="claude-3-5-haiku-20241022",  # 🚨 존재하지 않는 4.5 대신 가장 최신/빠른 3.5 하이쿠로 고정!
+                max_tokens=500,
+                system=system_prompt, 
+                messages=[{"role": "user", "content": text}],
+                stream=True
+        )
+
+        buffer = ""
+        lang_text = {}
+        
+        async for event in stream:
+            if event.type == "content_block_delta":
+                buffer += event.delta.text
+                
+                matches = re.finditer(r'\[([a-z]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
+                for match in matches:
+                    lang = match.group(1)
+                    text_so_far = match.group(2).strip()
+                    
+                    lang_text[lang] = text_so_far
+                    
+                    if lang != 'original':
+                        await manager.broadcast_json({
+                            "type": "stream_update",
+                            "lang": lang,
+                            "text": text_so_far,
+                            "original_text": lang_text.get('original', ''),
+                            "source_lang": source_lang,
+                            "msg_id": msg_id
+                        })
+        
+        original_text = lang_text.get('original', text)
+        recent_history.append(original_text)
+        
+        if len(recent_history) >= 5:
+            sentences_to_summarize = recent_history[:3]
+            del recent_history[:3] 
+            asyncio.create_task(update_sliding_summary(summary_state, sentences_to_summarize))
+        
+        for lang, final_text in lang_text.items():
+            if lang != 'original':
+                display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
+                await manager.broadcast_json({
+                    "type": "stream_end",
+                    "lang": lang,
+                    "text": display_final,
+                    "original_text": lang_text.get('original', ''),
+                    "source_lang": source_lang,
+                    "msg_id": msg_id
+                })
+                
+        await manager.broadcast_json({"type": "sentence_complete"})
+        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        
+        # 완벽한 번역 전송 완료 후 바닥권(Floor) 반납
+        manager.release_floor()
+        
+    except Exception as e:
+        print(f"Translation Error: {e}", flush=True)
+        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        manager.release_floor()
+
+
+# ==========================================
+# ⚡ 5. 웹소켓 및 Deepgram 파이프라인
+# ==========================================
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket, 
@@ -193,16 +310,17 @@ async def websocket_endpoint(
         if role == "viewer":
             while True:
                 data = await websocket.receive()
-                if data.get("type") == "websocket.receive" and "text" in data:
+                if data.get("type") == "websocket.receive" and data.get("text") is not None:
                     try:
-                        msg = json.loads(data["text"])
+                        msg = json.loads(data.get("text"))
                         if msg.get("type") == "request_speak":
                             manager.requests.append({"id": client_id, "name": name})
                             await manager.broadcast_admin_state()
                         elif msg.get("type") == "cancel_request":
                             manager.requests = [r for r in manager.requests if r["id"] != client_id]
                             await manager.broadcast_admin_state()
-                    except: pass
+                    except Exception as json_e: 
+                        print(f"Viewer Parse Error: {json_e}", flush=True)
         else:
             dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
             headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
@@ -214,20 +332,21 @@ async def websocket_endpoint(
                 ws_kwargs["extra_headers"] = headers
 
             async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
+                
                 async def sender():
                     nonlocal glossary_text, dynamic_targets 
                     try:
                         while True:
                             data = await websocket.receive()
                             if data.get("type") == "websocket.receive":
-                                if "bytes" in data:
-                                    # 발언권 검증: 어드민이거나, 전체음소거가 아니고(바닥권이 없거나 내것일때)
+                                # 🚨 조용한 죽음 방지: dict.get을 사용하여 안전하게 파싱
+                                if data.get("bytes") is not None:
                                     if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
-                                        await dg_ws.send(data["bytes"])
-                                elif "text" in data:
+                                        await dg_ws.send(data.get("bytes"))
+                                        
+                                elif data.get("text") is not None:
                                     try:
-                                        msg = json.loads(data["text"])
-                                        # 사회자 제어 처리
+                                        msg = json.loads(data.get("text"))
                                         if msg.get("type") == "admin_action" and role == "admin":
                                             action = msg.get("action")
                                             if action == "approve":
@@ -251,8 +370,12 @@ async def websocket_endpoint(
                                         elif msg.get("type") == "config":
                                             if "glossary" in msg: glossary_text = msg.get("glossary", "")
                                             if "targets" in msg: dynamic_targets = msg.get("targets", dynamic_targets)
-                                    except: pass
-                    except: pass
+                                    except Exception as json_err: 
+                                        print(f"WS Parse Error: {json_err}", flush=True)
+                    except websockets.exceptions.ConnectionClosed:
+                        pass
+                    except Exception as e:
+                        print(f"🚨 Sender 루프 에러: {e}", flush=True)
 
                 async def receiver():
                     current_sentence = ""
@@ -270,13 +393,11 @@ async def websocket_endpoint(
                                 transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
                                 
                                 if transcript:
-                                    # 바닥권(Floor) 선점 로직
                                     if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
                                         manager.set_floor(client_id)
                                     
-                                    # 남이 발언권 획득 시 내 인식결과 무시
                                     if role != "admin" and manager.floor_owner is None:
-                                        continue # 혹시 모를 버그 방어
+                                        continue 
                                     if role != "admin" and manager.floor_owner != client_id:
                                         continue
 
@@ -284,7 +405,6 @@ async def websocket_endpoint(
                                     display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
                                     current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
                                     
-                                    # 누가 말하는지 태그 표시
                                     tag = "[사회자] " if role == "admin" else f"[{name}] "
                                     
                                     await manager.broadcast_json({
@@ -307,140 +427,26 @@ async def websocket_endpoint(
                                         last_translated_text = final_text
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         
+                                        # 글로벌로 분리된 번역 함수 호출 (UnboundLocalError 완벽 차단)
                                         asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, recent_history, summary_state, glossary_text, current_msg_id, role, name))
                                     
                                     current_sentence = ""
                                     current_msg_id = secrets.token_hex(4)
-                    except: pass
+                    except websockets.exceptions.ConnectionClosed:
+                        pass
+                    except Exception as e:
+                        print(f"🚨 Receiver 루프 에러: {e}", flush=True)
+
                 await asyncio.gather(sender(), receiver())
                 
     except Exception as e:
-        print(f"🚨 웹소켓 에러: {e}", flush=True)
+        print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
     finally:
         manager.disconnect(websocket)
 
-    # ==========================================
-    # 🧠 메인 LLM 번역 로직 (오류 수정 및 정규화 완비)
-    # ==========================================
-    async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
-        
-        if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
-            await manager.broadcast_json({"type": "alert"})
-
-        ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
-        if not text or len(text) < 2 or text.lower() in ignore_words:
-            await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
-            manager.release_floor() # 무의미한 발화 시 바닥권 즉시 반납
-            return
-
-        history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
-        glossary_section = f"\n[MEETING GLOSSARY / DOMAIN KNOWLEDGE]\n{glossary_text}\n" if glossary_text.strip() else ""
-
-        if source_lang == "multi":
-            lang_instruction = "The speaker might use various languages during the discussion. Detect the spoken language of the CURRENT SENTENCE automatically."
-        else:
-            lang_instruction = f"The spoken language is strictly '{source_lang}'."
-
-        system_prompt = [
-            {
-                "type": "text",
-                "text": f"""You are a top-tier professional simultaneous interpreter for a multinational meeting.
-        
-        [PAST CONTEXT SUMMARY]
-        {summary_state.get('text', "No summary yet.")}
-        
-        [RECENT CONTEXT]
-        {history_str}
-        
-        {glossary_section}
-        
-        CRITICAL INSTRUCTIONS:
-        1. {lang_instruction}
-        2. Fix any STT typos in the CURRENT SENTENCE based on the context.
-        3. Translate ONLY the CURRENT SENTENCE into the target language codes: {targets}.
-        4. ABSOLUTE RULE: You MUST provide EXACTLY ONE best translation per language. 
-           - NEVER use slashes (/) or parentheses to provide alternative options.
-           - Pick ONLY ONE natural translation and output it.
-        
-        Respond EXACTLY in this tag format (DO NOT USE JSON):
-        [original]
-        clean current sentence
-        [lang_code_1]
-        result
-        [lang_code_2]
-        result""",
-                "cache_control": {"type": "ephemeral"}
-            }
-        ]
-        
-        try:
-            stream = await claude_client.messages.create(
-                    model="claude-haiku-4-5-20251001", 
-                    max_tokens=500,
-                    system=system_prompt, 
-                    messages=[{"role": "user", "content": text}],
-                    stream=True
-            )
-
-            buffer = ""
-            lang_text = {}
-            
-            async for event in stream:
-                if event.type == "content_block_delta":
-                    buffer += event.delta.text
-                    
-                    matches = re.finditer(r'\[([a-z]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
-                    for match in matches:
-                        lang = match.group(1)
-                        text_so_far = match.group(2).strip()
-                        
-                        lang_text[lang] = text_so_far
-                        
-                        if lang != 'original':
-                            await manager.broadcast_json({
-                                "type": "stream_update",
-                                "lang": lang,
-                                "text": text_so_far,
-                                "original_text": lang_text.get('original', ''),
-                                "source_lang": source_lang,
-                                "msg_id": msg_id
-                            })
-            
-            original_text = lang_text.get('original', text)
-            recent_history.append(original_text)
-            
-            if len(recent_history) >= 5:
-                sentences_to_summarize = recent_history[:3]
-                del recent_history[:3] 
-                asyncio.create_task(update_sliding_summary(summary_state, sentences_to_summarize))
-            
-            for lang, final_text in lang_text.items():
-                if lang != 'original':
-                    # 번역본에도 화자 이름 태그 달기
-                    display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
-                    await manager.broadcast_json({
-                        "type": "stream_end",
-                        "lang": lang,
-                        "text": display_final,
-                        "original_text": lang_text.get('original', ''),
-                        "source_lang": source_lang,
-                        "msg_id": msg_id
-                    })
-                    
-            await manager.broadcast_json({"type": "sentence_complete"})
-            await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
-            
-            # 완벽한 번역 전송 완료 후 바닥권(Floor) 반납
-            manager.release_floor()
-            
-        except Exception as e:
-            print(f"Translation Error: {e}", flush=True)
-            await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
-            manager.release_floor()
-
-    if __name__ == "__main__":
-        import multiprocessing
-        import uvicorn
-        multiprocessing.freeze_support()
-        print("🚀 실시간 글로벌 통역 서버를 시작합니다... (http://0.0.0.0:10000)")
-        uvicorn.run(app, host="0.0.0.0", port=10000)
+if __name__ == "__main__":
+    import multiprocessing
+    import uvicorn
+    multiprocessing.freeze_support()
+    print("🚀 실시간 글로벌 통역 서버를 시작합니다... (http://0.0.0.0:10000)")
+    uvicorn.run(app, host="0.0.0.0", port=10000)
