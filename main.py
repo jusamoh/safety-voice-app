@@ -75,21 +75,60 @@ async def favicon():
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
+        self.clients = {} 
+        self.requests = [] 
+        self.floor_owner = None
+        self.is_admin_muted = False
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str):
         await websocket.accept()
         self.active_connections.append(websocket)
+        self.clients[websocket] = {"id": client_id, "name": name, "role": role}
+        await self.broadcast_admin_state()
+        await websocket.send_json({
+            "type": "floor_state",
+            "floor_owner": self.floor_owner,
+            "is_admin_muted": self.is_admin_muted
+        })
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
+        
+        client_info = self.clients.get(websocket)
+        if client_info:
+            client_id = client_info["id"]
+            self.requests = [req for req in self.requests if req["id"] != client_id]
+            if self.floor_owner == client_id:
+                self.floor_owner = None
+            del self.clients[websocket]
+            
+        asyncio.create_task(self.broadcast_admin_state())
+        asyncio.create_task(self.broadcast_floor_state())
+
+    async def broadcast_admin_state(self):
+        state = {"type": "admin_state", "requests": self.requests}
+        for ws, info in self.clients.items():
+            if info["role"] == "admin":
+                try: await ws.send_json(state)
+                except: pass
+                
+    async def broadcast_floor_state(self):
+        msg = {"type": "floor_state", "floor_owner": self.floor_owner, "is_admin_muted": self.is_admin_muted}
+        await self.broadcast_json(msg)
 
     async def broadcast_json(self, message: dict):
         for connection in self.active_connections:
-            try:
-                await connection.send_json(message)
-            except:
-                pass
+            try: await connection.send_json(message)
+            except: pass
+            
+    def set_floor(self, client_id: str):
+        self.floor_owner = client_id
+        asyncio.create_task(self.broadcast_floor_state())
+        
+    def release_floor(self):
+        self.floor_owner = None
+        asyncio.create_task(self.broadcast_floor_state())
 
 manager = ConnectionManager()
 
@@ -124,9 +163,6 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     except Exception as e:
         pass
 
-# ==========================================
-# ⚡ 5. 다국적 웹소켓 파이프라인 (STT 연동)
-# ==========================================
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket, 
@@ -134,11 +170,164 @@ async def websocket_endpoint(
     lang: str = Query("ko"), 
     targets: str = Query("ko,id"), 
     role: str = Query("speaker"),
+    client_id: str = Query(None),
+    name: str = Query(None),
     endpointing: int = Query(700), 
     max_chars: int = Query(50)    
 ):
     if token not in ACTIVE_TOKENS:
         await websocket.close(code=1008, reason="Unauthorized")
+        return
+
+    if not client_id: client_id = secrets.token_hex(4)
+    if not name: name = f"User_{client_id}"
+
+    await manager.connect(websocket, client_id, name, role)
+    
+    recent_history = [] 
+    summary_state = {"text": ""} 
+    glossary_text = ""
+    dynamic_targets = targets 
+
+    try:
+        if role == "viewer":
+            while True:
+                data = await websocket.receive()
+                if data.get("type") == "websocket.receive" and "text" in data:
+                    try:
+                        msg = json.loads(data["text"])
+                        if msg.get("type") == "request_speak":
+                            manager.requests.append({"id": client_id, "name": name})
+                            await manager.broadcast_admin_state()
+                        elif msg.get("type") == "cancel_request":
+                            manager.requests = [r for r in manager.requests if r["id"] != client_id]
+                            await manager.broadcast_admin_state()
+                    except: pass
+        else:
+            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
+            headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
+
+            ws_kwargs = {}
+            if int(websockets.__version__.split('.')[0]) >= 14:
+                ws_kwargs["additional_headers"] = headers
+            else:
+                ws_kwargs["extra_headers"] = headers
+
+            async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
+                async def sender():
+                    nonlocal glossary_text, dynamic_targets 
+                    try:
+                        while True:
+                            data = await websocket.receive()
+                            if data.get("type") == "websocket.receive":
+                                if "bytes" in data:
+                                    # 발언권 검증: 어드민이거나, 전체음소거가 아니고(바닥권이 없거나 내것일때)
+                                    if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
+                                        await dg_ws.send(data["bytes"])
+                                elif "text" in data:
+                                    try:
+                                        msg = json.loads(data["text"])
+                                        # 사회자 제어 처리
+                                        if msg.get("type") == "admin_action" and role == "admin":
+                                            action = msg.get("action")
+                                            if action == "approve":
+                                                tid = msg.get("target_id")
+                                                manager.requests = [r for r in manager.requests if r["id"] != tid]
+                                                await manager.broadcast_admin_state()
+                                                for ws, info in manager.clients.items():
+                                                    if info["id"] == tid:
+                                                        try: await ws.send_json({"type": "speak_approved"})
+                                                        except: pass
+                                            elif action == "reject":
+                                                tid = msg.get("target_id")
+                                                manager.requests = [r for r in manager.requests if r["id"] != tid]
+                                                await manager.broadcast_admin_state()
+                                            elif action == "mute_all":
+                                                manager.is_admin_muted = True
+                                                manager.release_floor()
+                                            elif action == "unmute_all":
+                                                manager.is_admin_muted = False
+                                                await manager.broadcast_floor_state()
+                                        elif msg.get("type") == "config":
+                                            if "glossary" in msg: glossary_text = msg.get("glossary", "")
+                                            if "targets" in msg: dynamic_targets = msg.get("targets", dynamic_targets)
+                                    except: pass
+                    except: pass
+
+                async def receiver():
+                    current_sentence = ""
+                    last_translated_text = "" 
+                    current_msg_id = secrets.token_hex(4)
+                    
+                    try:
+                        while True:
+                            dg_result = await dg_ws.recv()
+                            dg_json = json.loads(dg_result)
+                            
+                            if dg_json.get("type") == "Results":
+                                is_final = dg_json.get("is_final", False)
+                                speech_final = dg_json.get("speech_final", False)
+                                transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
+                                
+                                if transcript:
+                                    # 바닥권(Floor) 선점 로직
+                                    if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
+                                        manager.set_floor(client_id)
+                                    
+                                    # 남이 발언권 획득 시 내 인식결과 무시
+                                    if role != "admin" and manager.floor_owner is None:
+                                        continue # 혹시 모를 버그 방어
+                                    if role != "admin" and manager.floor_owner != client_id:
+                                        continue
+
+                                if transcript or current_sentence:
+                                    display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
+                                    current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
+                                    
+                                    # 누가 말하는지 태그 표시
+                                    tag = "[사회자] " if role == "admin" else f"[{name}] "
+                                    
+                                    await manager.broadcast_json({
+                                        "type": "interim", 
+                                        "text": tag + display_text.strip(),
+                                        "targets": current_targets_list,
+                                        "msg_id": current_msg_id
+                                    })
+
+                                if is_final and transcript:
+                                    if current_sentence: current_sentence += " " + transcript
+                                    else: current_sentence = transcript
+
+                                is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
+
+                                if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
+                                    final_text = current_sentence.strip()
+                                    
+                                    if final_text != last_translated_text:
+                                        last_translated_text = final_text
+                                        await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
+                                        
+                                        asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, recent_history, summary_state, glossary_text, current_msg_id, role, name))
+                                    
+                                    current_sentence = ""
+                                    current_msg_id = secrets.token_hex(4)
+                    except: pass
+                await asyncio.gather(sender(), receiver())
+                
+    except Exception as e:
+        print(f"🚨 웹소켓 에러: {e}", flush=True)
+    finally:
+        manager.disconnect(websocket)
+
+async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
+    
+    if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
+        await manager.broadcast_json({"type": "alert"})
+
+    ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
+    if not text or len(text) < 2 or text.lower() in ignore_words:
+        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        manager.release_floor() # 무의미한 발화 시 바닥권 즉시 반납
         return
 
     await manager.connect(websocket)
@@ -339,10 +528,12 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         
         for lang, final_text in lang_text.items():
             if lang != 'original':
+                # 번역본에도 화자 이름 태그 달기
+                display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
                 await manager.broadcast_json({
                     "type": "stream_end",
                     "lang": lang,
-                    "text": final_text,
+                    "text": display_final,
                     "original_text": lang_text.get('original', ''),
                     "source_lang": source_lang,
                     "msg_id": msg_id
@@ -351,9 +542,13 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         await manager.broadcast_json({"type": "sentence_complete"})
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
         
+        # 완벽한 번역 전송 완료 후 바닥권(Floor) 반납
+        manager.release_floor()
+        
     except Exception as e:
         print(f"Translation Error: {e}", flush=True)
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        manager.release_floor()
 
 if __name__ == "__main__":
     import multiprocessing
