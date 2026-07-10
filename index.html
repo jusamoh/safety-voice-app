@@ -80,7 +80,6 @@
         body.viewer-mode .window { height: 95vh; max-height: none; box-shadow: none; border: 1px solid #ddd; background: #fff; color:#000; }
         body.viewer-mode .latest-text, body.viewer-mode .same-lang-text { font-size: 24px; } 
         
-        /* 뷰어용 상단 언어 선택바 */
         #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #333; padding: 10px; z-index: 1000; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
         body.viewer-mode #viewerTopBar { display: block; }
         #viewerTopBar select { padding: 8px 15px; font-size: 16px; border-radius: 5px; background: #fff; color: #000; font-weight: bold; border:none; outline:none; }
@@ -100,7 +99,6 @@
 </head>
 <body>
 
-<!-- 🔐 로그인 스크린 -->
 <div id="loginOverlay">
     <div class="login-box">
         <h2>🚀 AI 안전 통역 로그인</h2>
@@ -149,7 +147,6 @@
                 <div class="add-lang-box">
                     <span style="font-size: 14px; color: #555;">➕ 현장 작업자 언어 추가:</span>
                     <select id="extraLangSelect" style="padding: 5px; font-size: 14px;">
-                        <!-- 40개 국어로 대폭 확장된 드롭다운 -->
                         <option value="id">🇮🇩 인니어 (Indonesian)</option>
                         <option value="vi">🇻🇳 베트남어 (Vietnamese)</option>
                         <option value="es">🇪🇸 스페인어 (Spanish)</option>
@@ -163,29 +160,6 @@
                         <option value="tl">🇵🇭 필리핀어 (Tagalog)</option>
                         <option value="hi">🇮🇳 힌디어 (Hindi)</option>
                         <option value="bn">🇧🇩 벵골어 (Bengali)</option>
-                        <option value="ne">🇳🇵 네팔어 (Nepali)</option>
-                        <option value="my">🇲🇲 미얀마어 (Burmese)</option>
-                        <option value="km">🇰🇭 크메르어 (Khmer)</option>
-                        <option value="si">🇱🇰 싱할라어 (Sinhala)</option>
-                        <option value="ur">🇵🇰 우르두어 (Urdu)</option>
-                        <option value="fa">🇮🇷 페르시아어 (Persian)</option>
-                        <option value="tr">🇹🇷 튀르키예어 (Turkish)</option>
-                        <option value="ms">🇲🇾 말레이어 (Malay)</option>
-                        <option value="sw">🇰🇪 스와힐리어 (Swahili)</option>
-                        <option value="pt">🇵🇹 포르투갈어 (Portuguese)</option>
-                        <option value="it">🇮🇹 이탈리아어 (Italian)</option>
-                        <option value="nl">🇳🇱 네덜란드어 (Dutch)</option>
-                        <option value="pl">🇵🇱 폴란드어 (Polish)</option>
-                        <option value="sv">🇸🇪 스웨덴어 (Swedish)</option>
-                        <option value="da">🇩🇰 덴마크어 (Danish)</option>
-                        <option value="no">🇳🇴 노르웨이어 (Norwegian)</option>
-                        <option value="fi">🇫🇮 핀란드어 (Finnish)</option>
-                        <option value="el">🇬🇷 그리스어 (Greek)</option>
-                        <option value="cs">🇨🇿 체코어 (Czech)</option>
-                        <option value="ro">🇷🇴 루마니아어 (Romanian)</option>
-                        <option value="hu">🇭🇺 헝가리어 (Hungarian)</option>
-                        <option value="he">🇮🇱 히브리어 (Hebrew)</option>
-                        <option value="uk">🇺🇦 우크라이나어 (Ukrainian)</option>
                     </select>
                     <button class="add-lang-btn" onclick="addExtraLanguage()">화면에 추가</button>
                 </div>
@@ -240,7 +214,6 @@
         <span style="font-size: 14px; color: #ccc;">Please select your language from the top menu.</span>
     </div>
 
-    <!-- 반응형 번역 창 컨테이너 -->
     <div class="window-container" id="windowContainer"></div>
 </div>
 
@@ -259,16 +232,11 @@
 </div>
 
 <script>
-    // 🌐 40개 국어로 확장된 언어 매핑
     const langNames = { 
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "id": "🇮🇩 인니어", "ja": "🇯🇵 일본어", "zh": "🇨🇳 중국어", 
         "vi": "🇻🇳 베트남어", "es": "🇪🇸 스페인어", "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "th": "🇹🇭 태국어",
         "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "ru": "🇷🇺 러시아어", "ar": "🇸🇦 아랍어", "tl": "🇵🇭 필리핀어",
-        "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ne": "🇳🇵 네팔어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 크메르어",
-        "si": "🇱🇰 싱할라어", "ur": "🇵🇰 우르두어", "fa": "🇮🇷 페르시아어", "tr": "🇹🇷 튀르키예어", "ms": "🇲🇾 말레이어",
-        "sw": "🇰🇪 스와힐리어", "pt": "🇵🇹 포르투갈어", "it": "🇮🇹 이탈리아어", "nl": "🇳🇱 네덜란드어", "pl": "🇵🇱 폴란드어",
-        "sv": "🇸🇪 스웨덴어", "da": "🇩🇰 덴마크어", "no": "🇳🇴 노르웨이어", "fi": "🇫🇮 핀란드어", "el": "🇬🇷 그리스어",
-        "cs": "🇨🇿 체코어", "ro": "🇷🇴 루마니아어", "hu": "🇭🇺 헝가리어", "he": "🇮🇱 히브리어", "uk": "🇺🇦 우크라이나어"
+        "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어"
     };
     
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
@@ -286,14 +254,9 @@
         document.body.classList.add('viewer-mode');
         setTimeout(() => toggleConnection('viewer'), 500);
     } 
-    // 💡 기존에 있던 else { localStorage 검사하여 자동 로그인하는 로직 } 전체를 삭제했습니다.
-    // 이렇게 하면 QR 코드(room_token)로 들어온 작업자가 아닌 이상, 항상 로그인 화면(loginOverlay)에 머물게 됩니다.
 
-    // 💡 선택된 언어만 화면에 남기는 필터 함수 (작업자 뷰어용)
     function filterViewerWindows() {
-        // 관리자 모드일 때는 뷰어 필터가 작동하지 않도록 차단
         if (!document.body.classList.contains('viewer-mode')) return;
-
         const selected = document.getElementById('viewerLangSelect').value;
         const windows = document.querySelectorAll('.window-container .window');
         const placeholder = document.getElementById('viewerPlaceholder');
@@ -307,13 +270,9 @@
                 win.style.display = 'none';
             }
         });
-
-        if (placeholder) {
-            placeholder.style.display = hasVisibleWindow ? 'none' : 'block';
-        }
+        if (placeholder) placeholder.style.display = hasVisibleWindow ? 'none' : 'block';
     }
 
-    // 💡 방송이 도착했을 때 해당 언어의 창이 없으면 즉시 자동 생성해주는 마법의 함수
     function ensureWindowExists(lang) {
         let box = document.getElementById(`box_${lang}`);
         if (!box) {
@@ -325,7 +284,6 @@
             container.appendChild(win);
             box = document.getElementById(`box_${lang}`);
 
-            // 뷰어 모드일 때 상단 드롭다운에 옵션 자동 추가
             if (document.body.classList.contains('viewer-mode')) {
                 const select = document.getElementById('viewerLangSelect');
                 if (!select.querySelector(`option[value="${lang}"]`)) {
@@ -335,7 +293,7 @@
                     select.appendChild(opt);
                 }
             }
-            filterViewerWindows(); // 생성 직후 현재 필터 상태(내 언어만 보기)를 적용
+            filterViewerWindows(); 
         }
         return box;
     }
@@ -354,17 +312,14 @@
 
         if (ws && ws.readyState === 1 && isConnected) {
             ws.send(JSON.stringify({ type: "config", targets: checkedLangs.join(',') }));
-            console.log("🌐 서버로 타겟 언어 실시간 변경 요청 전송:", checkedLangs.join(','));
         }
     }
 
     window.addEventListener('load', () => {
-        // 💡 뷰어용 드롭다운 초기화: 모든 언어가 아닌 '감독관이 QR로 넘겨준 언어'만 채우기
         const viewerSelect = document.getElementById('viewerLangSelect');
         const urlTargets = new URLSearchParams(window.location.search).get('targets');
 
         if (urlTargets) {
-            // QR코드(URL)로 전달받은 감독관의 언어 목록만 드롭다운에 추가
             urlTargets.split(',').forEach(code => {
                 if (!viewerSelect.querySelector(`option[value="${code}"]`)) {
                     const opt = document.createElement('option');
@@ -374,7 +329,6 @@
                 }
             });
         }
-
         document.querySelectorAll('#targetCheckboxes input').forEach(cb => {
             cb.addEventListener('change', updateWindows);
         });
@@ -427,7 +381,6 @@
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ""; 
         
-        // 💡 QR 코드 주소(URL)에 현재 감독관이 체크한 번역 언어 목록(targets)을 함께 묶어서 전송!
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${targetLangs.join(',')}`;
         
@@ -460,7 +413,7 @@
                 const reportStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(reportStream);
                 mediaRecorder.ondataavailable = (e) => { if (ws && ws.readyState === 1) ws.send(e.data); };
-                mediaRecorder.start(250);
+                mediaRecorder.start(100);
                 document.getElementById('reportBtn').innerText = "🛑 보고 종료";
                 document.getElementById('reportBtn').style.backgroundColor = "#333";
                 isReporting = true;
@@ -524,7 +477,7 @@
     function updateStatus(text) {
         const box = document.getElementById('statusBox');
         box.innerText = text;
-        if (text.includes("번역 중")) box.style.background = "#f39c12"; 
+        if (text.includes("번역 중") || text.includes("생성 중")) box.style.background = "#f39c12"; 
         else if (text.includes("방송 중")) box.style.background = "#28a745"; 
         else box.style.background = "#6c757d"; 
     }
@@ -564,7 +517,7 @@
                         
                         mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                         mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0 && ws.readyState === 1) ws.send(e.data); };
-                        mediaRecorder.start(250); 
+                        mediaRecorder.start(100); 
                     } else {
                         viewerBtn.innerText = "🛑 수신 종료";
                         viewerBtn.classList.add('active');
@@ -578,12 +531,11 @@
                     if (res.type === "alert") triggerAlert();
                     else if (res.type === "interim") {
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
-                        if (!currentSentenceId) currentSentenceId = "msg_" + Date.now();
+                        if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
 
-                        // 백엔드에서 쏴주는 현재 방송 중인 언어 목록을 기반으로 화면 그리기
-                        let langsToUpdate = [];
-                        if (document.body.classList.contains('viewer-mode')) langsToUpdate = res.targets || [];
-                        else langsToUpdate = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+                        let langsToUpdate = document.body.classList.contains('viewer-mode') 
+                            ? res.targets || [] 
+                            : Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
 
                         langsToUpdate.forEach(lang => {
                             const box = ensureWindowExists(lang);
@@ -599,31 +551,56 @@
                         });
                     } else if (res.type === "status") {
                         updateStatus(res.text);
-                    } else if (res.type === "translation") {
-                        document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">현장 지시 대기 중...</span>`;
-                        const data = res.data;
-                        transcriptLog += `원문: ${data.original}\n`;
+                    } 
+                    else if (res.type === "stream_update" || res.type === "stream_end") {
+                        if (res.type === "stream_update") {
+                            document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">번역 생성 중... ⚡</span>`;
+                        } else {
+                            document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">현장 지시 대기 중...</span>`;
+                        }
 
-                        Object.keys(data.translations).forEach(lang => {
-                            const box = ensureWindowExists(lang);
-                            const div = document.getElementById(`${currentSentenceId}_${lang}`) || document.createElement('div');
+                        const lang = res.lang;
+                        const box = ensureWindowExists(lang);
+                        let div = document.getElementById(`${res.msg_id}_${lang}`);
+                        
+                        if (!div) {
+                            div = document.createElement('div');
+                            div.id = `${res.msg_id}_${lang}`;
                             div.className = 'sentence';
-                            div.id = ""; // ID 초기화
-                            
-                            const isSame = (res.source_lang === lang);
-                            const transText = data.translations[lang];
-                            const safeText = transText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                            box.appendChild(div);
+                        }
+
+                        // 💡 [핵심] 프론트엔드 슬래시(/) 필터링 로직: 화면에 그리기 직전에 자르기
+                        const rawText = res.text || "";
+                        const cleanText = rawText.split('/')[0].trim();
+                        const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
+                        const isSame = (res.source_lang === lang);
+                        
+                        if (res.type === "stream_update") {
+                            if (isSame) {
+                                div.innerHTML = `<span class="same-lang-text">${safeText}</span><span style="color:#1a73e8; animation: pulse 1s infinite;"> ▌</span>`;
+                            } else {
+                                div.innerHTML = `<span class="original-text">원문: ${res.original_text || "..." }</span><span class="latest-text">${safeText}</span><span style="color:#d93025; animation: pulse 1s infinite;"> ▌</span>`;
+                            }
+                        } else {
                             const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
+                            if (isSame) {
+                                div.innerHTML = `<span class="same-lang-text">${cleanText}</span> ${ttsBtnHTML}`;
+                            } else {
+                                div.innerHTML = `<span class="original-text">원문: ${res.original_text || "..." }</span><span class="latest-text">${cleanText}</span> ${ttsBtnHTML}`;
+                            }
                             
-                            if (isSame) div.innerHTML = `<span class="same-lang-text">${transText}</span> ${ttsBtnHTML}`;
-                            else div.innerHTML = `<span class="original-text">원문: ${data.original}</span><span class="latest-text">${transText}</span> ${ttsBtnHTML}`;
-                            
-                            if (!document.getElementById(`${currentSentenceId}_${lang}`)) box.appendChild(div);
-                            transcriptLog += `- ${lang}: ${transText}\n`;
-                            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-                        });
+                            if (lang === document.querySelectorAll('#targetCheckboxes input:checked')[0]?.value) {
+                                transcriptLog += `원문: ${res.original_text}\n`;
+                            }
+                            transcriptLog += `- ${lang}: ${cleanText}\n`;
+                        }
+                        box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                    }
+                    else if (res.type === "sentence_complete") {
                         transcriptLog += `----------------------------------------\n`;
-                        currentSentenceId = null; 
+                        currentSentenceId = null;
                     }
                 };
                 
@@ -635,26 +612,39 @@
                 };
             } catch (err) { alert("연결 오류가 발생했습니다."); }
         } else {
-            if (mediaRecorder) mediaRecorder.stop();
-            if (stream) stream.getTracks().forEach(t => t.stop());
-            if (ws) ws.close();
             resetUI();
         }
     }
 
     function resetUI() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null; 
+        }
+
         isConnected = false;
         document.body.classList.remove('viewer-mode');
-        document.getElementById('viewerPlaceholder').style.display = 'none';
-        document.getElementById('speakerBtn').innerText = "🎤 [PC] 마이크 켜기";
-        document.getElementById('viewerBtn').innerText = "👀 [스마트폰] 작업자 접속";
-        document.getElementById('speakerBtn').classList.remove('active');
-        document.getElementById('viewerBtn').classList.remove('active');
+        
+        const placeholder = document.getElementById('viewerPlaceholder');
+        if (placeholder) placeholder.style.display = 'none';
+        
+        const speakerBtn = document.getElementById('speakerBtn');
+        const viewerBtn = document.getElementById('viewerBtn');
+        
+        if (speakerBtn) {
+            speakerBtn.innerText = "🎤 [PC] 마이크 켜기";
+            speakerBtn.classList.remove('active');
+        }
+        if (viewerBtn) {
+            viewerBtn.innerText = "👀 [내 PC] 뷰어 모드 전환";
+            viewerBtn.classList.remove('active');
+        }
+        
         updateStatus("시스템 대기 중");
     }
 </script>
 </body>
 </html>
-```
-
-저장하신 후 렌더가 배포를 마치면, 강력 새로고침(`Ctrl` + `F5`)을 하시고 스마트폰으로 다시 QR 코드를 스캔해 보세요! 한층 더 직관적이고 깔끔해진 작업자 전용 화면을 보실 수 있습니다.
