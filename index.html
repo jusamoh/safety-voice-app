@@ -48,7 +48,6 @@
         label.form-label { font-weight: 600; font-size: 14px; color: var(--text-muted); display: block; margin-bottom: 8px; }
         select.styled-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 15px; outline: none; background: #fafafa; cursor: pointer; }
         
-        /* 핵심: 번역 채널 칩(Chip) 디자인 */
         .chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
         .lang-chip { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 30px; background: var(--bg-color); border: 1px solid var(--border); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; user-select: none; color: var(--text-muted);}
         .lang-chip input[type="checkbox"] { display: none; }
@@ -70,12 +69,13 @@
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; transition: 0.2s; }
         .btn-danger:hover { background: var(--danger-hover); }
-        .btn-danger.active { animation: pulseRed 2s infinite; }
         
         .btn-icon { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-full { width: 100%; padding: 12px; font-size: 15px; }
 
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.5); } 70% { box-shadow: 0 0 0 10px rgba(217, 48, 37, 0); } 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0); } }
+        /* 사회자 마이크 제어 버튼 CSS */
+        .admin-mute-btn { opacity: 0.4; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(50%); }
+        .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 800; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); filter: grayscale(0%); }
 
         .status-banner { max-width: 1400px; margin: 0 auto 20px; padding: 15px 20px; background: #3c4043; color: white; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .status-text { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 10px;}
@@ -105,6 +105,7 @@
         .tts-btn { position: absolute; right: 0; top: 0; background: #f1f3f4; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); font-weight: 600; }
         .tts-btn:hover { background: #e8eaed; }
 
+        /* 반응형 뷰어 및 토론자 모드 */
         body.viewer-mode, body.speaker-mode { background-color: #000; color: #fff; padding: 0; }
         body.viewer-mode .navbar, body.speaker-mode .navbar, 
         body.viewer-mode .dashboard-layout, body.speaker-mode .dashboard-layout,
@@ -134,10 +135,24 @@
         #mobileMuteBtn { display: none; position: fixed; bottom: 30px; right: 20px; background-color: var(--danger); color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
         body.speaker-mode #mobileMuteBtn { display: block; }
 
-        /* QR 모달 */
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 90%; }
         #qrcode { margin: 30px auto; display: flex; justify-content: center; }
+
+        .slider-group { display: flex; gap: 15px; }
+
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; padding: 15px; gap: 15px; text-align: center; }
+            .nav-actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
+            .dashboard-layout { grid-template-columns: 1fr; margin: 15px auto; padding: 0 15px; gap: 15px; }
+            .slider-group { flex-direction: column; gap: 10px; }
+            .status-banner { flex-direction: column; gap: 15px; text-align: center; padding: 15px; }
+            .dictation-box { max-width: 100%; white-space: normal; font-size: 16px; }
+            .window-container { grid-template-columns: 1fr; padding: 0 15px; gap: 15px; }
+            #viewerTopBar { flex-direction: column; padding: 10px; gap: 8px; }
+            .window { height: 350px; }
+            #requestSpeakBtn, #mobileMuteBtn { padding: 14px 20px; font-size: 15px; bottom: 20px; right: 15px; border-radius: 25px; }
+        }
     </style>
 </head>
 <body>
@@ -156,11 +171,8 @@
 
 <div id="appContainer">
     
-    <!-- 네비게이션 바 -->
     <nav class="navbar">
-        <div class="nav-brand">
-            🌍 글로벌 현장 안전 통역 콘솔
-        </div>
+        <div class="nav-brand">🌍 글로벌 현장 안전 통역 콘솔</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
             <button id="viewerBtn" class="btn-outline" onclick="toggleConnection('viewer')">💻 내 PC 뷰어</button>
@@ -183,7 +195,30 @@
     <!-- 대시보드 레이아웃 -->
     <div class="dashboard-layout" id="dashboardLayout">
         
-        <!-- 카드 1: 음성 및 최적화 설정 -->
+        <div class="card">
+            <div class="card-header"><span>📺</span> 방송 채널 및 공유</div>
+            
+            <div class="add-lang-wrapper">
+                <select id="extraLangSelect" class="styled-select" style="flex:1; padding: 8px;">
+                    <!-- 60개국 스크립트 채움 -->
+                </select>
+                <button class="btn-primary" style="padding: 8px 15px;" onclick="addExtraLanguage()">추가</button>
+            </div>
+
+            <div style="margin-top: 5px;">
+                <label class="form-label">활성화된 번역 화면</label>
+                <div class="chip-group" id="targetCheckboxes">
+                    <!-- 기본은 한국어 하나만 노출 -->
+                    <label class="lang-chip"><input type="checkbox" value="ko" checked> <span>🇰🇷 한국어</span></label>
+                </div>
+            </div>
+
+            <div style="margin-top: auto; border-top: 1px dashed var(--border); padding-top: 15px; display: flex; gap: 10px;">
+                <button class="btn-primary btn-full" style="background:#34a853;" onclick="showQRCode('viewer')">👀 청중(뷰어) QR</button>
+                <button class="btn-primary btn-full" style="background:#f9ab00; color:#202124;" onclick="showQRCode('speaker')">🎙️ 토론자(패널) QR</button>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="card-header"><span>🎙️</span> 음성 및 인식 설정</div>
             
@@ -198,7 +233,7 @@
 
             <div>
                 <label class="form-label">2. 통역 엔진 최적화</label>
-                <div style="display: flex; gap: 15px;">
+                <div class="slider-group">
                     <div class="slider-wrapper" style="flex:1;">
                         <div class="slider-header"><span>침묵 감지</span><span id="endpointVal" class="slider-val">0.7초</span></div>
                         <input type="range" id="endpointingSlider" min="100" max="1500" step="100" value="700" oninput="document.getElementById('endpointVal').innerText = (this.value/1000).toFixed(1) + '초'">
@@ -220,32 +255,6 @@
             </div>
         </div>
 
-        <!-- 카드 2: 방송 채널 및 공유 -->
-        <div class="card">
-            <div class="card-header"><span>📺</span> 방송 채널 및 공유</div>
-            
-            <div class="add-lang-wrapper">
-                <select id="extraLangSelect" class="styled-select" style="flex:1; padding: 8px;">
-                    <!-- 60개국 스크립트 채움 -->
-                </select>
-                <button class="btn-primary" style="padding: 8px 15px;" onclick="addExtraLanguage()">추가</button>
-            </div>
-
-            <div style="margin-top: 5px;">
-                <label class="form-label">활성화된 번역 화면</label>
-                <div class="chip-group" id="targetCheckboxes">
-                    <!-- 스크립트로 칩 생성됨 -->
-                    <label class="lang-chip"><input type="checkbox" value="ko" checked> <span>🇰🇷 한국어</span></label>
-                </div>
-            </div>
-
-            <div style="margin-top: auto; border-top: 1px dashed var(--border); padding-top: 15px; display: flex; gap: 10px;">
-                <button class="btn-primary btn-full" style="background:#34a853;" onclick="showQRCode('viewer')">👀 청중(뷰어) QR</button>
-                <button class="btn-primary btn-full" style="background:#f9ab00; color:#202124;" onclick="showQRCode('speaker')">🎙️ 토론자(패널) QR</button>
-            </div>
-        </div>
-
-        <!-- 카드 3: 사회자 제어판 -->
         <div class="card" style="background: #fff8f6; border-color: #fad2cf;">
             <div class="card-header" style="color: var(--danger);"><span>👑</span> 사회자 제어 센터</div>
             
@@ -257,8 +266,8 @@
             </div>
 
             <div style="display:flex; gap: 10px;">
-                <button class="btn-danger btn-full btn-icon" onclick="adminMuteAll()">🛑 전체 음소거</button>
-                <button class="btn-primary btn-full btn-icon" style="background:#1e8e3e;" onclick="adminUnmuteAll()">🟢 음소거 해제</button>
+                <button id="btnMuteAll" class="btn-danger btn-full btn-icon admin-mute-btn" onclick="adminMuteAll()">🛑 전체 음소거</button>
+                <button id="btnUnmuteAll" class="btn-primary btn-full btn-icon admin-mute-btn selected" style="background:#1e8e3e;" onclick="adminUnmuteAll()">✔️ 🟢 음소거 해제</button>
             </div>
         </div>
     </div>
@@ -281,10 +290,9 @@
         <span style="font-size: 15px; color: #aaa; font-weight: 400;">Please select your language from the top menu.</span>
     </div>
 
-    <!-- 번역 윈도우 컨테이너 -->
     <div class="window-container" id="windowContainer"></div>
 
-</div> <!-- appContainer End -->
+</div>
 
 <button id="requestSpeakBtn" onclick="sendSpeakRequest()">🙋‍♂️ 발언 요청하기</button>
 <button id="mobileMuteBtn" class="active" onclick="toggleMobileMute()">🔴 마이크 ON (터치시 Mute)</button>
@@ -299,7 +307,6 @@
 </div>
 
 <script>
-    // 자체 토스트 알림 함수 (alert 대체)
     function showToast(message, isError = false) {
         const toast = document.getElementById("toast");
         toast.innerText = message;
@@ -309,7 +316,6 @@
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    // 60개 국어 데이터베이스
     const langNames = {
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
         "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
@@ -378,6 +384,7 @@
         const placeholder = document.getElementById('viewerPlaceholder');
         let hasVisibleWindow = false;
 
+        // UI 겹침 방지: 선택되지 않은 창은 DOM에서 완전히 내용을 삭제하여 메모리 및 화면 충돌 차단
         windows.forEach(win => {
             if (selected && win.id === `win_${selected}`) {
                 win.style.display = 'flex';
@@ -546,8 +553,25 @@
 
     function updateSpeakerStatusBar() {
         const bar = document.getElementById('speakerStatusBar');
-        if (!bar) return;
         
+        // 💡 관리자 마이크 UI 상태 동기화 피드백 추가
+        const btnMute = document.getElementById('btnMuteAll');
+        const btnUnmute = document.getElementById('btnUnmuteAll');
+        if (btnMute && btnUnmute) {
+            if (isAdminMuted) {
+                btnMute.classList.add('selected');
+                btnMute.innerHTML = "✔️ 🛑 전체 음소거 (작동중)";
+                btnUnmute.classList.remove('selected');
+                btnUnmute.innerHTML = "🟢 음소거 해제";
+            } else {
+                btnUnmute.classList.add('selected');
+                btnUnmute.innerHTML = "✔️ 🟢 음소거 해제 (작동중)";
+                btnMute.classList.remove('selected');
+                btnMute.innerHTML = "🛑 전체 음소거";
+            }
+        }
+
+        if (!bar) return;
         bar.className = 'speaker-status-bar'; 
         if (isAdminMuted) {
             bar.innerHTML = "🛑 사회자에 의해 전체 음소거 됨";
@@ -601,7 +625,6 @@
     }
 
     function clearAllLogs() {
-        // UI 클리어이므로 팝업 없이 즉시 실행하여 매끄럽게 처리
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
         transcriptLog = "=== 실시간 현장 지시 기록 ===\n\n";
         document.getElementById('liveDictation').innerHTML = "";
@@ -623,7 +646,6 @@
             return;
         }
         
-        // 새로운 칩 UI 방식으로 생성
         const newLabel = document.createElement('label');
         newLabel.className = 'lang-chip';
         newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> <span>${langNames[langCode]}</span>`;
@@ -703,9 +725,9 @@
                                 if (e.data.size > 0 && ws.readyState === 1) {
                                     const myRole = urlRole || 'admin';
                                     if (myRole === 'admin') {
-                                        ws.send(e.data);
+                                        ws.send(e.data); // 방장은 항상 전송
                                     } else if (!isAdminMuted && (currentFloor === null || currentFloor === clientId)) {
-                                        if (!isMobileMuted) ws.send(e.data);
+                                        if (!isMobileMuted) ws.send(e.data); // 토론자는 플로어 조건 만족 시에만 전송
                                     }
                                 }
                             };
@@ -736,7 +758,7 @@
                     else if (res.type === "floor_state") {
                         currentFloor = res.floor_owner;
                         isAdminMuted = res.is_admin_muted;
-                        updateSpeakerStatusBar();
+                        updateSpeakerStatusBar(); // 💡 이 함수 안에서 관리자 버튼 UI도 함께 변경됨
                     }
                     else if (res.type === "speak_approved") {
                         showToast("✅ 사회자가 발언권을 승인했습니다!");
