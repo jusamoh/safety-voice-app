@@ -154,7 +154,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
