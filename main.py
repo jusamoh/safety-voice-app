@@ -264,8 +264,8 @@ async def websocket_endpoint(
     role: str = Query("speaker"),
     client_id: str = Query(None),
     name: str = Query(None),
-    endpointing: int = Query(700), 
-    max_chars: int = Query(50)    
+    endpointing: int = Query(500), 
+    max_chars: int = Query(35)    
 ):
     if token not in ACTIVE_TOKENS:
         print(f"❌ [보안 차단] 유효하지 않은 토큰. (IP: {websocket.client})", flush=True)
