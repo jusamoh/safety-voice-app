@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 
 # ==========================================
-# 💡 1. API 키 로드 (클라우드 환경 변수 방식)
+# 💡 1. API 키 로드
 # ==========================================
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -30,7 +30,7 @@ app.add_middleware(
 )
 
 # ==========================================
-# 💰 2. 유료 사용자 DB & 인증 (SaaS 기능)
+# 💰 2. 인증 & 글로벌 룸 세팅 (Room State)
 # ==========================================
 USER_DB = {
     "admin": "1234",          
@@ -39,6 +39,12 @@ USER_DB = {
 }
 
 ACTIVE_TOKENS = set()
+
+# 💡 [핵심] 청중이 말할 때 어떤 언어로 번역할지 알려주는 '전역 기억 장치'
+ROOM_STATE = {
+    "targets": "ko,en,zh,id",
+    "glossary": ""
+}
 
 @app.post("/api/login")
 async def login(request: Request):
@@ -94,7 +100,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
     new_text = "\n".join(new_sentences)
     
-    prompt = f"""You are a context summarizer for a construction site meeting/discussion.
+    prompt = f"""You are a context summarizer for a multinational meeting/discussion.
     Update the existing summary with the new sentences.
     Keep it EXTREMELY concise (1-2 sentences maximum).
     Focus ONLY on factual context: who, where, what, and specific risks or items mentioned.
@@ -109,7 +115,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -139,16 +145,15 @@ async def websocket_endpoint(
     
     recent_history = [] 
     summary_state = {"text": ""} 
-    
-    glossary_text = ""
-    dynamic_targets = targets 
 
     try:
         if role == "viewer":
+            # 뷰어는 단방향 수신만 하므로 루프 대기 (무전기 버튼을 누르면 새 'speaker' 웹소켓이 생성됨)
             while True:
                 data = await websocket.receive()
+                # 뷰어 소켓을 통해 방장의 config(체크박스 변경)가 들어올 경우 무시
         else:
-            # 💡 [핵심] lang 파라미터가 "multi"로 넘어오면, Deepgram의 다국어 자동 감지 기능이 그대로 작동합니다.
+            # 토론자/방장 (speaker) 접속 처리
             dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true"
             headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
@@ -160,7 +165,6 @@ async def websocket_endpoint(
 
             async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
                 async def sender():
-                    nonlocal glossary_text, dynamic_targets 
                     try:
                         while True:
                             message = await websocket.receive()
@@ -170,11 +174,12 @@ async def websocket_endpoint(
                                 elif message.get("text"):
                                     try:
                                         config = json.loads(message.get("text"))
+                                        # 💡 방장이 체크박스/용어집을 바꿀 때마다 글로벌 룸 상태(ROOM_STATE) 업데이트
                                         if config.get("type") == "config":
                                             if "glossary" in config:
-                                                glossary_text = config.get("glossary", "")
+                                                ROOM_STATE["glossary"] = config.get("glossary", "")
                                             if "targets" in config:
-                                                dynamic_targets = config.get("targets", dynamic_targets)
+                                                ROOM_STATE["targets"] = config.get("targets", ROOM_STATE["targets"])
                                     except: pass
                     except: pass
 
@@ -195,7 +200,10 @@ async def websocket_endpoint(
                                 
                                 if transcript or current_sentence:
                                     display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
-                                    current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
+                                    
+                                    # 실시간 화면 표시 대상 (방장이 정해놓은 타겟 언어들로 동기화)
+                                    current_targets_list = ROOM_STATE["targets"].split(',')
+                                    
                                     await manager.broadcast_json({
                                         "type": "interim", 
                                         "text": display_text.strip(),
@@ -216,7 +224,16 @@ async def websocket_endpoint(
                                         last_translated_text = final_text
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         
-                                        asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, recent_history, summary_state, glossary_text, current_msg_id))
+                                        # 💡 청중이 '무전기'로 말하더라도, 무조건 방장이 세팅한 'ROOM_STATE' 타겟 언어들로 번역 지시
+                                        asyncio.create_task(translate_and_send(
+                                            final_text, 
+                                            lang, 
+                                            ROOM_STATE["targets"], 
+                                            recent_history, 
+                                            summary_state, 
+                                            ROOM_STATE["glossary"], 
+                                            current_msg_id
+                                        ))
                                     
                                     current_sentence = ""
                                     current_msg_id = secrets.token_hex(4)
@@ -242,7 +259,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
     history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
     glossary_section = f"\n[MEETING GLOSSARY / DOMAIN KNOWLEDGE]\n{glossary_text}\n" if glossary_text.strip() else ""
 
-    # 💡 [핵심] 언어가 multi(자동 감지)일 경우, Claude가 혼란스러워하지 않도록 프롬프트(명령어)를 똑똑하게 분기 처리합니다.
     if source_lang == "multi":
         lang_instruction = "The speaker might use various languages during the discussion (e.g., Korean, English, Indonesian, etc.). Detect the spoken language of the CURRENT SENTENCE automatically."
     else:
@@ -251,7 +267,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
     system_prompt = [
         {
             "type": "text",
-            "text": f"""You are a top-tier professional simultaneous interpreter for a multinational construction site.
+            "text": f"""You are a top-tier professional simultaneous interpreter for a multinational meeting.
     
     [PAST CONTEXT SUMMARY]
     {summary_state['text'] if summary_state['text'] else "No summary yet."}
@@ -282,7 +298,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
     
     try:
         stream = await claude_client.messages.create(
-                model="claude-haiku-4-5-20251001", 
+                model="claude-3-5-haiku-20241022", 
                 max_tokens=500,
                 system=system_prompt, 
                 messages=[{"role": "user", "content": text}],
@@ -343,5 +359,5 @@ if __name__ == "__main__":
     import multiprocessing
     import uvicorn
     multiprocessing.freeze_support()
-    print("🚀 실시간 글로벌 현장 안전 통역 서버를 시작합니다... (http://0.0.0.0:10000)")
+    print("🚀 실시간 글로벌 통역 서버를 시작합니다... (http://0.0.0.0:10000)")
     uvicorn.run(app, host="0.0.0.0", port=10000)

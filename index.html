@@ -47,7 +47,6 @@
         .clear-btn { background-color: #ffc107; color: #000; }
         .download-btn { background-color: #6c757d; }
         
-        /* QR 버튼 스타일 세분화 */
         .qr-btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         .qr-btn { background-color: #20c997; color: white; flex: 1; }
         .qr-speaker-btn { background-color: #fd7e14; color: white; flex: 1; }
@@ -88,11 +87,12 @@
         body.viewer-mode #viewerTopBar { display: block; }
         #viewerTopBar select { padding: 8px 15px; font-size: 16px; border-radius: 5px; background: #fff; color: #000; font-weight: bold; border:none; outline:none; }
 
-        #exitViewerBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: rgba(0,0,0,0.6); color: white; border-radius: 50px; padding: 10px 20px; font-size: 14px; z-index: 1000; border: none; cursor: pointer;}
+        #exitViewerBtn { display: none; position: fixed; bottom: 20px; left: 20px; background-color: rgba(255,255,255,0.2); color: white; border-radius: 50px; padding: 10px 20px; font-size: 14px; z-index: 1000; border: none; cursor: pointer;}
         body.viewer-mode #exitViewerBtn { display: block; }
 
-        #reportBtn { display: none; position: fixed; bottom: 80px; right: 20px; background-color: #d32f2f; color: white; border-radius: 50px; padding: 15px 25px; z-index: 1000; border: none; font-weight: bold; font-size: 16px; cursor: pointer;}
-        body.viewer-mode #reportBtn { display: block; }
+        /* 🎙️ 무전기(발언) 버튼 스타일 */
+        #speakBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: #d32f2f; color: white; border-radius: 50px; padding: 15px 25px; z-index: 1000; border: none; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: background-color 0.3s;}
+        body.viewer-mode #speakBtn { display: block; }
 
         /* QR 모달 */
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
@@ -138,47 +138,20 @@
                     <option value="ja">🇯🇵 일본어</option>
                     <option value="zh">🇨🇳 중국어</option>
                 </select>
-                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">※ 토론 시 '자동 감지'를 선택하면 AI가 한국어, 영어 등을 스스로 구별합니다.</p>
             </div>
             
             <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 15px;">
-                <label>🌐 2. 번역 화면 선택 (기본 제공):</label>
+                <label>🌐 2. 번역 화면 선택 (총 60개국 지원):</label>
                 <div class="checkbox-group" id="targetCheckboxes">
                     <label><input type="checkbox" value="ko" checked> 🇰🇷 한국어</label>
                     <label><input type="checkbox" value="en" checked> 🇺🇸 영어</label>
                     <label><input type="checkbox" value="zh" checked> 🇨🇳 중국어</label>
-                    <label><input type="checkbox" value="ja" checked> 🇯🇵 일본어</label>
+                    <label><input type="checkbox" value="id" checked> 🇮🇩 인니어</label>
                 </div>
                 <div class="add-lang-box">
-                    <span style="font-size: 14px; color: #555;">➕ 추가 언어 (총 30개국 지원):</span>
-                    <!-- 💡 30개 언어 리스트 업데이트 -->
-                    <select id="extraLangSelect" style="padding: 5px; font-size: 14px;">
-                        <option value="id">🇮🇩 인니어 (Indonesian)</option>
-                        <option value="vi">🇻🇳 베트남어 (Vietnamese)</option>
-                        <option value="th">🇹🇭 태국어 (Thai)</option>
-                        <option value="tl">🇵🇭 필리핀어 (Tagalog)</option>
-                        <option value="ms">🇲🇾 말레이어 (Malay)</option>
-                        <option value="my">🇲🇲 미얀마어 (Burmese)</option>
-                        <option value="km">🇰🇭 크메르어 (Khmer)</option>
-                        <option value="ne">🇳🇵 네팔어 (Nepali)</option>
-                        <option value="hi">🇮🇳 힌디어 (Hindi)</option>
-                        <option value="bn">🇧🇩 벵골어 (Bengali)</option>
-                        <option value="ur">🇵🇰 우르두어 (Urdu)</option>
-                        <option value="si">🇱🇰 싱할라어 (Sinhalese)</option>
-                        <option value="mn">🇲🇳 몽골어 (Mongolian)</option>
-                        <option value="uz">🇺🇿 우즈베크어 (Uzbek)</option>
-                        <option value="kk">🇰🇿 카자흐어 (Kazakh)</option>
-                        <option value="ru">🇷🇺 러시아어 (Russian)</option>
-                        <option value="ar">🇸🇦 아랍어 (Arabic)</option>
-                        <option value="tr">🇹🇷 튀르키예어 (Turkish)</option>
-                        <option value="es">🇪🇸 스페인어 (Spanish)</option>
-                        <option value="pt">🇵🇹 포르투갈어 (Portuguese)</option>
-                        <option value="fr">🇫🇷 프랑스어 (French)</option>
-                        <option value="de">🇩🇪 독일어 (German)</option>
-                        <option value="it">🇮🇹 이탈리아어 (Italian)</option>
-                        <option value="pl">🇵🇱 폴란드어 (Polish)</option>
-                        <option value="nl">🇳🇱 네덜란드어 (Dutch)</option>
-                        <option value="sv">🇸🇪 스웨덴어 (Swedish)</option>
+                    <span style="font-size: 14px; color: #555;">➕ 추가 언어:</span>
+                    <select id="extraLangSelect" style="padding: 5px; font-size: 14px; max-width: 250px;">
+                        <!-- 60개국 전체 목록 스크립트로 자동 채워짐 -->
                     </select>
                     <button class="add-lang-btn" onclick="addExtraLanguage()">화면에 추가</button>
                 </div>
@@ -188,8 +161,8 @@
                 <label>⚙️ 3. 통역 최적화 설정:</label>
                 <div class="slider-box">
                     <div class="slider-item">
-                        <label>침묵 감지 <span id="endpointVal">0.5초</span></label>
-                        <input type="range" id="endpointingSlider" min="100" max="1500" step="100" value="500" 
+                        <label>침묵 감지 <span id="endpointVal">0.7초</span></label>
+                        <input type="range" id="endpointingSlider" min="100" max="1500" step="100" value="700" 
                                oninput="document.getElementById('endpointVal').innerText = (this.value/1000).toFixed(1) + '초'">
                     </div>
                     <div class="slider-item">
@@ -206,7 +179,7 @@
                     <button style="background-color: #17a2b8; padding: 5px 10px; font-size: 13px; min-width: auto; border: none; color: white; border-radius: 5px; cursor: pointer;" onclick="document.getElementById('glossaryFile').click()">📁 불러오기</button>
                     <input type="file" id="glossaryFile" accept=".txt,.csv" style="display: none;" onchange="loadGlossaryFile(event)">
                 </div>
-                <textarea id="glossaryInput" rows="2" style="width: 100%; border-radius: 5px; padding: 10px; border: 1px solid #ccc;" placeholder="예: 비계=Scaffolding"></textarea>
+                <textarea id="glossaryInput" rows="2" style="width: 100%; border-radius: 5px; padding: 10px; border: 1px solid #ccc;" placeholder="예: 비계=Scaffolding, 개구부=Opening"></textarea>
             </div>
             
             <div class="qr-btn-group">
@@ -240,7 +213,9 @@
 </div>
 
 <button id="exitViewerBtn" onclick="exitViewerMode()">⚙️ 설정 패널 열기</button>
-<button id="reportBtn" onclick="toggleReportMode()">🚨 위험 상황 보고</button>
+
+<!-- 🎙️ 청중 무전기 버튼 -->
+<button id="speakBtn" onclick="toggleSpeakMode()">🎤 발언하기 (누르고 말하세요)</button>
 
 <div id="qrModal">
     <div class="qr-box">
@@ -252,7 +227,7 @@
 </div>
 
 <script>
-    // 💡 30개 국어 데이터베이스 매핑
+    // 💡 60개 국어 완벽 지원 데이터베이스
     const langNames = {
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
         "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
@@ -261,8 +236,26 @@
         "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", "ru": "🇷🇺 러시아어",
         "ar": "🇸🇦 아랍어", "tr": "🇹🇷 튀르키예어", "es": "🇪🇸 스페인어", "pt": "🇵🇹 포르투갈어",
         "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어",
-        "nl": "🇳🇱 네덜란드어", "sv": "🇸🇪 스웨덴어"
+        "nl": "🇳🇱 네덜란드어", "sv": "🇸🇪 스웨덴어", "uk": "🇺🇦 우크라이나어", "ro": "🇷🇴 루마니아어",
+        "cs": "🇨🇿 체코어", "hu": "🇭🇺 헝가리어", "el": "🇬🇷 그리스어", "bg": "🇧🇬 불가리아어",
+        "sr": "🇷🇸 세르비아어", "hr": "🇭🇷 크로아티아어", "sk": "🇸🇰 슬로바키아어", "da": "🇩🇰 덴마크어",
+        "fi": "🇫🇮 핀란드어", "no": "🇳🇴 노르웨이어", "ca": "🇪🇸 카탈루냐어", "lt": "🇱🇹 리투아니아어",
+        "sl": "🇸🇮 슬로베니아어", "lv": "🇱🇻 라트비아어", "et": "🇪🇪 에스토니아어", "fa": "🇮🇷 페르시아어",
+        "he": "🇮🇱 히브리어", "sw": "🇰🇪 스와힐리어", "am": "🇪🇹 암하라어", "yo": "🇳🇬 요루바어",
+        "zu": "🇿🇦 줄루어", "af": "🇿🇦 아프리칸스어", "ta": "🇮🇳 타밀어", "te": "🇮🇳 텔루구어",
+        "mr": "🇮🇳 마라티어", "gu": "🇮🇳 구자라트어", "kn": "🇮🇳 칸나다어", "ml": "🇮🇳 말라얄람어"
     };
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('extraLangSelect');
+        Object.keys(langNames).forEach(code => {
+            if (!['ko', 'en', 'zh', 'id'].includes(code)) {
+                const opt = document.createElement('option');
+                opt.value = code; opt.innerText = langNames[code];
+                select.appendChild(opt);
+            }
+        });
+    });
     
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
     let authToken = ""; 
@@ -344,7 +337,8 @@
             else windowDiv.style.display = 'flex';
         });
 
-        if (ws && ws.readyState === 1 && isConnected) {
+        // 💡 방장이 체크박스를 바꿀 때마다 서버(Global State)에 알려줍니다!
+        if (ws && ws.readyState === 1 && isConnected && !document.body.classList.contains('viewer-mode')) {
             ws.send(JSON.stringify({ type: "config", targets: checkedLangs.join(',') }));
         }
     }
@@ -384,8 +378,6 @@
 
             if (data.success) {
                 authToken = data.token;
-                localStorage.setItem('auth_token', authToken);
-                localStorage.setItem('auth_user', data.username);
                 unlockApp(data.username);
             } else {
                 err.style.display = 'block';
@@ -402,15 +394,10 @@
         document.getElementById('userBadge').innerText = username + " 님";
     }
 
-    function logout() {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        window.location.reload();
-    }
+    function logout() { window.location.reload(); }
 
     function showQRCode(roleType) {
         const currentUrl = window.location.href.split('?')[0];
-        
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ""; 
         
@@ -419,17 +406,13 @@
         
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(발언자)용 QR코드";
-            document.getElementById('qrDesc').innerText = "스캔 즉시 마이크가 켜지며 발언 권한을 얻습니다.";
+            document.getElementById('qrDesc').innerText = "스캔 즉시 마이크가 켜지며 언제든 발언할 수 있습니다.";
         } else {
             document.getElementById('qrTitle').innerText = "👀 청중(뷰어)용 QR코드";
-            document.getElementById('qrDesc').innerText = "스캔 시 번역 자막을 수신하는 화면으로 연결됩니다.";
+            document.getElementById('qrDesc').innerText = "스캔 후 자신의 언어를 1번만 선택하면 됩니다.";
         }
         
-        new QRCode(qrContainer, {
-            text: qrUrl,
-            width: 200, height: 200,
-            colorDark : "#000000", colorLight : "#ffffff"
-        });
+        new QRCode(qrContainer, { text: qrUrl, width: 200, height: 200, colorDark : "#000000", colorLight : "#ffffff" });
         document.getElementById('qrModal').style.display = 'flex';
     }
 
@@ -444,27 +427,54 @@
         setTimeout(() => { document.body.style.backgroundColor = document.body.classList.contains('viewer-mode') ? "#000" : "#f4f6f9"; }, 300);
         setTimeout(() => { document.body.style.backgroundColor = "#b71c1c"; }, 600);
         setTimeout(() => { document.body.style.backgroundColor = document.body.classList.contains('viewer-mode') ? "#000" : "#f4f6f9"; }, 900);
-        alert("⚠️ [관리자 경고] 즉시 현장 안전을 확보하세요!");
     }
 
-    let isReporting = false;
-    async function toggleReportMode() {
-        if (!isReporting) {
+    // 🎙️ [핵심] 청중용 발언(무전기) 기능 완벽 구현
+    let isSpeaking = false;
+    let wsSpeaker = null;
+    let speakerMediaRecorder = null;
+    let speakerStream = null;
+
+    async function toggleSpeakMode() {
+        const btn = document.getElementById('speakBtn');
+        
+        if (!isSpeaking) {
             try {
-                const reportStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(reportStream);
-                mediaRecorder.ondataavailable = (e) => { if (ws && ws.readyState === 1) ws.send(e.data); };
-                mediaRecorder.start(100);
-                document.getElementById('reportBtn').innerText = "🛑 보고 종료";
-                document.getElementById('reportBtn').style.backgroundColor = "#333";
-                isReporting = true;
-            } catch(e) { alert("마이크 권한이 필요합니다."); }
+                speakerStream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                
+                // 💡 [중요] 청중이 말할 때는 언어를 'multi(자동 감지)'로 설정하여 서버에 새 연결을 생성!
+                wsSpeaker = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=multi&targets=ko&role=speaker&endpointing=500&max_chars=50`);
+                
+                wsSpeaker.onopen = () => {
+                    speakerMediaRecorder = new MediaRecorder(speakerStream, { mimeType: 'audio/webm' });
+                    speakerMediaRecorder.ondataavailable = (e) => { 
+                        if (e.data.size > 0 && wsSpeaker.readyState === 1) wsSpeaker.send(e.data); 
+                    };
+                    speakerMediaRecorder.start(100);
+                    btn.innerHTML = "🛑 발언 종료 (마이크 켜짐)";
+                    btn.style.backgroundColor = "#28a745"; // 초록색 활성화
+                    btn.classList.add('active');
+                    isSpeaking = true;
+                };
+                
+                wsSpeaker.onclose = () => { stopSpeakerMode(); };
+            } catch(e) { alert("마이크 사용 권한이 필요합니다."); }
         } else {
-            mediaRecorder.stop();
-            document.getElementById('reportBtn').innerText = "🚨 위험 상황 보고";
-            document.getElementById('reportBtn').style.backgroundColor = "#d32f2f";
-            isReporting = false;
+            stopSpeakerMode();
         }
+    }
+
+    function stopSpeakerMode() {
+        if (speakerMediaRecorder && speakerMediaRecorder.state !== 'inactive') speakerMediaRecorder.stop();
+        if (speakerStream) speakerStream.getTracks().forEach(track => track.stop());
+        if (wsSpeaker) wsSpeaker.close();
+        
+        const btn = document.getElementById('speakBtn');
+        btn.innerHTML = "🎤 발언하기 (누르고 말하세요)";
+        btn.style.backgroundColor = "#d32f2f";
+        btn.classList.remove('active');
+        isSpeaking = false;
     }
 
     function loadGlossaryFile(event) {
@@ -473,22 +483,25 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('glossaryInput').value = e.target.result;
-            alert("✅ 현장 안전 용어집 파일이 로드되었습니다.");
+            alert("✅ 용어집이 로드되었습니다.");
+            if (ws && ws.readyState === 1 && !document.body.classList.contains('viewer-mode')) {
+                ws.send(JSON.stringify({ type: "config", glossary: e.target.result }));
+            }
         };
         reader.readAsText(file, "UTF-8");
     }
 
     function clearAllLogs() {
-        if (!confirm("화면의 모든 번역 내용을 삭제하시겠습니까?")) return;
+        if (!confirm("화면의 모든 내용을 삭제하시겠습니까?")) return;
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
-        transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
+        transcriptLog = "=== 실시간 현장 지시 기록 ===\n\n";
         document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">화면이 초기화되었습니다.</span>`;
     }
 
     function downloadTranscript() {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([transcriptLog], { type: 'text/plain' }));
-        a.download = `현장지시기록_${new Date().toISOString().slice(0,10)}.txt`;
+        a.download = `회의기록_${new Date().toISOString().slice(0,10)}.txt`;
         a.click();
     }
 
@@ -511,14 +524,14 @@
         if (lang === 'id') msg.lang = 'id-ID';
         else if (lang === 'en') msg.lang = 'en-US';
         else if (lang === 'ko') msg.lang = 'ko-KR';
-        else msg.lang = lang; // 브라우저가 ISO 코드를 인식하여 해당 국가의 TTS 음성을 재생합니다.
+        else msg.lang = lang; 
         window.speechSynthesis.speak(msg);
     }
 
     function updateStatus(text) {
         const box = document.getElementById('statusBox');
         box.innerText = text;
-        if (text.includes("번역 중") || text.includes("생성 중")) box.style.background = "#f39c12"; 
+        if (text.includes("번역 중")) box.style.background = "#f39c12"; 
         else if (text.includes("방송 중")) box.style.background = "#28a745"; 
         else box.style.background = "#6c757d"; 
     }
@@ -534,10 +547,7 @@
             try {
                 if (role === 'viewer') {
                     document.body.classList.add('viewer-mode');
-                    const placeholder = document.getElementById('viewerPlaceholder');
-                    if (placeholder && !document.getElementById('viewerLangSelect').value) {
-                        placeholder.style.display = 'block';
-                    }
+                    filterViewerWindows(); // 뷰어 모드 전환 시 UI 겹침 버그 완벽 수정
                 }
 
                 const spkLang = document.getElementById('speakerLang').value;
@@ -550,7 +560,9 @@
                 ws.onopen = async () => {
                     isConnected = true;
                     if (role === 'speaker') {
+                        // 관리자가 최초 접속 시 글로벌 룸 세팅 전송
                         ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossaryInput').value, targets: targetLangs.join(',') }));
+                        
                         stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
                         speakerBtn.innerText = "🛑 지시/발언 종료";
                         speakerBtn.classList.add('active');
@@ -574,6 +586,7 @@
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
 
+                        // 💡 글로벌 룸 State를 기반으로 화면 업데이트
                         let langsToUpdate = document.body.classList.contains('viewer-mode') 
                             ? res.targets || [] 
                             : Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
@@ -597,7 +610,7 @@
                         if (res.type === "stream_update") {
                             document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">번역 생성 중... ⚡</span>`;
                         } else {
-                            document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">현장 지시 대기 중...</span>`;
+                            document.getElementById('liveDictation').innerHTML = `<span class="placeholder-text">발언 대기 중...</span>`;
                         }
 
                         const lang = res.lang;
@@ -615,8 +628,8 @@
                         const cleanText = rawText.split('/')[0].trim();
                         const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
-                        const isMultiMode = (document.getElementById('speakerLang').value === 'multi');
-                        const isSame = (!isMultiMode && res.source_lang === lang);
+                        // 원문과 타겟 언어가 같으면 원문만 띄워줌
+                        const isSame = (res.source_lang === lang);
                         
                         if (res.type === "stream_update") {
                             if (isSame) {
@@ -658,13 +671,8 @@
     }
 
     function resetUI() {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") {
-            mediaRecorder.stop();
-        }
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null; 
-        }
+        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+        if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
 
         isConnected = false;
         document.body.classList.remove('viewer-mode');
@@ -675,14 +683,8 @@
         const speakerBtn = document.getElementById('speakerBtn');
         const viewerBtn = document.getElementById('viewerBtn');
         
-        if (speakerBtn) {
-            speakerBtn.innerText = "🎤 [마이크 켜기 / 끄기]";
-            speakerBtn.classList.remove('active');
-        }
-        if (viewerBtn) {
-            viewerBtn.innerText = "👀 [내 PC] 뷰어 모드 전환";
-            viewerBtn.classList.remove('active');
-        }
+        if (speakerBtn) { speakerBtn.innerText = "🎤 [마이크 켜기 / 끄기]"; speakerBtn.classList.remove('active'); }
+        if (viewerBtn) { viewerBtn.innerText = "👀 [내 PC] 뷰어 모드 전환"; viewerBtn.classList.remove('active'); }
         
         updateStatus("시스템 대기 중");
     }
