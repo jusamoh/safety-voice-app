@@ -876,7 +876,7 @@
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
                             // 데스크탑 방장일 때만 최초 1회 설정을 푸시. 모바일 덮어쓰기 방지.
-                            if (!isMobileDevice && isHost) {
+                            if (isHost) {
                                 sendConfigUpdate();
                             }
                             speakerBtn.innerHTML = "🛑 마이크 종료";
