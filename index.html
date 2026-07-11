@@ -123,8 +123,8 @@
         body.viewer-mode .original-text, body.speaker-mode .original-text { color: #aaa; font-size: 15px; }
         body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #333; }
         
-        #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #111; padding: 15px; z-index: 1000; text-align: center; border-bottom: 1px solid #333; }
-        body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; justify-content: center; align-items: center; gap: 10px; }
+        #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #111; padding: 12px 15px; z-index: 1000; border-bottom: 1px solid #333; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+        body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; }
         
         .speaker-status-bar { position: fixed; top: 60px; left: 0; width: 100%; padding: 12px; text-align: center; font-weight: 700; z-index: 1500; font-size: 15px; color: white; display: none;}
         body.speaker-mode .speaker-status-bar { display: block; }
@@ -157,7 +157,6 @@
             .status-banner { flex-direction: column; gap: 15px; text-align: center; padding: 15px; }
             .dictation-box { max-width: 100%; white-space: normal; font-size: 16px; }
             .window-container { grid-template-columns: 1fr; padding: 0 15px; gap: 15px; }
-            #viewerTopBar { flex-direction: column; padding: 10px; gap: 8px; }
             .window { height: 350px; }
             #requestSpeakBtn, #mobileMuteBtn { padding: 14px 20px; font-size: 15px; bottom: 20px; right: 15px; border-radius: 25px; }
         }
@@ -190,13 +189,21 @@
         </div>
     </nav>
 
+    <!-- 청중/토론자 접속 시 상단 뷰어 제어 바 (자동 읽기 버튼 포함) -->
     <div id="viewerTopBar">
         <label style="color:#aaa; font-weight:700; font-size: 14px;">🌐 내 언어 선택:</label>
-        <select id="viewerLangSelect" class="styled-select" style="max-width: 200px; padding: 8px;" onchange="filterViewerWindows()">
+        <select id="viewerLangSelect" class="styled-select" style="max-width: 150px; padding: 8px;" onchange="filterViewerWindows()">
             <option value="" disabled selected>선택 / Select</option>
         </select>
-        <button id="exitViewerBtn" class="btn-outline" style="background:#333; color:#fff; padding: 8px; border-color:#555;" onclick="exitViewerMode()">⚙️ 종료</button>
+        
+        <label style="display:flex; align-items:center; gap:5px; color:#fff; font-size:14px; cursor:pointer; background: #222; padding: 8px 12px; border-radius: 8px; border: 1px solid #444; margin-left: 10px;">
+            <input type="checkbox" id="autoTTSCheckbox" onchange="toggleAutoTTS()" style="accent-color: var(--success); width: 18px; height: 18px;">
+            <span id="autoTTSText" style="font-weight: 600;">🔇 자동 읽기 (OFF)</span>
+        </label>
+        
+        <button id="exitViewerBtn" class="btn-outline" style="background:#333; color:#fff; padding: 8px; border-color:#555; margin-left: auto;" onclick="exitViewerMode()">⚙️ 종료</button>
     </div>
+    
     <div id="speakerStatusBar" class="speaker-status-bar status-free">🟢 마이크 개방됨 (자유롭게 발언하세요)</div>
 
     <div class="dashboard-layout" id="dashboardLayout">
@@ -231,9 +238,10 @@
             
             <div>
                 <label class="form-label">1. 발화 모드 선택</label>
-                <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;">
+                <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;" onchange="sendConfigUpdate()">
                     <option value="ko" selected>🇰🇷 한국어 고정 (안전 지시 최적화)</option>
                     <option value="multi">🌐 자동 감지 (다국어 자유 토론용)</option>
+                    <!-- 자바스크립트에서 28개국 언어가 여기에 추가됩니다. -->
                 </select>
             </div>
 
@@ -298,6 +306,7 @@
 
 </div>
 
+<!-- 모바일 전용 UI 요소들 -->
 <div id="mobileDictationBox">
     <div class="mobile-dictation-title">내가 한 말 실시간 인식 ✍️</div>
     <div id="mobileDictationText" class="mobile-dictation-text">대기 중...</div>
@@ -353,7 +362,7 @@
                 optExtra.value = code; optExtra.innerText = langNames[code];
                 selectExtra.appendChild(optExtra);
                 
-                // 발화 모드 선택(Speaker)용 드롭다운
+                // 발화 모드 선택(Speaker)용 드롭다운에 모든 언어 추가
                 const optSpeaker = document.createElement('option');
                 optSpeaker.value = code; optSpeaker.innerText = langNames[code] + " 고정";
                 selectSpeaker.appendChild(optSpeaker);
@@ -367,13 +376,14 @@
     let currentSentenceId = null;
     let isFirstFloorState = true; 
 
+    // 데스크탑/모바일 관리자 이름표 개별화
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
     const urlRole = urlParams.get('role');
     const isHost = !roomToken; 
 
     if (isHost) {
-        clientName = isMobileDevice ? "사회자(모바일)" : "사회자(PC)";
+        clientName = isMobileDevice ? `사회자(모바일_${clientId.substring(4,6)})` : `사회자(PC_${clientId.substring(4,6)})`;
     }
     else if (urlRole === 'speaker') clientName = "토론자_" + clientId.substring(4);
     else clientName = "청중_" + clientId.substring(4);
@@ -394,6 +404,27 @@
             setTimeout(() => toggleConnection('speaker'), 500);
         }
     } 
+
+    let isAutoTTS = false;
+    function toggleAutoTTS() {
+        const checkbox = document.getElementById('autoTTSCheckbox');
+        const textSpan = document.getElementById('autoTTSText');
+        isAutoTTS = checkbox.checked;
+        
+        if(isAutoTTS) {
+            textSpan.innerText = "🔊 자동 읽기 (ON)";
+            textSpan.style.color = "#34a853";
+            showToast("🔊 자동 읽기 모드가 켜졌습니다. 이어폰을 착용해주세요.");
+            // 브라우저 오디오 권한 획득을 위한 빈 소리 재생 (매우 중요!)
+            const unlockMsg = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(unlockMsg);
+        } else {
+            textSpan.innerText = "🔇 자동 읽기 (OFF)";
+            textSpan.style.color = "#fff";
+            showToast("🔇 자동 읽기 모드가 꺼졌습니다.");
+            window.speechSynthesis.cancel();
+        }
+    }
 
     function filterViewerWindows() {
         if (!document.body.classList.contains('viewer-mode') && !document.body.classList.contains('speaker-mode')) return;
@@ -440,7 +471,8 @@
     }
 
     function sendConfigUpdate() {
-        if (ws && ws.readyState === 1 && isHost && !isMobileDevice) {
+        // 모바일 관리자가 접속 시 자신의 빈 설정을 서버로 덮어쓰지 않도록 조건 강화
+        if (ws && ws.readyState === 1 && isHost) {
             const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
             if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
             const glossaryData = document.getElementById('glossaryInput').value;
@@ -461,6 +493,7 @@
             else windowDiv.style.display = 'flex';
         });
 
+        // 명시적으로 언어를 변경했을 때만 서버로 설정 전송
         sendConfigUpdate();
     }
 
@@ -755,6 +788,7 @@
                     isConnected = true;
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
+                            // 데스크탑 방장일 때만 최초 1회 설정을 푸시합니다. 모바일 접속 시 덮어쓰기 방지.
                             if (!isMobileDevice && isHost) {
                                 sendConfigUpdate();
                             }
@@ -831,6 +865,7 @@
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
 
+                        // 내 발화 모바일 확인용 자막 표출
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) {
@@ -890,6 +925,15 @@
                                 transcriptLog += `원문: ${res.original_text}\n`;
                             }
                             transcriptLog += `- ${lang}: ${cleanText}\n`;
+                            
+                            // 자동 듣기(Auto-TTS) 실행 로직
+                            if (isAutoTTS && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
+                                const selectedLang = document.getElementById('viewerLangSelect').value;
+                                // 자신이 선택한 언어와 도착한 번역 언어가 일치할 때만 즉시 읽어줌
+                                if (lang === selectedLang) {
+                                    speakTargetText(cleanText, lang);
+                                }
+                            }
                         }
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
