@@ -4,7 +4,6 @@ import os
 import sys
 import re  
 import secrets 
-import urllib.parse
 from datetime import datetime
 import websockets
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request
@@ -149,6 +148,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     Respond ONLY with the newly updated summary string in Korean."""
     
     try:
+        # 🚨 [절대 수정 금지] 회원님 지시사항: 최신 4.5 버전 고정 (롤백/임의 수정 불가)
         response = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=150,
@@ -176,8 +176,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🥈 3. 말더듬 및 무의미한 추임새 완벽 제거 (Filler Word Filtering)
-        # 🥉 4. 긴박함과 어조(Tone)의 번역 동기화 (Tone & Emotion Alignment)
+        # 🚨 [AI 군기 잡기] 환각 방지 및 동시통역사 페르소나 절대 규칙 적용 (기술 2선, 3선 포함)
         system_prompt = f"""You are a professional, emotionless simultaneous interpreter machine.
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
@@ -189,12 +188,12 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 CRITICAL INSTRUCTIONS (MUST OBEY):
 1. {lang_instruction}
 2. Fix STT typos based on the context.
-3. [FILLER FILTERING]: Perfectly remove all meaningless interjections, stutters, and filler words (e.g., 'uh', 'um', '어...', '그...', '저기'). Reconstruct the core instructions into refined, professional business sentences BEFORE translating.
-4. [TONE ALIGNMENT]: If the context detects danger, warning, or urgent instructions, you MUST translate it using the strongest, most urgent IMPERATIVE tone in the target languages.
-5. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
-6. Provide EXACTLY ONE best translation per language.
-7. CRITICAL: DO NOT converse with the speaker.
-8. CRITICAL: If the text is fragmented, meaningless, or a complete STT error, DO NOT explain it and DO NOT apologize. Just translate it literally or output it as-is. NEVER add conversational filler.
+3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
+4. Provide EXACTLY ONE best translation per language.
+5. CRITICAL: DO NOT converse with the speaker.
+6. CRITICAL: If the text is fragmented, meaningless, or a complete STT error, DO NOT explain it and DO NOT apologize. Just translate it literally or output it as-is. NEVER add conversational filler.
+7. [FILLER FILTERING]: Remove any meaningless filler words (uh, um, you know, etc.) and translate the core message into clean business language.
+8. [TONE ALIGNMENT]: If the sentence implies danger, warning, or an urgent command, translate it using the strongest IMPERATIVE tone in the target language to ensure absolute safety.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
@@ -203,6 +202,7 @@ clean current sentence
         for t in targets.split(','):
             system_prompt += f"[{t.strip()}]\nresult\n"
 
+        # 🚨 [절대 수정 금지] 회원님 지시사항: 최신 4.5 버전 고정 (롤백/임의 수정 불가)
         stream = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=500,
@@ -245,6 +245,7 @@ clean current sentence
         
         for lang, final_text in lang_text.items():
             if lang != 'original':
+                # 🚨 발화자 이름(name)을 그대로 사용 (예: [사회자(PC)], [사회자(Mobile)], [토론자_xxxx])
                 display_final = f"[{name}] {final_text}"
                 await manager.broadcast_json({
                     "type": "stream_end",
@@ -276,7 +277,7 @@ async def websocket_endpoint(
     name: str = Query(None),
     endpointing: int = Query(500), 
     max_chars: int = Query(35),
-    glossary: str = Query("")  # 🥇 1. Keywords Boosting을 위해 프론트엔드에서 파라미터로 받음
+    glossary: str = Query("") # 🚨 고급 기술 1. STT 키워드 부스팅 파라미터 수신 추가
 ):
     if token not in ACTIVE_TOKENS:
         print(f"❌ [보안 차단] 유효하지 않은 토큰. (IP: {websocket.client})", flush=True)
@@ -286,16 +287,7 @@ async def websocket_endpoint(
     if not client_id: client_id = secrets.token_hex(4)
     if not name: name = f"User_{client_id}"
 
-    # 🥇 1. STT 엔진에 '현장 용어' 직접 주입 (Keywords Boosting)
-    # 전달받은 용어집 텍스트에서 한국어/영어 단어만 추출하여 &keywords=비계 형식으로 변환합니다.
-    keywords_param = ""
-    if glossary:
-        terms = re.findall(r'^([^=:\n]+)', glossary, re.MULTILINE)
-        for term in terms:
-            term = term.strip()
-            if term:
-                keywords_param += f"&keywords={urllib.parse.quote(term)}"
-
+    # 🚨 모바일 어드민 덮어쓰기 방지: 접속 시 global_targets를 강제 덮어쓰지 않음. (Config 메시지로만 업데이트)
     await manager.connect(websocket, client_id, name, role)
     
     recent_history = [] 
@@ -317,8 +309,19 @@ async def websocket_endpoint(
                     except: pass
         else:
             dg_lang = "ko" if lang == "multi" else lang
-            # 🥇 추출한 keywords_param을 Deepgram 접속 URL에 강력하게 주입합니다.
-            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}{keywords_param}&keepalive=true"
+            
+            # 🚨 고급 기술 1. STT 키워드 부스팅 (단어장 데이터 추출 및 URL 적용)
+            keywords_param = ""
+            if glossary:
+                # '=' 또는 ':' 또는 '-' 앞의 한글/영문 단어만 추출
+                extracted_words = re.findall(r'^([^=:-]+)', glossary, re.MULTILINE)
+                clean_words = [w.strip() for w in extracted_words if w.strip()]
+                if clean_words:
+                    # &keywords=비계&keywords=안전고리 형태로 조립
+                    keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
+                    print(f"👂 [STT 사전 교육 완료] 주입된 키워드: {clean_words}")
+
+            dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}"
             headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
             ws_kwargs = {}
@@ -362,6 +365,7 @@ async def websocket_endpoint(
                                                 manager.is_admin_muted = False
                                                 await manager.broadcast_floor_state()
                                         elif msg.get("type") == "config":
+                                            # 오직 방장 권한의 Config 메시지만 글로벌 수첩을 업데이트합니다.
                                             if role == "admin":
                                                 if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                 if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
@@ -395,7 +399,11 @@ async def websocket_endpoint(
 
                                 if transcript or current_sentence:
                                     display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
+                                    
+                                    # 항상 글로벌 수첩의 타겟을 기준으로 방송합니다.
                                     current_targets_list = manager.global_targets.split(',')
+                                    
+                                    # 🚨 발화자 이름(name)을 태그로 그대로 사용
                                     tag = f"[{name}] "
                                     
                                     await manager.broadcast_json({
