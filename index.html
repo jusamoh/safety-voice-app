@@ -193,11 +193,11 @@
         <select id="viewerLangSelect" class="styled-select" style="max-width: 200px; padding: 8px;" onchange="filterViewerWindows()">
             <option value="" disabled selected>선택 / Select</option>
         </select>
-        <button class="btn-outline" style="background:#333; color:#fff; padding: 8px; border-color:#555;" onclick="exitViewerMode()">⚙️ 종료</button>
+        <!-- 🚨 외부 참석자는 앱을 종료할 수 없도록 이 버튼이 숨겨집니다. -->
+        <button id="exitViewerBtn" class="btn-outline" style="background:#333; color:#fff; padding: 8px; border-color:#555;" onclick="exitViewerMode()">⚙️ 종료</button>
     </div>
     <div id="speakerStatusBar" class="speaker-status-bar status-free">🟢 마이크 개방됨 (자유롭게 발언하세요)</div>
 
-    <!-- 대시보드 모듈 -->
     <div class="dashboard-layout" id="dashboardLayout">
         
         <div class="card">
@@ -279,7 +279,6 @@
         </div>
     </div>
 
-    <!-- 🚨 사회자 마이크 켜기 버튼 (onclick="toggleConnection('admin')"으로 수정 완료) -->
     <div class="status-banner" id="statusBanner">
         <div class="status-text">
             <span id="statusIndicator" class="status-dot"></span>
@@ -356,10 +355,9 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
-    const urlRole = urlParams.get('role'); // 호스트 확인을 위해 명시적으로 빈 값 허용
+    const urlRole = urlParams.get('role');
     const isHost = !roomToken; // 룸 토큰이 없으면 무조건 호스트(Admin)
 
-    // 권한에 따른 이름 부여
     if (isHost) clientName = "사회자(소장)";
     else if (urlRole === 'speaker') clientName = "토론자_" + clientId.substring(4);
     else clientName = "청중_" + clientId.substring(4);
@@ -369,7 +367,10 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         
-        // URL 역할에 따른 자동 시작
+        // 🚨 외부 접속자(청중/토론자)는 대시보드로 나갈 수 없도록 '종료' 버튼 숨김
+        const exitBtn = document.getElementById('exitViewerBtn');
+        if (exitBtn) exitBtn.style.display = 'none';
+        
         if (urlRole === 'viewer' || !urlRole) {
             document.body.classList.add('viewer-mode');
             setTimeout(() => toggleConnection('viewer'), 500);
@@ -730,14 +731,12 @@
                 const mx = document.getElementById('maxCharSlider').value;
 
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                // 🎯 전달받은 role 그대로 백엔드에 전송 (admin은 admin으로 전달됨)
                 ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&client_id=${clientId}&name=${encodeURIComponent(clientName)}`);
                 
                 ws.onopen = async () => {
                     isConnected = true;
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
-                            // 소장님(Admin) 전용 설정 전송 및 UI 처리
                             ws.send(JSON.stringify({ type: "config", glossary: document.getElementById('glossaryInput').value, targets: targetLangs.join(',') }));
                             speakerBtn.innerHTML = "🛑 마이크 종료";
                             speakerBtn.classList.add('active');
@@ -776,7 +775,6 @@
                 ws.onmessage = (event) => {
                     const res = JSON.parse(event.data);
                     
-                    // 🎯 호스트(isHost)에게만 발언 요청 대기열을 표시
                     if (res.type === "admin_state" && isHost) {
                         const list = document.getElementById('requestList');
                         if (res.requests.length === 0) {
@@ -884,11 +882,15 @@
         if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
 
         isConnected = false;
-        document.body.classList.remove('viewer-mode');
-        document.body.classList.remove('speaker-mode');
         
-        const placeholder = document.getElementById('viewerPlaceholder');
-        if (placeholder) placeholder.style.display = 'none';
+        // 🚨 호스트(소장님)일 경우에만 모드를 해제하여 대시보드를 보여줍니다.
+        // 청중/토론자로 들어온 사람은 네트워크 끊김 시에도 위장막(모드)이 영구 유지됩니다.
+        if (isHost) {
+            document.body.classList.remove('viewer-mode');
+            document.body.classList.remove('speaker-mode');
+            const placeholder = document.getElementById('viewerPlaceholder');
+            if (placeholder) placeholder.style.display = 'none';
+        }
         
         const speakerBtn = document.getElementById('speakerBtn');
         const viewerBtn = document.getElementById('viewerBtn');
