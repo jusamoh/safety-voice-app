@@ -134,7 +134,6 @@
         .status-muted { background: var(--danger); }
         @keyframes pulseBlue { 0% { box-shadow: 0 0 0 0 rgba(26,115,232, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(26,115,232, 0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232, 0); } }
 
-        /* 🚨 스마트폰 실시간 자막 박스 CSS */
         #mobileDictationBox { display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); width: 90%; background: rgba(0,0,0,0.7); color: #fbbc04; padding: 10px 15px; border-radius: 12px; font-weight: 700; z-index: 1000; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
         .mobile-dictation-title { font-size: 12px; color: #ccc; margin-bottom: 4px; }
         .mobile-dictation-text { font-size: 16px; word-break: keep-all; }
@@ -191,13 +190,11 @@
         </div>
     </nav>
 
-    <!-- 모바일 전용 탑 바 -->
     <div id="viewerTopBar">
         <label style="color:#aaa; font-weight:700; font-size: 14px;">🌐 내 언어 선택:</label>
         <select id="viewerLangSelect" class="styled-select" style="max-width: 200px; padding: 8px;" onchange="filterViewerWindows()">
             <option value="" disabled selected>선택 / Select</option>
         </select>
-        <!-- 🚨 외부 참석자는 앱을 종료할 수 없도록 이 버튼이 숨겨집니다. -->
         <button id="exitViewerBtn" class="btn-outline" style="background:#333; color:#fff; padding: 8px; border-color:#555;" onclick="exitViewerMode()">⚙️ 종료</button>
     </div>
     <div id="speakerStatusBar" class="speaker-status-bar status-free">🟢 마이크 개방됨 (자유롭게 발언하세요)</div>
@@ -211,7 +208,6 @@
                 <label class="form-label">번역할 언어 선택 (추가)</label>
                 <div class="add-lang-wrapper">
                     <select id="extraLangSelect" class="styled-select" style="flex:1; padding: 8px;">
-                        <!-- 60개국 스크립트 채움 -->
                     </select>
                     <button class="btn-primary" style="padding: 8px 15px;" onclick="addExtraLanguage()">추가</button>
                 </div>
@@ -238,7 +234,6 @@
                 <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;">
                     <option value="ko" selected>🇰🇷 한국어 고정 (안전 지시 최적화)</option>
                     <option value="multi">🌐 자동 감지 (다국어 자유 토론용)</option>
-                    <option value="en">🇺🇸 영어</option>
                 </select>
             </div>
 
@@ -294,7 +289,6 @@
         </button>
     </div>
 
-    <!-- 뷰어 모드 전용 안내 -->
     <div id="viewerPlaceholder" style="display: none; color: #fff; text-align: center; margin-top: 80px; font-size: 20px; line-height: 1.6; font-weight: 700;">
         👆 상단의 <b>[🌐 내 언어 선택]</b> 메뉴를 눌러<br>자신의 모국어를 선택해주세요.<br><br>
         <span style="font-size: 15px; color: #aaa; font-weight: 400;">Please select your language from the top menu.</span>
@@ -304,7 +298,6 @@
 
 </div>
 
-<!-- 🚨 모바일 전용 실시간 인식 자막 (내가 한 말 확인용) -->
 <div id="mobileDictationBox">
     <div class="mobile-dictation-title">내가 한 말 실시간 인식 ✍️</div>
     <div id="mobileDictationText" class="mobile-dictation-text">대기 중...</div>
@@ -350,12 +343,20 @@
     let isAdminMuted = false;
 
     window.addEventListener('DOMContentLoaded', () => {
-        const select = document.getElementById('extraLangSelect');
+        const selectExtra = document.getElementById('extraLangSelect');
+        const selectSpeaker = document.getElementById('speakerLang');
+
         Object.keys(langNames).forEach(code => {
             if (!['ko'].includes(code)) {
-                const opt = document.createElement('option');
-                opt.value = code; opt.innerText = langNames[code];
-                select.appendChild(opt);
+                // 번역 타겟 언어용 드롭다운
+                const optExtra = document.createElement('option');
+                optExtra.value = code; optExtra.innerText = langNames[code];
+                selectExtra.appendChild(optExtra);
+                
+                // 발화 모드 선택(Speaker)용 드롭다운
+                const optSpeaker = document.createElement('option');
+                optSpeaker.value = code; optSpeaker.innerText = langNames[code] + " 고정";
+                selectSpeaker.appendChild(optSpeaker);
             }
         });
     });
@@ -369,9 +370,8 @@
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
     const urlRole = urlParams.get('role');
-    const isHost = !roomToken; // 룸 토큰이 없으면 무조건 호스트(Admin 로그인 창을 띄움)
+    const isHost = !roomToken; 
 
-    // 🚨 데스크탑/모바일 관리자 이름 분리
     if (isHost) {
         clientName = isMobileDevice ? "사회자(모바일)" : "사회자(PC)";
     }
@@ -383,7 +383,6 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         
-        // 외부 접속자(청중/토론자)는 대시보드로 나갈 수 없도록 '종료' 버튼 숨김
         const exitBtn = document.getElementById('exitViewerBtn');
         if (exitBtn) exitBtn.style.display = 'none';
         
@@ -440,7 +439,6 @@
         return box;
     }
 
-    // 🚨 명시적으로 설정(Config) 정보를 서버에 보내는 함수
     function sendConfigUpdate() {
         if (ws && ws.readyState === 1 && isHost && !isMobileDevice) {
             const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
@@ -463,7 +461,6 @@
             else windowDiv.style.display = 'flex';
         });
 
-        // 체크박스가 업데이트 되면 서버로 설정 전송
         sendConfigUpdate();
     }
 
@@ -758,7 +755,6 @@
                     isConnected = true;
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
-                            // 🚨 PC(데스크탑) 방장일 때만 서버에 글로벌 설정을 초기 전송합니다.
                             if (!isMobileDevice && isHost) {
                                 sendConfigUpdate();
                             }
@@ -835,14 +831,12 @@
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
 
-                        // 🚨 스마트폰 실시간 자막 박스(내가 한 말 확인용) 업데이트
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) {
-                            // 발화자가 본인이면 텍스트 표시
                             if ((role === 'speaker' || (role === 'admin' && isMobileDevice)) && res.text.includes(clientName)) {
                                 mobBox.style.display = 'block';
-                                mobText.innerText = res.text.replace(/\[.*?\] /, ''); // 이름표 떼고 본문만 표시
+                                mobText.innerText = res.text.replace(/\[.*?\] /, ''); 
                             }
                         }
 
@@ -904,7 +898,6 @@
                         currentSentenceId = null;
                         document.getElementById('liveDictation').innerText = "";
                         
-                        // 🚨 문장이 완료되면 스마트폰 실시간 자막 박스 초기화 및 숨김
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) {
@@ -919,7 +912,6 @@
                         showToast("인증이 만료되었습니다. 다시 로그인해주세요.", true);
                         setTimeout(logout, 2000);
                     } else {
-                        // 🚨 모바일 인앱 브라우저 끊김 시 방어
                         if (isHost) resetUI(); 
                         else {
                             showToast("연결이 끊어졌습니다. 다시 연결을 시도하세요."); 
@@ -939,7 +931,6 @@
         isConnected = false;
         isFirstFloorState = true; 
         
-        // 🚨 청중이나 토론자(외부 접속자)는 네트워크가 끊겨도 위장막이 해제되지 않도록 방어!
         if (isHost) {
             document.body.classList.remove('viewer-mode');
             document.body.classList.remove('speaker-mode');
