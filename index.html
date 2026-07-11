@@ -372,7 +372,9 @@
     
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
     let authToken = ""; 
-    let transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
+    
+    // 로컬 스토리지를 활용한 실시간 백업 및 복원 기능
+    let transcriptLog = localStorage.getItem("savedTranscript") || "=== 실시간 현장 안전 지시 기록 ===\n\n";
     let currentSentenceId = null;
     let isFirstFloorState = true; 
 
@@ -687,7 +689,11 @@
 
     function clearAllLogs() {
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
-        transcriptLog = "=== 실시간 현장 지시 기록 ===\n\n";
+        transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
+        
+        // 화면 정리 시, 브라우저 비밀 금고에 남아있는 백업 파일도 깔끔하게 삭제합니다.
+        localStorage.removeItem("savedTranscript");
+        
         document.getElementById('liveDictation').innerHTML = "";
         showToast("화면이 깔끔하게 초기화되었습니다.");
     }
@@ -926,6 +932,9 @@
                             }
                             transcriptLog += `- ${lang}: ${cleanText}\n`;
                             
+                            // 번역이 한 줄 완성될 때마다 브라우저 금고에 자동 백업(Save) 합니다.
+                            localStorage.setItem("savedTranscript", transcriptLog);
+                            
                             // 자동 듣기(Auto-TTS) 실행 로직
                             if (isAutoTTS && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
                                 const selectedLang = document.getElementById('viewerLangSelect').value;
@@ -939,6 +948,10 @@
                     }
                     else if (res.type === "sentence_complete") {
                         transcriptLog += `----------------------------------------\n`;
+                        
+                        // 문장 구분선이 들어갈 때도 자동 백업을 수행합니다.
+                        localStorage.setItem("savedTranscript", transcriptLog);
+                        
                         currentSentenceId = null;
                         document.getElementById('liveDictation').innerText = "";
                         
