@@ -74,7 +74,7 @@ class ConnectionManager:
         self.requests = [] 
         self.floor_owner = None
         self.is_admin_muted = False
-        # 🚨 [수정 1] 방 전체 공용(Global) 수첩 생성: 소장님의 설정이 방 전체를 통제합니다.
+        # 방 전체 공용(Global) 설정: 소장님(PC)의 설정이 방 전체를 통제합니다.
         self.global_targets = "ko" 
         self.global_glossary = ""
 
@@ -149,7 +149,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -175,8 +175,8 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🚨 [수정 2] AI 군기 잡기: 환각(Chatbot) 방지 강력한 프롬프트 추가 (5번 지시사항)
-        system_prompt = f"""You are a professional simultaneous interpreter.
+        # 🚨 [AI 군기 잡기] 환각 방지 및 동시통역사 페르소나 절대 규칙 적용
+        system_prompt = f"""You are a professional, emotionless simultaneous interpreter machine.
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
 
@@ -184,12 +184,13 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 {history_str}
 {glossary_section}
 
-CRITICAL INSTRUCTIONS:
+CRITICAL INSTRUCTIONS (MUST OBEY):
 1. {lang_instruction}
 2. Fix STT typos based on the context.
 3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
 4. Provide EXACTLY ONE best translation per language.
-5. CRITICAL: If the input is incomplete, fragmented, or a complete STT error, DO NOT explain it, DO NOT converse, and DO NOT apologize. Just translate it literally or output it as-is. NEVER output conversational responses.
+5. CRITICAL: DO NOT converse with the speaker.
+6. CRITICAL: If the text is fragmented, meaningless, or a complete STT error, DO NOT explain it and DO NOT apologize. Just translate it literally or output it as-is. NEVER add conversational filler.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
@@ -199,7 +200,7 @@ clean current sentence
             system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
@@ -240,7 +241,8 @@ clean current sentence
         
         for lang, final_text in lang_text.items():
             if lang != 'original':
-                display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
+                # 🚨 발화자 이름(name)을 그대로 사용 (예: [사회자(PC)], [사회자(Mobile)], [토론자_xxxx])
+                display_final = f"[{name}] {final_text}"
                 await manager.broadcast_json({
                     "type": "stream_end",
                     "lang": lang,
@@ -280,10 +282,7 @@ async def websocket_endpoint(
     if not client_id: client_id = secrets.token_hex(4)
     if not name: name = f"User_{client_id}"
 
-    # 소장님(admin)이 처음 접속할 때 기본 타겟을 초기화합니다.
-    if role == "admin":
-        manager.global_targets = targets
-
+    # 🚨 모바일 어드민 덮어쓰기 방지: 접속 시 global_targets를 강제 덮어쓰지 않음. (Config 메시지로만 업데이트)
     await manager.connect(websocket, client_id, name, role)
     
     recent_history = [] 
@@ -349,7 +348,7 @@ async def websocket_endpoint(
                                                 manager.is_admin_muted = False
                                                 await manager.broadcast_floor_state()
                                         elif msg.get("type") == "config":
-                                            # 🚨 [수정 3] Admin의 설정을 '공용 수첩(Global)'에 저장합니다.
+                                            # 오직 방장 권한의 Config 메시지만 글로벌 수첩을 업데이트합니다.
                                             if role == "admin":
                                                 if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                 if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
@@ -384,10 +383,11 @@ async def websocket_endpoint(
                                 if transcript or current_sentence:
                                     display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
                                     
-                                    # 🚨 [수정 4] 토론자의 개인 설정이 아닌, 방장(Admin)의 '공용 수첩(Global)'을 가져와 방송합니다.
+                                    # 항상 글로벌 수첩의 타겟을 기준으로 방송합니다.
                                     current_targets_list = manager.global_targets.split(',')
                                     
-                                    tag = "[사회자] " if role == "admin" else f"[{name}] "
+                                    # 🚨 발화자 이름(name)을 태그로 그대로 사용
+                                    tag = f"[{name}] "
                                     
                                     await manager.broadcast_json({
                                         "type": "interim", 
@@ -409,7 +409,6 @@ async def websocket_endpoint(
                                         last_translated_text = final_text
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         
-                                        # 🚨 [수정 5] 번역 지시 시에도 Admin의 '공용 타겟 언어'와 '공용 용어집'을 강제 적용합니다.
                                         asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
                                     
                                     current_sentence = ""
