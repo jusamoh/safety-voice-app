@@ -74,6 +74,9 @@ class ConnectionManager:
         self.requests = [] 
         self.floor_owner = None
         self.is_admin_muted = False
+        # 🚨 [수정 1] 방 전체 공용(Global) 수첩 생성: 소장님의 설정이 방 전체를 통제합니다.
+        self.global_targets = "ko" 
+        self.global_glossary = ""
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str):
         await websocket.accept()
@@ -146,7 +149,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001", # 🚀 최신 Claude Haiku 4.5 모델 적용 완료!
+            model="claude-haiku-4-5-20251001",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -172,6 +175,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
+        # 🚨 [수정 2] AI 군기 잡기: 환각(Chatbot) 방지 강력한 프롬프트 추가 (5번 지시사항)
         system_prompt = f"""You are a professional simultaneous interpreter.
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
@@ -182,9 +186,10 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 
 CRITICAL INSTRUCTIONS:
 1. {lang_instruction}
-2. Fix STT typos.
+2. Fix STT typos based on the context.
 3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
 4. Provide EXACTLY ONE best translation per language.
+5. CRITICAL: If the input is incomplete, fragmented, or a complete STT error, DO NOT explain it, DO NOT converse, and DO NOT apologize. Just translate it literally or output it as-is. NEVER output conversational responses.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
@@ -194,7 +199,7 @@ clean current sentence
             system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",  # 🚀 최신 Claude Haiku 4.5 모델 적용 완료!
+            model="claude-haiku-4-5-20251001",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
@@ -275,12 +280,14 @@ async def websocket_endpoint(
     if not client_id: client_id = secrets.token_hex(4)
     if not name: name = f"User_{client_id}"
 
+    # 소장님(admin)이 처음 접속할 때 기본 타겟을 초기화합니다.
+    if role == "admin":
+        manager.global_targets = targets
+
     await manager.connect(websocket, client_id, name, role)
     
     recent_history = [] 
     summary_state = {"text": ""} 
-    glossary_text = ""
-    dynamic_targets = targets 
 
     try:
         if role == "viewer":
@@ -310,7 +317,6 @@ async def websocket_endpoint(
             async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
                 
                 async def sender():
-                    nonlocal glossary_text, dynamic_targets 
                     try:
                         while True:
                             data = await websocket.receive()
@@ -343,8 +349,10 @@ async def websocket_endpoint(
                                                 manager.is_admin_muted = False
                                                 await manager.broadcast_floor_state()
                                         elif msg.get("type") == "config":
-                                            if "glossary" in msg: glossary_text = msg.get("glossary", "")
-                                            if "targets" in msg: dynamic_targets = msg.get("targets", dynamic_targets)
+                                            # 🚨 [수정 3] Admin의 설정을 '공용 수첩(Global)'에 저장합니다.
+                                            if role == "admin":
+                                                if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
+                                                if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
                                     except: pass
                     except websockets.exceptions.ConnectionClosed: pass
                     except Exception as e: print(f"🚨 Sender 루프 에러: {e}", flush=True)
@@ -375,7 +383,9 @@ async def websocket_endpoint(
 
                                 if transcript or current_sentence:
                                     display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
-                                    current_targets_list = dynamic_targets.split(',') if isinstance(dynamic_targets, str) else dynamic_targets
+                                    
+                                    # 🚨 [수정 4] 토론자의 개인 설정이 아닌, 방장(Admin)의 '공용 수첩(Global)'을 가져와 방송합니다.
+                                    current_targets_list = manager.global_targets.split(',')
                                     
                                     tag = "[사회자] " if role == "admin" else f"[{name}] "
                                     
@@ -399,7 +409,8 @@ async def websocket_endpoint(
                                         last_translated_text = final_text
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         
-                                        asyncio.create_task(translate_and_send(final_text, lang, dynamic_targets, recent_history, summary_state, glossary_text, current_msg_id, role, name))
+                                        # 🚨 [수정 5] 번역 지시 시에도 Admin의 '공용 타겟 언어'와 '공용 용어집'을 강제 적용합니다.
+                                        asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
                                     
                                     current_sentence = ""
                                     current_msg_id = secrets.token_hex(4)
