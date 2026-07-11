@@ -55,8 +55,6 @@
         .lang-chip:hover { border-color: #b0bec5; }
         
         .add-lang-wrapper { display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; color: var(--text-main); }
-        .btn-outline:hover { background: #f1f3f4; }
         
         .slider-wrapper { display: flex; flex-direction: column; gap: 5px; background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid var(--border);}
         .slider-header { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); font-weight: 600;}
@@ -69,6 +67,8 @@
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; transition: 0.2s; }
         .btn-danger:hover { background: var(--danger-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; color: var(--text-main); }
+        .btn-outline:hover { background: #f1f3f4; }
         .btn-icon { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-full { width: 100%; padding: 12px; font-size: 15px; }
 
@@ -126,6 +126,28 @@
         #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #111; padding: 12px 15px; z-index: 1000; border-bottom: 1px solid #333; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
         body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; }
         
+        body.projector-mode { background-color: #000; color: #fff; padding: 0; height: 100vh; overflow: hidden; }
+        body.projector-mode .navbar, 
+        body.projector-mode .dashboard-layout, 
+        body.projector-mode .status-banner, 
+        body.projector-mode #viewerTopBar, 
+        body.projector-mode #mobileDictationBox, 
+        body.projector-mode #requestSpeakBtn, 
+        body.projector-mode #mobileMuteBtn { display: none !important; }
+        
+        body.projector-mode .window-container { max-width: 100%; padding: 20px; gap: 20px; height: 100vh; display: grid; align-content: center;}
+        body.projector-mode .window { border: 1px solid #333; border-radius: 16px; background: #111; height: auto; min-height: 400px; max-height: 90vh; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        body.projector-mode .window-header { background: #222; color: #fff; border-bottom: 1px solid #444; font-size: 24px; padding: 20px; border-radius: 16px 16px 0 0; }
+        body.projector-mode .content-box { background: #0a0a0a; color: #fff; padding: 30px; font-size: 26px; border-radius: 0 0 16px 16px; }
+        body.projector-mode .latest-text, body.projector-mode .same-lang-text { color: #fff; font-size: 40px; line-height: 1.5; font-weight: 800;}
+        body.projector-mode .original-text { color: #aaa; font-size: 20px; }
+        body.projector-mode .tts-btn { display: none; } /* 프로젝터 모드에서는 개별 듣기 버튼 숨김 */
+        body.projector-mode .sentence { border-bottom-color: #333; }
+
+        #exitProjectorBtn { display: none; position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 12px 24px; border-radius: 30px; z-index: 10000; font-size: 16px; font-weight: 700; cursor: pointer; backdrop-filter: blur(10px); }
+        #exitProjectorBtn:hover { background: rgba(255,255,255,0.2); }
+        body.projector-mode #exitProjectorBtn { display: block; }
+
         .speaker-status-bar { position: fixed; top: 60px; left: 0; width: 100%; padding: 12px; text-align: center; font-weight: 700; z-index: 1500; font-size: 15px; color: white; display: none;}
         body.speaker-mode .speaker-status-bar { display: block; }
         .status-free { background: var(--success); }
@@ -182,14 +204,15 @@
         <div class="nav-brand">🌍 글로벌 현장 안전 통역 콘솔</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
-            <button id="viewerBtn" class="btn-outline" onclick="toggleConnection('viewer')">💻 내 PC 뷰어</button>
+            <!-- 기존의 내 PC 뷰어 버튼을 빔 프로젝터 모드 버튼으로 교체 -->
+            <button id="projectorBtn" class="btn-outline" onclick="toggleProjectorMode()">📽️ 빔 프로젝터 모드</button>
             <button class="btn-outline" onclick="clearAllLogs()">🗑️ 화면정리</button>
             <button id="downloadBtn" class="btn-outline" onclick="downloadTranscript()">📄 기록저장</button>
             <button class="btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="logout()">🔒 로그아웃</button>
         </div>
     </nav>
 
-    <!-- 청중/토론자 접속 시 상단 뷰어 제어 바 (자동 읽기 버튼 포함) -->
+    <!-- 청중/토론자 스마트폰 접속 시 상단 뷰어 제어 바 (자동 읽기 버튼 포함) -->
     <div id="viewerTopBar">
         <label style="color:#aaa; font-weight:700; font-size: 14px;">🌐 내 언어 선택:</label>
         <select id="viewerLangSelect" class="styled-select" style="max-width: 150px; padding: 8px;" onchange="filterViewerWindows()">
@@ -200,8 +223,6 @@
             <input type="checkbox" id="autoTTSCheckbox" onchange="toggleAutoTTS()" style="accent-color: var(--success); width: 18px; height: 18px;">
             <span id="autoTTSText" style="font-weight: 600;">🔇 자동 읽기 (OFF)</span>
         </label>
-        
-        <button id="exitViewerBtn" class="btn-outline" style="background:#333; color:#fff; padding: 8px; border-color:#555; margin-left: auto;" onclick="exitViewerMode()">⚙️ 종료</button>
     </div>
     
     <div id="speakerStatusBar" class="speaker-status-bar status-free">🟢 마이크 개방됨 (자유롭게 발언하세요)</div>
@@ -302,6 +323,9 @@
         <span style="font-size: 15px; color: #aaa; font-weight: 400;">Please select your language from the top menu.</span>
     </div>
 
+    <!-- 빔 프로젝터 모드 탈출 버튼 (플로팅) -->
+    <button id="exitProjectorBtn" onclick="exitProjectorMode()">⚙️ 대시보드로 돌아가기</button>
+
     <div class="window-container" id="windowContainer"></div>
 
 </div>
@@ -383,6 +407,7 @@
     const urlRole = urlParams.get('role');
     const isHost = !roomToken; 
 
+    // 데스크탑/모바일 접속 기기에 따라 명확한 관리자 이름표 부여
     if (isHost) {
         clientName = isMobileDevice ? `사회자(모바일_${clientId.substring(4,6)})` : `사회자(PC_${clientId.substring(4,6)})`;
     }
@@ -393,9 +418,6 @@
         authToken = roomToken;
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
-        
-        const exitBtn = document.getElementById('exitViewerBtn');
-        if (exitBtn) exitBtn.style.display = 'none';
         
         if (urlRole === 'viewer' || !urlRole) {
             document.body.classList.add('viewer-mode');
@@ -427,8 +449,21 @@
         }
     }
 
+    function toggleProjectorMode() {
+        document.body.classList.add('projector-mode');
+        updateWindows(); // 전체화면으로 넘어가기 전 체크된 모든 창 렌더링 강제 업데이트
+        showToast("📽️ 빔 프로젝터 모드가 실행되었습니다. (우측 상단 버튼으로 대시보드 복귀)");
+    }
+
+    function exitProjectorMode() {
+        document.body.classList.remove('projector-mode');
+        updateWindows(); // 대시보드 그리드로 원상 복구
+    }
+
     function filterViewerWindows() {
+        // 스마트폰 뷰어/스피커 접속자가 아니면 (즉, 관리자 PC면) 필터링 무시
         if (!document.body.classList.contains('viewer-mode') && !document.body.classList.contains('speaker-mode')) return;
+        
         const selected = document.getElementById('viewerLangSelect').value;
         const windows = document.querySelectorAll('.window-container .window');
         const placeholder = document.getElementById('viewerPlaceholder');
@@ -440,7 +475,7 @@
                 hasVisibleWindow = true;
             } else {
                 win.style.display = 'none';
-                win.innerHTML = `<div class="window-header">${langNames[win.id.replace('win_','')] || win.id.replace('win_','')}</div><div id="box_${win.id.replace('win_','')}" class="content-box"></div>`; 
+                // 파괴적인 innerHTML 덮어쓰기 로직 완전 제거 (버그 픽스)
             }
         });
         if (placeholder) placeholder.style.display = hasVisibleWindow ? 'none' : 'block';
@@ -457,7 +492,7 @@
             container.appendChild(win);
             box = document.getElementById(`box_${lang}`);
 
-            // 뷰어 모드 여부와 상관없이 항상 내 언어 선택 드롭다운에 옵션을 추가하도록 수정
+            // 스마트폰 사용자용 드롭다운에 옵션 추가
             const select = document.getElementById('viewerLangSelect');
             if (select && !select.querySelector(`option[value="${lang}"]`)) {
                 const opt = document.createElement('option');
@@ -466,13 +501,16 @@
                 select.appendChild(opt);
             }
             
-            filterViewerWindows(); 
+            // 새 창이 생겼을 때 모바일 뷰어면 화면 업데이트
+            if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
+                filterViewerWindows(); 
+            }
         }
         return box;
     }
 
     function sendConfigUpdate() {
-        // 모바일 관리자가 접속 시 자신의 빈 설정을 서버로 덮어쓰지 않도록 조건 강화
+        // 관리자가 접속 시 자신의 설정을 서버로 푸시. (isHost 체크로 덮어쓰기 방지)
         if (ws && ws.readyState === 1 && isHost) {
             const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
             if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
@@ -482,12 +520,22 @@
     }
 
     function updateWindows() {
+        // 스마트폰 뷰어/스피커라면 체크박스 무시하고 본인의 드롭다운 선택 필터링 적용
+        if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
+            if (!isHost) {
+                filterViewerWindows();
+                return;
+            }
+        }
+
         const container = document.getElementById('windowContainer');
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
 
+        // 체크된 언어의 윈도우 생성 보장
         checkedLangs.forEach(lang => { ensureWindowExists(lang); });
 
+        // 관리자 대시보드 및 프로젝터 모드에서는 체크된 모든 창을 보여줌
         Array.from(container.children).forEach(windowDiv => {
             const lang = windowDiv.id.replace('win_', '');
             if (!checkedLangs.includes(lang)) windowDiv.style.display = 'none';
@@ -570,16 +618,6 @@
         
         new QRCode(qrContainer, { text: qrUrl, width: 220, height: 220, colorDark : "#202124", colorLight : "#ffffff" });
         document.getElementById('qrModal').style.display = 'flex';
-    }
-
-    function exitViewerMode() {
-        if(isHost) {
-            const wasSpeaker = document.body.classList.contains('speaker-mode');
-            document.body.classList.remove('viewer-mode');
-            document.body.classList.remove('speaker-mode');
-            document.getElementById('viewerPlaceholder').style.display = 'none';
-            if (isConnected) toggleConnection(wasSpeaker ? 'speaker' : 'viewer');
-        }
     }
 
     function triggerAlert() {
@@ -690,7 +728,7 @@
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
         transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
         
-        // 화면 정리 시, 브라우저 비밀 금고에 남아있는 백업 파일도 깔끔하게 삭제합니다.
+        // 화면 정리 시, 브라우저 비밀 금고에 남아있는 백업 파일도 깔끔하게 삭제
         localStorage.removeItem("savedTranscript");
         
         document.getElementById('liveDictation').innerHTML = "";
@@ -768,7 +806,6 @@
 
     async function toggleConnection(role) {
         const speakerBtn = document.getElementById('speakerBtn');
-        const viewerBtn = document.getElementById('viewerBtn');
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!targetLangs.includes('ko')) targetLangs.unshift('ko');
 
@@ -793,7 +830,7 @@
                     isConnected = true;
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
-                            // 데스크탑 방장일 때만 최초 1회 설정을 푸시합니다. 모바일 접속 시 덮어쓰기 방지.
+                            // 데스크탑 방장일 때만 최초 1회 설정을 푸시. 모바일 덮어쓰기 방지.
                             if (!isMobileDevice && isHost) {
                                 sendConfigUpdate();
                             }
@@ -816,16 +853,14 @@
                         mediaRecorder.ondataavailable = (e) => { 
                             if (e.data.size > 0 && ws.readyState === 1) {
                                 if (role === 'admin') {
-                                    ws.send(e.data); // 방장은 항상 전송
+                                    ws.send(e.data); // 방장은 플로어 무시 항상 전송
                                 } else if (!isAdminMuted && (currentFloor === null || currentFloor === clientId)) {
-                                    if (!isMobileMuted) ws.send(e.data); // 토론자는 플로어 조건 만족 시에만 전송
+                                    if (!isMobileMuted) ws.send(e.data); // 일반 토론자는 플로어 규칙 준수
                                 }
                             }
                         };
                         mediaRecorder.start(100); 
                     } else if (role === 'viewer') {
-                        viewerBtn.innerText = "🛑 뷰어 종료";
-                        viewerBtn.style.color = "var(--danger)";
                         updateStatus("👀 청중(뷰어) 모드 수신 중");
                     }
                 };
@@ -870,10 +905,11 @@
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
 
-                        // 내 발화 모바일 확인용 자막 표출
+                        // 스마트폰 모바일 실시간 STT 자막 박스 렌더링
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) {
+                            // 발화자가 본인이 맞는지 태그로 확인
                             if ((role === 'speaker' || (role === 'admin' && isMobileDevice)) && res.text.includes(clientName)) {
                                 mobBox.style.display = 'block';
                                 mobText.innerText = res.text.replace(/\[.*?\] /, ''); 
@@ -926,12 +962,13 @@
                             if (isSame) div.innerHTML = `<span class="same-lang-text">${cleanText}</span> ${ttsBtnHTML}`;
                             else div.innerHTML = `<span class="original-text">원문: ${res.original_text || "..." }</span><span class="latest-text">${cleanText}</span> ${ttsBtnHTML}`;
                             
+                            // 기록저장(txt) 용 데이터 누적
                             if (lang === 'ko') {
                                 transcriptLog += `원문: ${res.original_text}\n`;
                             }
                             transcriptLog += `- ${lang}: ${cleanText}\n`;
                             
-                            // 번역이 한 줄 완성될 때마다 브라우저 금고에 자동 백업(Save) 합니다.
+                            // 번역 한 줄 완성될 때마다 브라우저 LocalStorage에 실시간 자동 백업
                             localStorage.setItem("savedTranscript", transcriptLog);
                             
                             // 자동 듣기(Auto-TTS) 실행 로직
@@ -948,12 +985,13 @@
                     else if (res.type === "sentence_complete") {
                         transcriptLog += `----------------------------------------\n`;
                         
-                        // 문장 구분선이 들어갈 때도 자동 백업을 수행합니다.
+                        // 문장 구분선 들어갈 때도 자동 백업
                         localStorage.setItem("savedTranscript", transcriptLog);
                         
                         currentSentenceId = null;
                         document.getElementById('liveDictation').innerText = "";
                         
+                        // 발화 종료 시 스마트폰 실시간 자막 박스 닫기
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) {
@@ -995,10 +1033,8 @@
         }
         
         const speakerBtn = document.getElementById('speakerBtn');
-        const viewerBtn = document.getElementById('viewerBtn');
         
         if (speakerBtn) { speakerBtn.innerHTML = "🎙️ 현장 마이크 켜기"; speakerBtn.classList.remove('active'); }
-        if (viewerBtn) { viewerBtn.innerHTML = "💻 내 PC 뷰어"; viewerBtn.style.color = "var(--text-main)"; }
         
         updateStatus("시스템 대기 중. 마이크를 켜주세요.", false);
     }
