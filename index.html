@@ -378,7 +378,6 @@
     let currentSentenceId = null;
     let isFirstFloorState = true; 
 
-    // 데스크탑/모바일 관리자 이름표 개별화
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
     const urlRole = urlParams.get('role');
@@ -458,15 +457,15 @@
             container.appendChild(win);
             box = document.getElementById(`box_${lang}`);
 
-            if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
-                const select = document.getElementById('viewerLangSelect');
-                if (!select.querySelector(`option[value="${lang}"]`)) {
-                    const opt = document.createElement('option');
-                    opt.value = lang;
-                    opt.innerText = langNames[lang] || lang;
-                    select.appendChild(opt);
-                }
+            // 뷰어 모드 여부와 상관없이 항상 내 언어 선택 드롭다운에 옵션을 추가하도록 수정
+            const select = document.getElementById('viewerLangSelect');
+            if (select && !select.querySelector(`option[value="${lang}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = lang;
+                opt.innerText = langNames[lang] || lang;
+                select.appendChild(opt);
             }
+            
             filterViewerWindows(); 
         }
         return box;
@@ -501,7 +500,7 @@
 
     window.addEventListener('load', () => {
         const viewerSelect = document.getElementById('viewerLangSelect');
-        const urlTargets = new URLSearchParams(window.location.search).get('targets');
+        const urlTargets = newSearchParams = new URLSearchParams(window.location.search).get('targets');
 
         if (urlTargets) {
             urlTargets.split(',').forEach(code => {
