@@ -82,6 +82,13 @@
         .status-dot.live { background: #34a853; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.4; } }
 
+        /* 준비 완료 시각적 피드백(번쩍임) 효과 */
+        @keyframes flashSuccess {
+            0% { background-color: #34a853; transform: scale(1.02); box-shadow: 0 0 20px rgba(52, 168, 83, 0.8); }
+            100% { background-color: #3c4043; transform: scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        }
+        .flash-active { animation: flashSuccess 1s ease-out !important; }
+
         .dictation-box { font-size: 20px; color: #fbbc04; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
 
         .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
@@ -670,6 +677,30 @@
         window.speechSynthesis.speak(msg);
     }
 
+    // 준비 완료 소리 및 진동 알림 함수
+    function playReadyBeep() {
+        try {
+            // 브라우저 내장 Web Audio API를 이용한 맑은 비프음 생성
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine'; // 부드러운 사인파 소리
+            osc.frequency.setValueAtTime(880, ctx.currentTime); // 높은 '라(A5)' 음계
+            gain.gain.setValueAtTime(0.1, ctx.currentTime); // 볼륨 조절 (0~1)
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.15); // 0.15초 동안만 짧게 재생
+            
+            // 모바일 기기인 경우 0.1초 동안 짧게 진동 발생 (Haptic)
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+        } catch (e) {
+            console.log("오디오 재생 미지원 환경");
+        }
+    }
+
     function updateStatus(text, isRecording = false) {
         const msg = document.getElementById('statusMessage');
         const dot = document.getElementById('statusIndicator');
@@ -716,6 +747,15 @@
                             
                             stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
                             updateStatus("✅ 마이크 연결됨 (현장 방송 중)", true);
+                            
+                            // 🚨 마이크 준비 완료 시각/청각/촉각 피드백 실행
+                            playReadyBeep();
+                            const banner = document.getElementById('statusBanner');
+                            if (banner) {
+                                banner.classList.remove('flash-active');
+                                void banner.offsetWidth; // 브라우저 애니메이션 강제 재시작 (리플로우)
+                                banner.classList.add('flash-active');
+                            }
                             
                             mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                             mediaRecorder.ondataavailable = (e) => { 
