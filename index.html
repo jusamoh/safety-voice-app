@@ -78,7 +78,6 @@
         .status-banner { max-width: 1400px; margin: 0 auto 20px; padding: 15px 20px; background: #3c4043; color: white; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .status-text { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 10px;}
         
-        /* 마이크 준비완료 시각적 피드백 효과 */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #9aa0a6; display: inline-block; }
         .status-dot.live { background: #34a853; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.4; } }
@@ -352,6 +351,7 @@
     let authToken = ""; 
     let transcriptLog = "=== 실시간 현장 안전 지시 기록 ===\n\n";
     let currentSentenceId = null;
+    let isFirstFloorState = true; // 최초 접속 시 팝업 방지를 위한 변수 추가
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
@@ -518,11 +518,14 @@
     }
 
     function exitViewerMode() {
-        const wasSpeaker = document.body.classList.contains('speaker-mode');
-        document.body.classList.remove('viewer-mode');
-        document.body.classList.remove('speaker-mode');
-        document.getElementById('viewerPlaceholder').style.display = 'none';
-        if (isConnected) toggleConnection(wasSpeaker ? 'speaker' : 'viewer'); 
+        // 소장님만 위장막을 벗길 수 있도록 보완
+        if(isHost) {
+            const wasSpeaker = document.body.classList.contains('speaker-mode');
+            document.body.classList.remove('viewer-mode');
+            document.body.classList.remove('speaker-mode');
+            document.getElementById('viewerPlaceholder').style.display = 'none';
+            if (isConnected) toggleConnection(wasSpeaker ? 'speaker' : 'viewer');
+        }
     }
 
     function triggerAlert() {
@@ -788,9 +791,20 @@
                         }
                     }
                     else if (res.type === "floor_state") {
+                        const prevMuted = isAdminMuted; // 이전 음소거 상태 기억
                         currentFloor = res.floor_owner;
                         isAdminMuted = res.is_admin_muted;
                         updateSpeakerStatusBar(); 
+                        
+                        // 상태가 변경되었고, 최초 접속이 아닐 때만 모든 사람에게 팝업 알림 띄우기
+                        if (!isFirstFloorState && prevMuted !== isAdminMuted) {
+                            if (isAdminMuted) {
+                                showToast("🛑 사회자가 토론 전체 음소거를 실행했습니다.", true); // 빨간색 알림
+                            } else {
+                                showToast("🟢 토론 음소거가 해제되었습니다. 자유로운 발언이 가능합니다."); // 검은색(기본) 알림
+                            }
+                        }
+                        isFirstFloorState = false;
                     }
                     else if (res.type === "speak_approved") {
                         showToast("✅ 사회자가 발언권을 승인했습니다! 토론자 모드로 전환됩니다.");
@@ -869,7 +883,11 @@
                     if(e.code === 1008) {
                         showToast("인증이 만료되었습니다. 다시 로그인해주세요.", true);
                         setTimeout(logout, 2000);
-                    } else resetUI();
+                    } else {
+                        // 🚨 모바일 인앱 브라우저 끊김 시, 외부 참석자는 관리자 화면이 노출되지 않도록 방어
+                        if (isHost) resetUI(); 
+                        else showToast("연결이 일시적으로 끊어졌습니다. 새로고침 해주세요."); 
+                    }
                 };
             } catch (err) { showToast("연결 오류가 발생했습니다.", true); }
         } else {
@@ -882,15 +900,13 @@
         if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
 
         isConnected = false;
+        isFirstFloorState = true; // UI가 초기화될 때 상태 변수도 함께 초기화
         
-        // 🚨 호스트(소장님)일 경우에만 모드를 해제하여 대시보드를 보여줍니다.
-        // 청중/토론자로 들어온 사람은 네트워크 끊김 시에도 위장막(모드)이 영구 유지됩니다.
-        if (isHost) {
-            document.body.classList.remove('viewer-mode');
-            document.body.classList.remove('speaker-mode');
-            const placeholder = document.getElementById('viewerPlaceholder');
-            if (placeholder) placeholder.style.display = 'none';
-        }
+        document.body.classList.remove('viewer-mode');
+        document.body.classList.remove('speaker-mode');
+        
+        const placeholder = document.getElementById('viewerPlaceholder');
+        if (placeholder) placeholder.style.display = 'none';
         
         const speakerBtn = document.getElementById('speakerBtn');
         const viewerBtn = document.getElementById('viewerBtn');
