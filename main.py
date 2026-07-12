@@ -174,7 +174,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -226,7 +226,7 @@ clean current sentence
             system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
@@ -397,6 +397,20 @@ async def websocket_endpoint(
                                                     await manager.broadcast_user_list()
                                                     for ws_client, info in manager.clients.items():
                                                         if info["id"] == tid:
+                                                            try: await ws_client.send_json({"type": "speak_revoked"})
+                                                            except: pass
+                                                # 🌟 [신규 추가] 모든 청취자의 발언권을 일괄 회수하는 기능
+                                                elif action == "revoke_all_viewers":
+                                                    revoked_ids = list(manager.speaking_allowed_clients)
+                                                    manager.speaking_allowed_clients.clear()
+                                                    
+                                                    if manager.floor_owner in revoked_ids:
+                                                        manager.release_floor()
+                                                        
+                                                    await manager.broadcast_user_list()
+                                                    
+                                                    for ws_client, info in manager.clients.items():
+                                                        if info["id"] in revoked_ids:
                                                             try: await ws_client.send_json({"type": "speak_revoked"})
                                                             except: pass
                                                 elif action == "mute_all":

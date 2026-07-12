@@ -321,12 +321,15 @@
         <div class="card" style="background: #fff8f6; border-color: #fad2cf;">
             <div class="card-header" style="color: var(--danger);"><span>👑</span> 사회자 제어 센터</div>
             
-            <div style="flex:1; background: #fff; border: 1px solid #fad2cf; border-radius: 8px; padding: 10px;">
+            <div style="flex:1; background: #fff; border: 1px solid #fad2cf; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
                 <label class="form-label" style="font-size:12px; margin-top:0;">🙋‍♂️ 청중 발언 요청 대기열</label>
                 <ul id="requestList" class="req-list">
                     <li style="color:var(--text-muted); font-size:13px; text-align:center; padding: 20px 0;">대기 중인 요청이 없습니다.</li>
                 </ul>
             </div>
+
+            <!-- 신규 추가된 청중 일괄 회수 버튼 -->
+            <button class="btn-outline btn-full btn-icon" style="margin-bottom: 10px; border-color: #fad2cf; color: var(--danger); background: #fff; font-weight: 800;" onclick="adminRevokeAllViewers()">🧹 청중 발언권 일괄 회수</button>
 
             <div style="display:flex; gap: 10px;">
                 <button id="btnMuteAll" class="btn-danger btn-full btn-icon admin-mute-btn" onclick="adminMuteAll()">🛑 토론 전체 음소거</button>
@@ -764,6 +767,10 @@
     function revokeSpeak(id) { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "revoke", target_id: id})); } // 🌟 사회자의 발언권 강제 회수 명령
     function adminMuteAll() { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "mute_all"})); }
     function adminUnmuteAll() { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "unmute_all"})); }
+    function adminRevokeAllViewers() { 
+        if(ws) ws.send(JSON.stringify({type: "admin_action", action: "revoke_all_viewers"})); 
+        showToast("모든 청중의 발언권이 회수되었습니다.");
+    }
 
     function sendSpeakRequest() {
         if (!ws || ws.readyState !== 1) return showToast("서버와 연결되어 있지 않습니다.", true);
