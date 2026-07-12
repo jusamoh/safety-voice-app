@@ -12,11 +12,16 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 
+# 🌟 신규 추가: Azure Speech SDK
+import azure.cognitiveservices.speech as speechsdk
+
 # ==========================================
 # 💡 1. API 키 로드
 # ==========================================
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_KEY", "")
+AZURE_SPEECH_REGION = os.environ.get("AZURE_SPEECH_REGION", "")
 
 claude_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 app = FastAPI()
@@ -41,7 +46,6 @@ USER_DB = {
 
 ACTIVE_TOKENS = set()
 
-# 내부 통신 상태 전환을 위한 예외 클래스
 class DowngradeException(Exception):
     pass
 
@@ -80,7 +84,6 @@ class ConnectionManager:
         self.is_admin_muted = False
         self.global_targets = "ko" 
         self.global_glossary = ""
-        # 🌟 동적 발언권을 부여받은 청취자(Viewer) 명단
         self.speaking_allowed_clients = set()
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
@@ -158,10 +161,10 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
     new_text = "\n".join(new_sentences)
     
-    prompt = f"""You are a context summarizer for a multinational meeting/discussion.
+    prompt = f"""You are a context summarizer for a multinational civil engineering expert seminar.
     Update the existing summary with the new sentences.
     Keep it EXTREMELY concise (1-2 sentences maximum).
-    Focus ONLY on factual context: who, where, what, and specific risks or items mentioned.
+    Focus ONLY on factual context regarding underground utility mapping, HDD, GPR, or specific engineering parameters.
     
     [Existing Summary]
     {current_summary if current_summary else "None"}
@@ -173,7 +176,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5-20251001",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -184,23 +187,25 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
 
 async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
     try:
-        if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰"]):
+        if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰", "위험해"]):
             await manager.broadcast_json({"type": "alert"})
 
-        ignore_words = ["you", "thank you", "o", "hmm", "uh", "아", "음", "hola", "어"]
+        ignore_words = ["you", "thank you", "o", "hmm", "uh", "well", "so", "Okay", "아", "음", "hola", "어"]
         if not text or len(text) < 2 or text.lower() in ignore_words:
             return 
 
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
-        glossary_section = f"\n[MEETING GLOSSARY / DOMAIN KNOWLEDGE]\n{glossary_text}\n" if glossary_text.strip() else ""
+        glossary_section = f"\n[CIVIL ENGINEERING GLOSSARY]\n{glossary_text}\n" if glossary_text.strip() else ""
 
-        if source_lang == "multi":
-            lang_instruction = "Detect the spoken language of the CURRENT SENTENCE automatically."
+        if source_lang == "multi" or source_lang == "multi_azure":
+            lang_instruction = "The STT engine detected the language automatically. However, cross-check the context."
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🌟 한/중/일 다국어 자동 인식(Multi) 정확도를 극대화하는 강력한 프롬프트 주입
-        system_prompt = f"""You are a professional simultaneous interpreter for a multinational meeting involving Korean, Chinese, and Japanese speakers.
+        # 🌟 극강의 정확도를 위한 토목/관로 엔지니어링 특화 프롬프트
+        system_prompt = f"""You are an elite simultaneous interpreter for an international civil engineering expert seminar involving Korea, China, Japan, and the US.
+Domain focus: Horizontal Directional Drilling (HDD), Ground Penetrating Radar (GPR), small underground pipeline 3D mapping, and multi-jointed robot technologies.
+
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
 
@@ -210,13 +215,11 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
 1. {lang_instruction} 
-2. [PHONETIC AUTO-CORRECTION]: The STT engine may misidentify the spoken language (e.g., transcribing Chinese or Japanese phonetically in Korean characters, like "씨에씨에" for 谢谢, or "소데스네" for そうですか). You MUST identify the true intended language, correct these phonetic misspellings based on the context/glossary, and then translate.
+2. [PHONETIC AUTO-CORRECTION & CODE-SWITCHING]: Experts may mix technical English terms (e.g., 'Permittivity', 'IMU', 'YOLO') with their native language. If the STT engine transcribes foreign terms or Asian phonetics incorrectly into Korean characters (e.g., "퍼미티비티", "씨에씨에", "소데스네"), you MUST use your advanced engineering knowledge to auto-correct these phonetic hallucinations back to their true technical or original meaning before translating.
 3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
 4. Provide EXACTLY ONE best translation per language.
-5. CRITICAL: DO NOT converse with the speaker.
-6. CRITICAL: If the text is fragmented, meaningless, or a complete STT error, DO NOT explain it and DO NOT apologize. Just translate it literally or output it as-is. NEVER add conversational filler.
-7. [FILLER FILTERING]: Remove any meaningless filler words and translate the core message into clean business language.
-8. [TONE ALIGNMENT]: If the sentence implies danger, warning, or an urgent command, translate it using the strongest IMPERATIVE tone in the target language to ensure absolute safety.
+5. CRITICAL: DO NOT converse with the speaker. Just output the translation.
+6. [TONE ALIGNMENT]: Use a highly professional, academic, and engineering-focused tone. If the sentence implies safety warnings, use a strict IMPERATIVE tone.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
@@ -268,7 +271,6 @@ clean current sentence
         for lang, final_text in lang_text.items():
             if lang != 'original':
                 display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
-                # 🌟 To-Be 회의록 조립을 위해 개별 데이터 전송
                 await manager.broadcast_json({
                     "type": "stream_end",
                     "lang": lang,
@@ -296,7 +298,7 @@ async def websocket_endpoint(
     websocket: WebSocket, 
     token: str = Query(None), 
     lang: str = Query("ko"), 
-    targets: str = Query("ko,id"), 
+    targets: str = Query("ko,en,ja,zh"), 
     role: str = Query("speaker"),
     client_id: str = Query(None),
     name: str = Query(None),
@@ -319,12 +321,10 @@ async def websocket_endpoint(
     summary_state = {"text": ""} 
 
     try:
-        # 🌟 상태 관리 루프: 청취자가 발언권을 얻을 때 끊김 없이 즉시 오디오 루프로 전환합니다.
         while True:
             is_speaker = role in ["admin", "speaker"] or client_id in manager.speaking_allowed_clients
             
             if not is_speaker:
-                # [텍스트 전용 루프] 순수 청취자 상태
                 while True:
                     data = await websocket.receive()
                     if data.get("type") == "websocket.receive" and data.get("text") is not None:
@@ -338,31 +338,58 @@ async def websocket_endpoint(
                                 manager.requests = [r for r in manager.requests if r["id"] != client_id]
                                 await manager.broadcast_admin_state()
                             elif msg_type == "upgrade_to_speaker":
-                                # 관리자의 승인을 받은 후, 클라이언트가 마이크 준비 완료를 알리면 루프 탈출
                                 if client_id in manager.speaking_allowed_clients:
                                     break 
                         except: pass
             else:
-                # [오디오 통신 루프] 발언권이 있는 상태 (관리자, 패널, 승인된 청취자)
-                dg_lang = "ko" if lang == "multi" else lang
-                keywords_param = ""
-                if glossary:
-                    extracted_words = re.findall(r'^([^=:-]+)', glossary, re.MULTILINE)
-                    clean_words = [w.strip() for w in extracted_words if w.strip()]
-                    if clean_words:
-                        keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
-                        print(f"👂 [STT 사전 교육 완료] 주입된 키워드: {clean_words}")
+                # ==================================================
+                # 🌟 하이브리드 엔진 분기점 (Azure vs Deepgram)
+                # ==================================================
+                engine_mode = "azure" if lang == "multi_azure" else "deepgram"
+                
+                if engine_mode == "azure":
+                    # --- [Azure Speech 가동: 4개국 토론 모드] ---
+                    if not AZURE_SPEECH_KEY:
+                        await websocket.send_json({"type": "status", "text": "❌ Azure API Key가 설정되지 않았습니다."})
+                        raise Exception("Azure key missing")
+                        
+                    speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
+                    
+                    # 브라우저의 압축된 WebM 오디오 스트림을 Azure가 Gstreamer를 통해 디코딩하도록 설정
+                    compressed_format = speechsdk.audio.AudioStreamFormat(compressed_stream_format=speechsdk.AudioStreamContainerFormat.ANY)
+                    push_stream = speechsdk.audio.PushAudioInputStream(stream_format=compressed_format)
+                    audio_config = speechsdk.audio.AudioConfig(stream=push_stream)
 
-                dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}"
-                headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
+                    # 4개국 한정 LID (환각 현상 수학적 차단)
+                    auto_detect_source_language_config = speechsdk.languageconfig.AutoDetectSourceLanguageConfig(
+                        languages=["ko-KR", "en-US", "ja-JP", "zh-CN"]
+                    )
 
-                ws_kwargs = {}
-                if int(websockets.__version__.split('.')[0]) >= 14:
-                    ws_kwargs["additional_headers"] = headers
-                else:
-                    ws_kwargs["extra_headers"] = headers
+                    recognizer = speechsdk.SpeechRecognizer(
+                        speech_config=speech_config,
+                        auto_detect_source_language_config=auto_detect_source_language_config,
+                        audio_config=audio_config
+                    )
 
-                async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
+                    azure_queue = asyncio.Queue()
+                    loop = asyncio.get_running_loop()
+
+                    def recognizing_cb(evt):
+                        if evt.result.text:
+                            lid_result = evt.result.properties.get(speechsdk.PropertyId.SpeechServiceConnection_AutoDetectSourceLanguageResult, "unknown")
+                            loop.call_soon_threadsafe(azure_queue.put_nowait, {"type": "interim", "text": evt.result.text, "lid": lid_result})
+
+                    def recognized_cb(evt):
+                        if evt.result.reason == speechsdk.ResultReason.RecognizedSpeech and evt.result.text:
+                            lid_result = evt.result.properties.get(speechsdk.PropertyId.SpeechServiceConnection_AutoDetectSourceLanguageResult, "unknown")
+                            loop.call_soon_threadsafe(azure_queue.put_nowait, {"type": "final", "text": evt.result.text, "lid": lid_result})
+
+                    recognizer.recognizing.connect(recognizing_cb)
+                    recognizer.recognized.connect(recognized_cb)
+                    recognizer.start_continuous_recognition_async()
+                    
+                    await manager.broadcast_json({"type": "status", "text": "🌐 Azure 다국어 식별 가동 중..."})
+
                     async def sender():
                         try:
                             while True:
@@ -370,14 +397,13 @@ async def websocket_endpoint(
                                 if data.get("type") == "websocket.receive":
                                     if data.get("bytes") is not None:
                                         if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
-                                            await dg_ws.send(data.get("bytes"))
+                                            push_stream.write(data.get("bytes"))
                                             
                                     elif data.get("text") is not None:
                                         try:
                                             msg = json.loads(data.get("text"))
                                             msg_type = msg.get("type")
                                             
-                                            # 청취자가 발언을 스스로 멈추거나 회수당했을 때 발생하는 내부 강제 강등 신호
                                             if msg_type == "downgrade_to_viewer":
                                                 raise DowngradeException()
 
@@ -410,12 +436,9 @@ async def websocket_endpoint(
                                                 elif action == "revoke_all_viewers":
                                                     revoked_ids = list(manager.speaking_allowed_clients)
                                                     manager.speaking_allowed_clients.clear()
-                                                    
                                                     if manager.floor_owner in revoked_ids:
                                                         manager.release_floor()
-                                                        
                                                     await manager.broadcast_user_list()
-                                                    
                                                     for ws_client, info in manager.clients.items():
                                                         if info["id"] in revoked_ids:
                                                             try: await ws_client.send_json({"type": "speak_revoked"})
@@ -434,89 +457,215 @@ async def websocket_endpoint(
                                             raise de 
                                         except: pass
                         except websockets.exceptions.ConnectionClosed: pass
-                        except DowngradeException as de:
-                            raise de
-                        except Exception as e: print(f"🚨 Sender 루프 에러: {e}", flush=True)
+                        except DowngradeException as de: raise de
+                        except Exception as e: print(f"🚨 Azure Sender 에러: {e}", flush=True)
 
                     async def receiver():
-                        current_sentence = ""
-                        last_translated_text = "" 
                         current_msg_id = secrets.token_hex(4)
                         try:
                             while True:
-                                dg_result = await dg_ws.recv()
-                                dg_json = json.loads(dg_result)
+                                msg = await azure_queue.get()
+                                text = msg["text"]
+                                raw_lid = msg["lid"]
                                 
-                                if dg_json.get("type") == "Results":
-                                    is_final = dg_json.get("is_final", False)
-                                    speech_final = dg_json.get("speech_final", False)
-                                    transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
-                                    
-                                    if transcript:
-                                        if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
-                                            manager.set_floor(client_id)
-                                        
-                                        if role != "admin" and manager.floor_owner is None:
-                                            continue 
-                                        if role != "admin" and manager.floor_owner != client_id:
-                                            continue
+                                if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
+                                    manager.set_floor(client_id)
+                                if role != "admin" and manager.floor_owner != client_id:
+                                    continue
 
-                                    if transcript or current_sentence:
-                                        display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
-                                        
-                                        current_targets_list = manager.global_targets.split(',')
-                                        tag = f"[{name}] "
-                                        
+                                if text:
+                                    current_targets_list = manager.global_targets.split(',')
+                                    tag = f"[{name}] "
+                                    
+                                    if msg["type"] == "interim":
                                         await manager.broadcast_json({
                                             "type": "interim", 
-                                            "text": tag + display_text.strip(),
+                                            "text": tag + text,
                                             "targets": current_targets_list,
                                             "msg_id": current_msg_id
                                         })
-
-                                    if is_final and transcript:
-                                        if current_sentence: current_sentence += " " + transcript
-                                        else: current_sentence = transcript
-
-                                    is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
-
-                                    if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
-                                        final_text = current_sentence.strip()
-                                        
-                                        if final_text != last_translated_text:
-                                            last_translated_text = final_text
-                                            await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                            
-                                            asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
-                                        
-                                        current_sentence = ""
+                                    elif msg["type"] == "final":
+                                        await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
+                                        detected_lang = raw_lid[:2] if raw_lid != "unknown" else "multi_azure"
+                                        asyncio.create_task(translate_and_send(text, detected_lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
                                         current_msg_id = secrets.token_hex(4)
-                        except websockets.exceptions.ConnectionClosed: pass
-                        except Exception as e: print(f"🚨 Receiver 루프 에러: {e}", flush=True)
+                        except Exception as e: print(f"🚨 Azure Receiver 에러: {e}", flush=True)
 
                     try:
                         await asyncio.gather(sender(), receiver())
                     except DowngradeException:
-                        # 🌟 발언권이 회수되거나 스스로 종료하면 오디오 통신을 끊고 상위 while 루프(텍스트 전용)로 다시 복귀
+                        recognizer.stop_continuous_recognition_async()
+                        push_stream.close()
                         manager.speaking_allowed_clients.discard(client_id)
-                        if manager.floor_owner == client_id:
-                            manager.release_floor()
+                        if manager.floor_owner == client_id: manager.release_floor()
                         await manager.broadcast_user_list()
                         continue 
-                
-                # DowngradeException 없이 빠져나왔다면(정상 종료) 웹소켓 루프를 완전히 종료
-                break 
+                    finally:
+                        recognizer.stop_continuous_recognition_async()
+                        push_stream.close()
+                        
+                else:
+                    # --- [Deepgram 가동: 단일 언어 발표 모드] ---
+                    dg_lang = lang
+                    keywords_param = ""
+                    if glossary:
+                        extracted_words = re.findall(r'^([^=:-]+)', glossary, re.MULTILINE)
+                        clean_words = [w.strip() for w in extracted_words if w.strip()]
+                        if clean_words:
+                            keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
 
-    except websockets.exceptions.ConnectionClosed:
-        pass
-    except Exception as e:
-        print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
-    finally:
-        manager.disconnect(websocket)
+                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}"
+                    headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
+
+                    ws_kwargs = {}
+                    if int(websockets.__version__.split('.')[0]) >= 14:
+                        ws_kwargs["additional_headers"] = headers
+                    else:
+                        ws_kwargs["extra_headers"] = headers
+
+                    async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
+                        await manager.broadcast_json({"type": "status", "text": "🚀 Deepgram 단일 언어 모드 가동 중..."})
+                        
+                        async def sender():
+                            try:
+                                while True:
+                                    data = await websocket.receive()
+                                    if data.get("type") == "websocket.receive":
+                                        if data.get("bytes") is not None:
+                                            if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
+                                                await dg_ws.send(data.get("bytes"))
+                                                
+                                        elif data.get("text") is not None:
+                                            try:
+                                                msg = json.loads(data.get("text"))
+                                                msg_type = msg.get("type")
+                                                
+                                                if msg_type == "downgrade_to_viewer":
+                                                    raise DowngradeException()
+
+                                                if msg_type == "admin_action" and role == "admin":
+                                                    action = msg.get("action")
+                                                    if action == "approve":
+                                                        tid = msg.get("target_id")
+                                                        manager.requests = [r for r in manager.requests if r["id"] != tid]
+                                                        manager.speaking_allowed_clients.add(tid)
+                                                        await manager.broadcast_admin_state()
+                                                        await manager.broadcast_user_list()
+                                                        for ws_client, info in manager.clients.items():
+                                                            if info["id"] == tid:
+                                                                try: await ws_client.send_json({"type": "speak_approved"})
+                                                                except: pass
+                                                    elif action == "reject":
+                                                        tid = msg.get("target_id")
+                                                        manager.requests = [r for r in manager.requests if r["id"] != tid]
+                                                        await manager.broadcast_admin_state()
+                                                    elif action == "revoke":
+                                                        tid = msg.get("target_id")
+                                                        manager.speaking_allowed_clients.discard(tid)
+                                                        if manager.floor_owner == tid:
+                                                            manager.release_floor()
+                                                        await manager.broadcast_user_list()
+                                                        for ws_client, info in manager.clients.items():
+                                                            if info["id"] == tid:
+                                                                try: await ws_client.send_json({"type": "speak_revoked"})
+                                                                except: pass
+                                                    elif action == "revoke_all_viewers":
+                                                        revoked_ids = list(manager.speaking_allowed_clients)
+                                                        manager.speaking_allowed_clients.clear()
+                                                        if manager.floor_owner in revoked_ids:
+                                                            manager.release_floor()
+                                                        await manager.broadcast_user_list()
+                                                        for ws_client, info in manager.clients.items():
+                                                            if info["id"] in revoked_ids:
+                                                                try: await ws_client.send_json({"type": "speak_revoked"})
+                                                                except: pass
+                                                    elif action == "mute_all":
+                                                        manager.is_admin_muted = True
+                                                        manager.release_floor()
+                                                    elif action == "unmute_all":
+                                                        manager.is_admin_muted = False
+                                                        await manager.broadcast_floor_state()
+                                                elif msg_type == "config":
+                                                    if role == "admin":
+                                                        if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
+                                                        if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
+                                            except DowngradeException as de:
+                                                raise de 
+                                            except: pass
+                            except websockets.exceptions.ConnectionClosed: pass
+                            except DowngradeException as de:
+                                raise de
+                            except Exception as e: print(f"🚨 Deepgram Sender 에러: {e}", flush=True)
+
+                        async def receiver():
+                            current_sentence = ""
+                            last_translated_text = "" 
+                            current_msg_id = secrets.token_hex(4)
+                            try:
+                                while True:
+                                    dg_result = await dg_ws.recv()
+                                    dg_json = json.loads(dg_result)
+                                    
+                                    if dg_json.get("type") == "Results":
+                                        is_final = dg_json.get("is_final", False)
+                                        speech_final = dg_json.get("speech_final", False)
+                                        transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
+                                        
+                                        if transcript:
+                                            if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
+                                                manager.set_floor(client_id)
+                                            if role != "admin" and manager.floor_owner != client_id:
+                                                continue
+
+                                        if transcript or current_sentence:
+                                            display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
+                                            
+                                            current_targets_list = manager.global_targets.split(',')
+                                            tag = f"[{name}] "
+                                            
+                                            await manager.broadcast_json({
+                                                "type": "interim", 
+                                                "text": tag + display_text.strip(),
+                                                "targets": current_targets_list,
+                                                "msg_id": current_msg_id
+                                            })
+
+                                        if is_final and transcript:
+                                            if current_sentence: current_sentence += " " + transcript
+                                            else: current_sentence = transcript
+
+                                        is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
+
+                                        if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
+                                            final_text = current_sentence.strip()
+                                            
+                                            if final_text != last_translated_text:
+                                                last_translated_text = final_text
+                                                await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
+                                                
+                                                asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
+                                            
+                                            current_sentence = ""
+                                            current_msg_id = secrets.token_hex(4)
+                            except websockets.exceptions.ConnectionClosed: pass
+                            except Exception as e: print(f"🚨 Deepgram Receiver 에러: {e}", flush=True)
+
+                        try:
+                            await asyncio.gather(sender(), receiver())
+                        except DowngradeException:
+                            manager.speaking_allowed_clients.discard(client_id)
+                            if manager.floor_owner == client_id:
+                                manager.release_floor()
+                            await manager.broadcast_user_list()
+                            continue 
+                break 
+    except websockets.exceptions.ConnectionClosed: pass
+    except Exception as e: print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
+    finally: manager.disconnect(websocket)
 
 if __name__ == "__main__":
     import multiprocessing
     import uvicorn
     multiprocessing.freeze_support()
-    print("🚀 실시간 글로벌 통역 서버를 시작합니다... (http://0.0.0.0:10000)")
+    print("🚀 실시간 글로벌 통역 서버 (Hybrid 엔진)를 시작합니다... (http://0.0.0.0:10000)")
     uvicorn.run(app, host="0.0.0.0", port=10000)

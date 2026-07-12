@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>글로벌 현장 안전 통역 콘솔</title>
+    <title>글로벌 전문가 학술대회 통역 콘솔</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
@@ -170,7 +170,6 @@
         #mobileMuteBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--danger); color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
         body.speaker-mode #mobileMuteBtn { display: block; }
         
-        /* 🌟 청취자가 동적으로 발언권을 얻었을 때 표시되는 전용 마이크 종료 버튼 */
         #activeMicBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary); color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); animation: pulseBlue 2s infinite; }
 
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
@@ -206,7 +205,6 @@
     </div>
 </div>
 
-<!-- 🌟 [신규] 방장(Admin) 접속 시 표시되는 회의 기본 설정 팝업 -->
 <div id="adminSetupOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #202124; z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
     <div class="login-box" style="padding: 30px 20px;">
         <h2 style="margin-top: 0; color: var(--warning); margin-bottom: 15px; font-weight: 700; font-size: 22px;">⚙️ 회의 기본 설정</h2>
@@ -214,7 +212,7 @@
         
         <div style="text-align: left;">
             <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">1. 회의 제목 (Meeting Title)</label>
-            <input type="text" id="adminMeetingTitleInput" class="login-input" style="background: #333; color: white; margin-bottom: 15px; padding: 12px; font-size: 15px;" placeholder="예: 주간 안전 점검 회의">
+            <input type="text" id="adminMeetingTitleInput" class="login-input" style="background: #333; color: white; margin-bottom: 15px; padding: 12px; font-size: 15px;" placeholder="예: 토목 엔지니어링 학술대회">
             
             <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">2. 방장 이름 (Native Name)</label>
             <input type="text" id="adminNativeNameInput" class="login-input" style="background: #333; color: white; margin-bottom: 15px; padding: 12px; font-size: 15px;" placeholder="예: 홍길동 소장">
@@ -254,7 +252,7 @@
 <div id="appContainer">
     
     <nav class="navbar">
-        <div class="nav-brand">🌍 글로벌 현장 안전 통역 콘솔</div>
+        <div class="nav-brand">🌍 글로벌 전문가 학술대회 통역 콘솔</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
             <button id="projectorBtn" class="btn-outline" onclick="toggleProjectorMode()">📽️ 빔 프로젝터 모드</button>
@@ -306,13 +304,12 @@
         </div>
         
         <div class="card">
-            <div class="card-header"><span>🎙️</span> 음성 및 인식 설정</div>
+            <div class="card-header"><span>🎙️</span> 하이브리드 엔진 설정</div>
             
             <div>
-                <label class="form-label">1. 발화 모드 선택</label>
+                <label class="form-label">1. 회의 진행 단계 (엔진 스위칭)</label>
                 <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;" onchange="sendConfigUpdate()">
-                    <option value="ko" selected>🇰🇷 한국어 고정 (안전 지시 최적화)</option>
-                    <option value="multi">🌐 자동 감지 (다국어 자유 토론용)</option>
+                    <!-- 동기화 로직에 의해 덮어씌워지는 부분 -->
                 </select>
             </div>
 
@@ -332,11 +329,11 @@
 
             <div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 현장 전문 용어집</label>
+                    <label class="form-label" style="margin:0;">3. 전문 용어집 (Phonetic Mapping)</label>
                     <button class="btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="document.getElementById('glossaryFile').click()">📁 파일 불러오기</button>
                     <input type="file" id="glossaryFile" accept=".txt,.csv" style="display: none;" onchange="loadGlossaryFile(event)">
                 </div>
-                <textarea id="glossaryInput" class="styled-textarea" placeholder="예: 비계=Scaffolding, 워부즈따오=我不知道, 소데스네=そうですか" onchange="sendConfigUpdate()"></textarea>
+                <textarea id="glossaryInput" class="styled-textarea" placeholder="예: 비계=Scaffolding, HDD=수평지향굴착, GPR=지표투과레이더, 워부즈따오=我不知道, 소데스네=そうですか" onchange="sendConfigUpdate()"></textarea>
             </div>
         </div>
 
@@ -398,7 +395,6 @@
 <button id="requestSpeakBtn" onclick="sendSpeakRequest()">🙋‍♂️ 발언 요청하기</button>
 <button id="mobileMuteBtn" class="active" onclick="toggleMobileMute()">🔴 마이크 ON (터치시 Mute)</button>
 
-<!-- 🌟 청취자가 동적으로 발언권을 얻었을 때 표시되는 전용 마이크 제어 버튼 -->
 <button id="activeMicBtn" onclick="stopDynamicSpeaking()">🔴 발언 중 (터치하여 종료)</button>
 
 <div id="qrModal">
@@ -422,6 +418,7 @@
 
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+    // 🌟 확장된 40개국 언어 지원
     const langNames = {
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
         "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
@@ -429,7 +426,10 @@
         "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ur": "🇵🇰 우르두어", "si": "🇱🇰 싱할라어",
         "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", "ru": "🇷🇺 러시아어",
         "ar": "🇸🇦 아랍어", "tr": "🇹🇷 튀르키예어", "es": "🇪🇸 스페인어", "pt": "🇵🇹 포르투갈어",
-        "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어"
+        "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어",
+        "uk": "🇺🇦 우크라이나어", "ro": "🇷🇴 루마니아어", "bg": "🇧🇬 불가리아어", "sk": "🇸🇰 슬로바키아어", 
+        "hr": "🇭🇷 크로아티아어", "nl": "🇳🇱 네덜란드어", "sv": "🇸🇪 스웨덴어", "da": "🇩🇰 덴마크어", 
+        "fi": "🇫🇮 핀란드어", "el": "🇬🇷 그리스어", "cs": "🇨🇿 체코어", "hu": "🇭🇺 헝가리어"
     };
 
     const clientId = "usr_" + Math.random().toString(36).substring(2, 8);
@@ -437,26 +437,35 @@
     let currentFloor = null;
     let isAdminMuted = false;
     let isRequested = false;
-    let isDynamicSpeaker = false; // 🌟 동적 마이크 활성화 상태 플래그
+    let isDynamicSpeaker = false;
 
-    // 🌟 회의 제목 및 기록 저장 변수
     let meetingTitle = localStorage.getItem("savedMeetingTitle") || "실시간 현장 회의";
     let transcriptLog = localStorage.getItem("savedTranscript") || "";
-    let currentTranscriptData = {}; // 🌟 To-Be 양식용 임시 버퍼
+    let currentTranscriptData = {};
 
     window.addEventListener('DOMContentLoaded', () => {
         const selectExtra = document.getElementById('extraLangSelect');
-        const selectSpeaker = document.getElementById('speakerLang');
+        const joinLangSelect = document.getElementById('joinLangSelect');
+        const viewerSelect = document.getElementById('viewerLangSelect');
 
         Object.keys(langNames).forEach(code => {
-            if (!['ko'].includes(code)) {
+            // 방장 채널 추가용
+            if (!['ko'].includes(code) && selectExtra) {
                 const optExtra = document.createElement('option');
                 optExtra.value = code; optExtra.innerText = langNames[code];
                 selectExtra.appendChild(optExtra);
-                
-                const optSpeaker = document.createElement('option');
-                optSpeaker.value = code; optSpeaker.innerText = langNames[code] + " 고정";
-                selectSpeaker.appendChild(optSpeaker);
+            }
+            // QR 접속자 언어 선택용 (40개 전체)
+            if (joinLangSelect && !joinLangSelect.querySelector(`option[value="${code}"]`)) {
+                const joinOpt = document.createElement('option');
+                joinOpt.value = code; joinOpt.innerText = langNames[code];
+                joinLangSelect.appendChild(joinOpt);
+            }
+            // 뷰어 탑바 언어 선택용 (40개 전체)
+            if (viewerSelect && !viewerSelect.querySelector(`option[value="${code}"]`)) {
+                const viewOpt = document.createElement('option');
+                viewOpt.value = code; viewOpt.innerText = langNames[code];
+                viewerSelect.appendChild(viewOpt);
             }
         });
     });
@@ -555,17 +564,8 @@
             "ko": "한국어로 입장했습니다. 환영합니다! 🎉",
             "en": "Entered in English. Welcome! 🎉",
             "zh": "已进入中文模式。欢迎！🎉",
-            "ja": "日本語で入場しました。歓迎します！🎉",
-            "id": "Masuk dalam Indonesia. Selamat datang! 🎉",
-            "vi": "Đã vào bằng tiếng Việt. Chào mừng! 🎉",
-            "th": "เข้าสู่ระบบด้วยภาษาไทย ยินดีต้อนรับ! 🎉",
-            "tl": "Pumasok sa Tagalog. Maligayang pagdating! 🎉",
-            "es": "Ingresó en español. ¡Bienvenidos! 🎉",
-            "ru": "Вошел на русском языке. Добро пожаловать! 🎉",
-            "mn": "Монгол хэлээр нэвтэрлээ. Тавтай морилно уу! 🎉",
-            "uz": "O'zbek tilida kiritildi. Xush kelibsiz! 🎉"
+            "ja": "日本語で入場しました。歓迎します！🎉"
         };
-        
         const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
         const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다! 🎉`;
 
@@ -577,14 +577,12 @@
             welcomeDiv.innerHTML = `<span style="display:inline-block; background: rgba(52, 168, 83, 0.15); border: 1px solid #34a853; color: #34a853; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); backdrop-filter: blur(5px);">${welcomeText}</span>`;
             box.appendChild(welcomeDiv);
             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-            
             showToast(welcomeText);
         }, 800);
     }
 
     function filterViewerWindows() {
         if (!document.body.classList.contains('viewer-mode') && !document.body.classList.contains('speaker-mode')) return;
-        
         const selected = document.getElementById('viewerLangSelect').value;
         const windows = document.querySelectorAll('.window-container .window');
         const placeholder = document.getElementById('viewerPlaceholder');
@@ -627,7 +625,6 @@
                 opt.innerText = langNames[lang] || lang;
                 select.appendChild(opt);
             }
-            
             const joinSelect = document.getElementById('joinLangSelect');
             if (joinSelect && !joinSelect.querySelector(`option[value="${lang}"]`)) {
                 const joinOpt = document.createElement('option');
@@ -635,7 +632,6 @@
                 joinOpt.innerText = langNames[lang] || lang;
                 joinSelect.appendChild(joinOpt);
             }
-            
             if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
                 filterViewerWindows(); 
             }
@@ -655,7 +651,6 @@
             const allItems = [...container.querySelectorAll('.window')];
             const draggedIndex = allItems.indexOf(draggedItem);
             const droppedIndex = allItems.indexOf(this);
-            
             if (draggedIndex < droppedIndex) this.parentNode.insertBefore(draggedItem, this.nextSibling);
             else this.parentNode.insertBefore(draggedItem, this);
         }
@@ -668,28 +663,63 @@
             if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
             const glossaryData = document.getElementById('glossaryInput').value;
             ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(',') }));
+            
+            // 🌟 방장이 모드를 변경할 때, 열려있는 연결을 끊고 재접속하여 엔진을 스위칭합니다.
+            const newLangMode = document.getElementById('speakerLang').value;
+            const isCurrentlyAzure = (ws.url.indexOf('lang=multi_azure') > -1);
+            const isSwitchingToAzure = (newLangMode === 'multi_azure');
+            
+            if (isCurrentlyAzure !== isSwitchingToAzure) {
+                showToast("엔진 스위칭 중...");
+                resetUI();
+                setTimeout(() => toggleConnection('admin'), 1000);
+            }
         }
     }
 
     function updateWindows() {
         if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
-            if (!isHost) {
-                filterViewerWindows();
-                return;
-            }
+            if (!isHost) { filterViewerWindows(); return; }
         }
-
         const container = document.getElementById('windowContainer');
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
 
         checkedLangs.forEach(lang => { ensureWindowExists(lang); });
-
         Array.from(container.children).forEach(windowDiv => {
             const lang = windowDiv.id.replace('win_', '');
             if (!checkedLangs.includes(lang)) windowDiv.style.display = 'none';
             else windowDiv.style.display = 'flex';
         });
+
+        // 🌟 발표자 언어 드롭다운 동기화 🌟
+        if (isHost) {
+            const speakerLangSelect = document.getElementById('speakerLang');
+            const currentVal = speakerLangSelect.value;
+            speakerLangSelect.innerHTML = ''; 
+
+            // 1. 선택된 번역 채널들을 단일 발표 모드 후보로 추가
+            checkedLangs.forEach(lang => {
+                const opt = document.createElement('option');
+                opt.value = lang;
+                const langDisplayName = langNames[lang] || lang;
+                opt.innerText = `🚀 단일 언어 발표 모드 (${langDisplayName} 고정 / Deepgram)`;
+                speakerLangSelect.appendChild(opt);
+            });
+
+            // 2. 다국어 자유 토론 모드 옵션 추가
+            const multiOpt = document.createElement('option');
+            multiOpt.value = "multi_azure";
+            multiOpt.innerText = `🌍 다국어 자유 토론 모드 (${checkedLangs.length}개국 자동 식별 / Azure)`;
+            speakerLangSelect.appendChild(multiOpt);
+
+            // 3. 기존에 선택했던 값이 새 리스트에 있다면 유지, 없으면 'ko'로
+            if (speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) {
+                speakerLangSelect.value = currentVal;
+            } else {
+                speakerLangSelect.value = "ko";
+            }
+        }
 
         sendConfigUpdate();
     }
@@ -707,7 +737,6 @@
                     opt.innerText = langNames[code] || code;
                     viewerSelect.appendChild(opt);
                 }
-                
                 if (joinLangSelect && !joinLangSelect.querySelector(`option[value="${code}"]`)) {
                     const joinOpt = document.createElement('option');
                     joinOpt.value = code;
@@ -716,16 +745,13 @@
                 }
             });
         }
-        document.querySelectorAll('#targetCheckboxes input').forEach(cb => {
-            cb.addEventListener('change', updateWindows);
-        });
+        document.querySelectorAll('#targetCheckboxes input').forEach(cb => { cb.addEventListener('change', updateWindows); });
         updateWindows(); 
     });
 
     async function attemptLogin() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
-
         try {
             const res = await fetch('/api/login', {
                 method: 'POST',
@@ -733,28 +759,20 @@
                 body: JSON.stringify({ username: u, password: p })
             });
             const data = await res.json();
-
             if (data.success) {
                 authToken = data.token;
                 document.getElementById('loginOverlay').style.display = 'none';
-                
-                // 🌟 Admin 로그인 성공 후 회의 기본 설정 팝업 호출
                 document.getElementById('adminSetupOverlay').style.display = 'flex';
                 document.getElementById('adminMeetingTitleInput').focus();
-                
-                // 이전 회의 제목 기억 불러오기
                 if(localStorage.getItem("savedMeetingTitle")) {
                      document.getElementById('adminMeetingTitleInput').value = localStorage.getItem("savedMeetingTitle");
                 }
             } else {
                 showToast(data.message, true);
             }
-        } catch (e) {
-            showToast("서버와 연결할 수 없습니다.", true);
-        }
+        } catch (e) { showToast("서버와 연결할 수 없습니다.", true); }
     }
 
-    // 🌟 Admin 회의 시작 버튼 로직
     function startAdminMeeting() {
         const title = document.getElementById('adminMeetingTitleInput').value.trim();
         const nativeName = document.getElementById('adminNativeNameInput').value.trim();
@@ -769,10 +787,9 @@
         
         localStorage.setItem("savedMeetingTitle", meetingTitle);
         
-        // 회의록 변수가 비어있다면 새로 생성 (헤더 포함)
         if (!transcriptLog) {
             const dateStr = new Date().toISOString().slice(0, 10);
-            transcriptLog = `=== [${meetingTitle}] 실시간 현장 안전 지시 기록 (${dateStr}) ===\n`;
+            transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
             localStorage.setItem("savedTranscript", transcriptLog);
         }
         
@@ -788,12 +805,9 @@
         const currentUrl = window.location.href.split('?')[0];
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = ""; 
-        
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
-        
         const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${checkedLangs.join(',')}&role=${roleType}`;
-        
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드";
             document.getElementById('qrDesc').innerText = "스캔 즉시 상시 마이크 권한을 획득합니다.";
@@ -801,7 +815,6 @@
             document.getElementById('qrTitle').innerText = "👀 청중(뷰어)용 QR코드";
             document.getElementById('qrDesc').innerText = "스캔 후 자신의 모국어를 1번만 선택하세요.";
         }
-        
         new QRCode(qrContainer, { text: qrUrl, width: 220, height: 220, colorDark : "#202124", colorLight : "#ffffff" });
         document.getElementById('qrModal').style.display = 'flex';
     }
@@ -815,7 +828,7 @@
 
     function approveSpeak(id) { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "approve", target_id: id})); }
     function rejectSpeak(id) { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "reject", target_id: id})); }
-    function revokeSpeak(id) { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "revoke", target_id: id})); } // 🌟 사회자의 발언권 강제 회수 명령
+    function revokeSpeak(id) { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "revoke", target_id: id})); }
     function adminMuteAll() { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "mute_all"})); }
     function adminUnmuteAll() { if(ws) ws.send(JSON.stringify({type: "admin_action", action: "unmute_all"})); }
     function adminRevokeAllViewers() { 
@@ -826,7 +839,6 @@
     function sendSpeakRequest() {
         if (!ws || ws.readyState !== 1) return showToast("서버와 연결되어 있지 않습니다.", true);
         const btn = document.getElementById('requestSpeakBtn');
-        
         if (!isRequested) {
             ws.send(JSON.stringify({type: "request_speak"}));
             btn.innerHTML = "⏳ 승인 대기 중 (터치 취소)";
@@ -844,23 +856,16 @@
         }
     }
 
-    // 🌟 동적 발언권을 부여받았을 때 마이크를 켜고 서버에 상태를 알리는 함수
     async function startDynamicSpeaking() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0 && ws && ws.readyState === 1 && isDynamicSpeaker && !isAdminMuted) {
-                    ws.send(e.data);
-                }
+                if (e.data.size > 0 && ws && ws.readyState === 1 && isDynamicSpeaker && !isAdminMuted) { ws.send(e.data); }
             };
             mediaRecorder.start(100);
             isDynamicSpeaker = true;
-
-            // 서버의 텍스트 루프를 빠져나와 오디오 루프로 전환하라고 신호 보냄
             ws.send(JSON.stringify({type: "upgrade_to_speaker"}));
-
-            // UI 변경 (요청 버튼 숨기고 마이크 종료 버튼 노출)
             document.getElementById('requestSpeakBtn').style.display = 'none';
             document.getElementById('activeMicBtn').style.display = 'block';
             document.getElementById('speakerStatusBar').style.display = 'block';
@@ -871,22 +876,17 @@
         }
     }
 
-    // 🌟 발언을 스스로 마치거나 사회자에 의해 강제 회수당했을 때 처리하는 함수
     function stopDynamicSpeaking() {
         if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
         if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-        
         isDynamicSpeaker = false;
         if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: "downgrade_to_viewer"}));
-
-        // UI 초기화
         isRequested = false;
         const btn = document.getElementById('requestSpeakBtn');
         btn.innerHTML = "🙋‍♂️ 발언 요청하기";
         btn.style.backgroundColor = "var(--danger)";
         btn.style.color = "#fff";
         btn.style.display = 'block';
-        
         document.getElementById('activeMicBtn').style.display = 'none';
         document.getElementById('speakerStatusBar').style.display = 'none';
     }
@@ -895,7 +895,6 @@
         const bar = document.getElementById('speakerStatusBar');
         const btnMute = document.getElementById('btnMuteAll');
         const btnUnmute = document.getElementById('btnUnmuteAll');
-        
         if (btnMute && btnUnmute) {
             if (isAdminMuted) {
                 btnMute.classList.add('selected');
@@ -909,7 +908,6 @@
                 btnMute.innerHTML = "🛑 토론 전체 음소거";
             }
         }
-
         if (!bar) return;
         bar.className = 'speaker-status-bar'; 
         if (isAdminMuted) {
@@ -935,7 +933,6 @@
             if (audioTracks.length > 0) {
                 isMobileMuted = !isMobileMuted;
                 audioTracks[0].enabled = !isMobileMuted;
-
                 if (isMobileMuted) {
                     btn.innerHTML = "🔇 내 마이크 꺼짐 (터치하여 켜기)";
                     btn.style.backgroundColor = "#5f6368";
@@ -964,14 +961,13 @@
     function clearAllLogs() {
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
         const dateStr = new Date().toISOString().slice(0, 10);
-        transcriptLog = `=== [${meetingTitle}] 실시간 현장 안전 지시 기록 (${dateStr}) ===\n`;
+        transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
         localStorage.removeItem("savedTranscript");
         document.getElementById('liveDictation').innerHTML = "";
         showToast("화면이 깔끔하게 초기화되었습니다.");
     }
 
     function downloadTranscript() {
-        // 특수문자 제거 후 파일명 생성
         const safeTitle = meetingTitle ? meetingTitle.replace(/[^a-zA-Z0-9가-힣]/g, '_') : '회의기록';
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([transcriptLog], { type: 'text/plain' }));
@@ -986,22 +982,17 @@
             showToast("이미 추가된 언어 화면입니다.", true);
             return;
         }
-        
         const newLabel = document.createElement('label');
         newLabel.className = 'lang-chip';
         newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> <span>${langNames[langCode]}</span>`;
         document.getElementById('targetCheckboxes').appendChild(newLabel);
-        
         newLabel.querySelector('input').addEventListener('change', updateWindows);
         updateWindows();
         showToast(`${langNames[langCode]} 채널이 추가되었습니다.`);
     }
 
     function speakTargetText(text, lang) {
-        if (!window.speechSynthesis) {
-            showToast("이 기기는 음성 합성을 지원하지 않습니다.", true);
-            return;
-        }
+        if (!window.speechSynthesis) { showToast("이 기기는 음성 합성을 지원하지 않습니다.", true); return; }
         window.speechSynthesis.cancel(); 
         const msg = new SpeechSynthesisUtterance(text);
         if (lang === 'id') msg.lang = 'id-ID';
@@ -1016,47 +1007,35 @@
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine'; 
-            osc.frequency.setValueAtTime(880, ctx.currentTime); 
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime); 
             gain.gain.setValueAtTime(0.1, ctx.currentTime); 
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.15); 
-            
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15); 
             if (navigator.vibrate) navigator.vibrate(100);
-        } catch (e) {
-            console.log("오디오 재생 미지원 환경");
-        }
+        } catch (e) { console.log("오디오 재생 미지원 환경"); }
     }
 
     function updateStatus(text, isRecording = false) {
         const msg = document.getElementById('statusMessage');
         const dot = document.getElementById('statusIndicator');
         msg.innerText = text;
-        if (isRecording) {
-            dot.classList.add('live');
-        } else {
-            dot.classList.remove('live');
-        }
+        if (isRecording) dot.classList.add('live');
+        else dot.classList.remove('live');
     }
 
     function renderUserList(users) {
         const container = document.getElementById('userListContainer');
         const attendees = users.filter(u => u.role !== 'admin');
-        
         if (attendees.length === 0) {
             container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding: 20px 0;">접속 중인 작업자가 없습니다.</p>';
             return;
         }
-
         const grouped = {};
         attendees.forEach(u => {
             const lang = u.ui_lang || 'ko';
             if (!grouped[lang]) grouped[lang] = [];
             grouped[lang].push(u);
         });
-
         let html = '';
         for (const lang in grouped) {
             const langDisplayName = langNames[lang] || lang;
@@ -1070,22 +1049,17 @@
                 const isSpeaker = u.is_speaker;
                 const icon = isSpeaker ? '🎙️ [토론]' : '👀 [청취]';
                 const color = isSpeaker ? 'var(--warning)' : 'var(--primary)';
-                
                 html += `<li style="font-size: 13.5px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; background: #fafafa; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);">
                             <div style="display:flex; align-items:center; gap: 8px;">
                                 <span style="color: ${color}; font-size: 12px; font-weight: 800; min-width: 60px;">${icon}</span>
                                 <span style="font-weight: 600;">${u.name}</span>
                             </div>`;
-                
-                // 🌟 동적 발언권을 얻은 청취자(Viewer)에게만 사회자의 [회수] 버튼 노출
                 if (isSpeaker && u.role === 'viewer') {
                     html += `<button class="btn-sm" style="background:var(--danger); padding:4px 8px; font-size:11px;" onclick="revokeSpeak('${u.id}')">회수</button>`;
                 }
-                
                 html += `</li>`;
             });
-            html += `   </ul>
-                     </div>`;
+            html += `   </ul></div>`;
         }
         container.innerHTML = html;
     }
@@ -1105,40 +1079,37 @@
                     filterViewerWindows();
                 }
 
-                const spkLang = document.body.classList.contains('speaker-mode') ? 'multi' : document.getElementById('speakerLang').value;
-                const ep = document.getElementById('endpointingSlider').value;
-                const mx = document.getElementById('maxCharSlider').value;
+                // 🌟 하이브리드 스위치 연동
+                const spkLang = document.getElementById('speakerLang') ? document.getElementById('speakerLang').value : 'ko';
+                const ep = document.getElementById('endpointingSlider') ? document.getElementById('endpointingSlider').value : 500;
+                const mx = document.getElementById('maxCharSlider') ? document.getElementById('maxCharSlider').value : 35;
                 
                 let uiLang = "ko";
-                if (!isHost) {
-                    uiLang = document.getElementById('viewerLangSelect').value || "ko";
-                }
+                if (!isHost) { uiLang = document.getElementById('viewerLangSelect').value || "ko"; }
 
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&client_id=${clientId}&name=${encodeURIComponent(clientName)}&ui_lang=${uiLang}`);
+                
+                // 🌟 수정: candidates 파라미터에 targetLangs(선택된 방송 채널)를 그대로 주입하여 자동 감지 풀(Pool)로 사용
+                ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&candidates=${targetLangs.join(',')}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&client_id=${clientId}&name=${encodeURIComponent(clientName)}&ui_lang=${uiLang}`);
                 
                 ws.onopen = async () => {
                     isConnected = true;
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
-                            if (isHost) {
-                                sendConfigUpdate();
-                            }
+                            if (isHost) sendConfigUpdate();
                             speakerBtn.innerHTML = "🛑 마이크 종료";
                             speakerBtn.classList.add('active');
                         }
-                        
                         stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
                         updateStatus("✅ 마이크 연결됨 (현장 방송 중)", true);
-                        
                         playReadyBeep();
+                        
                         const banner = document.getElementById('statusBanner');
                         if (banner) {
                             banner.classList.remove('flash-active');
                             void banner.offsetWidth;
                             banner.classList.add('flash-active');
                         }
-                        
                         mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                         mediaRecorder.ondataavailable = (e) => { 
                             if (e.data.size > 0 && ws.readyState === 1) {
@@ -1170,29 +1141,20 @@
                             ).join('');
                         }
                     }
-                    else if (res.type === "user_list" && isHost) {
-                        renderUserList(res.users);
-                    }
+                    else if (res.type === "user_list" && isHost) { renderUserList(res.users); }
                     else if (res.type === "floor_state") {
                         const prevMuted = isAdminMuted; 
                         currentFloor = res.floor_owner;
                         isAdminMuted = res.is_admin_muted;
                         updateSpeakerStatusBar(); 
-                        
                         if (!isFirstFloorState && prevMuted !== isAdminMuted) {
                             if (isAdminMuted) showToast("🛑 사회자가 토론 전체 음소거를 실행했습니다.", true); 
                             else showToast("🟢 토론 음소거가 해제되었습니다. 자유로운 발언이 가능합니다."); 
                         }
                         isFirstFloorState = false;
                     }
-                    // 🌟 동적 발언권 승인 및 회수 신호 처리
-                    else if (res.type === "speak_approved") {
-                        startDynamicSpeaking();
-                    }
-                    else if (res.type === "speak_revoked") {
-                        stopDynamicSpeaking();
-                        showToast("🛑 사회자에 의해 발언권이 회수되었습니다.", true);
-                    }
+                    else if (res.type === "speak_approved") { startDynamicSpeaking(); }
+                    else if (res.type === "speak_revoked") { stopDynamicSpeaking(); showToast("🛑 사회자에 의해 발언권이 회수되었습니다.", true); }
                     else if (res.type === "alert") triggerAlert();
                     else if (res.type === "interim") {
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
@@ -1226,7 +1188,7 @@
                             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                         });
                     } else if (res.type === "status") {
-                        updateStatus(res.text, res.text.includes("방송"));
+                        updateStatus(res.text, res.text.includes("방송") || res.text.includes("가동 중"));
                     } 
                     else if (res.type === "stream_update" || res.type === "stream_end") {
                         const lang = res.lang;
@@ -1255,12 +1217,9 @@
                             
                             if (isAutoTTS && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
                                 const selectedLang = document.getElementById('viewerLangSelect').value;
-                                if (lang === selectedLang) {
-                                    speakTargetText(cleanText, lang);
-                                }
+                                if (lang === selectedLang) { speakTargetText(cleanText, lang); }
                             }
 
-                            // 🌟 To-Be 회의록 데이터 임시 저장
                             if (!currentTranscriptData[res.msg_id]) {
                                 const now = new Date();
                                 const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
@@ -1279,7 +1238,6 @@
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
                     else if (res.type === "sentence_complete") {
-                        // 🌟 To-Be 회의록 양식 조합 및 저장
                         if (currentSentenceId && currentTranscriptData[currentSentenceId]) {
                             const data = currentTranscriptData[currentSentenceId];
                             let roleStr = "청취자 (발언권 획득)";
@@ -1300,19 +1258,14 @@
                             
                             transcriptLog += logEntry;
                             localStorage.setItem("savedTranscript", transcriptLog);
-                            
                             delete currentTranscriptData[currentSentenceId];
                         }
                         
                         currentSentenceId = null;
                         document.getElementById('liveDictation').innerText = "";
-                        
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
-                        if (mobBox && mobText) {
-                            mobText.innerText = "대기 중...";
-                            mobBox.style.display = 'none';
-                        }
+                        if (mobBox && mobText) { mobText.innerText = "대기 중..."; mobBox.style.display = 'none'; }
                     }
                 };
                 
@@ -1322,21 +1275,16 @@
                         setTimeout(logout, 2000);
                     } else {
                         if (isHost) resetUI(); 
-                        else {
-                            showToast("연결이 끊어졌습니다. 다시 연결을 시도하세요."); 
-                        }
+                        else showToast("연결이 끊어졌습니다. 다시 연결을 시도하세요."); 
                     }
                 };
             } catch (err) { showToast("연결 오류가 발생했습니다.", true); }
-        } else {
-            resetUI();
-        }
+        } else { resetUI(); }
     }
 
     function resetUI() {
         if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
         if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-
         isConnected = false;
         isFirstFloorState = true; 
         isDynamicSpeaker = false;
@@ -1347,7 +1295,6 @@
             const placeholder = document.getElementById('viewerPlaceholder');
             if (placeholder) placeholder.style.display = 'none';
         } else {
-            // 접속이 초기화되면 UI 버튼들을 원래 상태로 복구
             document.getElementById('requestSpeakBtn').style.display = document.body.classList.contains('viewer-mode') ? 'block' : 'none';
             document.getElementById('activeMicBtn').style.display = 'none';
             document.getElementById('speakerStatusBar').style.display = document.body.classList.contains('speaker-mode') ? 'block' : 'none';
@@ -1355,7 +1302,6 @@
         
         const speakerBtn = document.getElementById('speakerBtn');
         if (speakerBtn) { speakerBtn.innerHTML = "🎙️ 현장 마이크 켜기"; speakerBtn.classList.remove('active'); }
-        
         updateStatus("시스템 대기 중. 마이크를 켜주세요.", false);
     }
 </script>
