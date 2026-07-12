@@ -61,14 +61,15 @@ class ConnectionManager:
         self.is_admin_muted = False
         self.global_targets = "ko" 
         self.global_glossary = ""
-        self.speaking_allowed_clients = set() # 동적 발언권을 얻은 청취자(Viewer) 명단
+        # 동적 발언권을 얻은 청취자 명단 (새로고침 없이 실시간 제어)
+        self.speaking_allowed_clients = set()
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, lang: str):
         await websocket.accept()
         self.active_connections.append(websocket)
         self.clients[websocket] = {"id": client_id, "name": name, "role": role, "lang": lang}
         await self.broadcast_admin_state()
-        await self.broadcast_participant_list() # 누군가 접속하면 즉시 현황판 업데이트
+        await self.broadcast_participant_list() # 접속 시 현황판 실시간 업데이트
         await websocket.send_json({
             "type": "floor_state",
             "floor_owner": self.floor_owner,
@@ -90,7 +91,7 @@ class ConnectionManager:
             del self.clients[websocket]
             
         asyncio.create_task(self.broadcast_admin_state())
-        asyncio.create_task(self.broadcast_participant_list()) # 퇴장 시 현황판 업데이트
+        asyncio.create_task(self.broadcast_participant_list()) # 퇴장 시 현황판 실시간 업데이트
         asyncio.create_task(self.broadcast_floor_state())
 
     async def broadcast_admin_state(self):
@@ -101,13 +102,14 @@ class ConnectionManager:
                 except: pass
 
     async def broadcast_participant_list(self):
-        # 언어별로 접속자 그룹화
+        # 언어별 접속자 현황 그룹화 (관리자 대시보드용)
         participants = {}
         for ws, info in self.clients.items():
             if info["role"] == "admin": continue
             l = info["lang"]
             if l not in participants: participants[l] = []
             
+            # 발언권이 있는 접속자 판별
             is_speaker = info["role"] == "speaker" or info["id"] in self.speaking_allowed_clients
             participants[l].append({
                 "id": info["id"],
@@ -153,7 +155,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -186,7 +188,7 @@ clean current sentence
         for t in targets.split(','): system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
@@ -263,7 +265,7 @@ async def websocket_endpoint(
                     while True:
                         data = await websocket.receive()
                         if data.get("bytes") is not None:
-                            # 🚨 핵심: 어드민이거나, 토론자이거나, '동적 발언권을 얻은 청취자'일 때만 오디오 전송 허용
+                            # 🚨 마이크 전송 권한 판별: 어드민이거나, 상시 토론자거나, [동적 발언권을 부여받은 청취자] 일 때 허용
                             is_allowed = role == "admin" or role == "speaker" or client_id in manager.speaking_allowed_clients
                             if is_allowed and (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
                                 await dg_ws.send(data.get("bytes"))
@@ -271,6 +273,7 @@ async def websocket_endpoint(
                         elif data.get("text") is not None:
                             try:
                                 msg = json.loads(data.get("text"))
+                                
                                 # 일반 청취자의 발언 요청
                                 if msg.get("type") == "request_speak":
                                     manager.requests.append({"id": client_id, "name": name})
@@ -279,7 +282,7 @@ async def websocket_endpoint(
                                     manager.requests = [r for r in manager.requests if r["id"] != client_id]
                                     await manager.broadcast_admin_state()
                                 
-                                # 관리자의 제어 액션
+                                # 관리자의 제어 액션 (동적 권한 부여/회수)
                                 elif msg.get("type") == "admin_action" and role == "admin":
                                     action = msg.get("action")
                                     tid = msg.get("target_id")

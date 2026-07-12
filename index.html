@@ -30,14 +30,14 @@
         .login-box { background: var(--card-bg); padding: 40px; border-radius: 16px; width: 90%; max-width: 400px; text-align: center; }
         .login-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
 
-        /* QR 모바일 입장 오버레이 (언어/이름 선택) */
+        /* QR 모바일 입장 오버레이 (2단계 이름 입력 UI 적용) */
         #joinOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #202124; z-index: 9998; display: none; align-items: center; justify-content: center; flex-direction: column; color: white; padding: 20px;}
         .join-box { background: #3c4043; padding: 30px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .join-label { display: block; font-weight: 600; margin-bottom: 8px; color: #e8eaed; font-size: 14px;}
         .join-input, .join-select { width: 100%; padding: 14px; margin-bottom: 20px; border: 1px solid #5f6368; border-radius: 8px; background: #202124; color: white; font-size: 16px; outline: none;}
         .join-input:focus, .join-select:focus { border-color: var(--primary); }
 
-        /* 관리자 대시보드 */
+        /* 관리자 대시보드 (레이아웃 100% 원본 유지) */
         #appContainer { display: none; }
         .navbar { background: var(--card-bg); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
         .dashboard-layout { max-width: 1400px; margin: 25px auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
@@ -70,13 +70,13 @@
         #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #111; padding: 12px 15px; z-index: 1000; justify-content: center; align-items: center; gap: 10px; }
         body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; }
         
-        /* 모바일 하단 권한 제어 버튼 */
+        /* 동적 권한 제어 모바일 버튼 (새로고침 없이 상태 변경) */
         #requestSpeakBtn, #activeMicBtn { display: none; position: fixed; bottom: 20px; right: 20px; color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-        #requestSpeakBtn { background-color: #1a73e8; }
+        #requestSpeakBtn { background-color: var(--primary); }
         #activeMicBtn { background-color: var(--danger); animation: pulseRed 2s infinite; }
         @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(217,48,37, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(217,48,37, 0); } }
 
-        /* 현황판 UI */
+        /* 실시간 현황판 UI (새로운 4번째 카드 내역) */
         .participant-list { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; }
         .lang-group { margin-bottom: 10px; }
         .lang-group-title { font-size: 13px; font-weight: 700; color: var(--primary); background: #e8f0fe; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 5px; }
@@ -139,6 +139,7 @@
     </div>
 
     <div class="dashboard-layout" id="dashboardLayout">
+        <!-- 1번 카드: 방송 채널 및 QR -->
         <div class="card">
             <div class="card-header">📺 방송 채널 및 QR</div>
             <div class="chip-group" id="targetCheckboxes">
@@ -149,6 +150,7 @@
             </div>
         </div>
         
+        <!-- 2번 카드: 음성 설정 및 용어집 -->
         <div class="card">
             <div class="card-header">🎙️ 음성 및 인식 설정</div>
             <select id="speakerLang" class="join-select" style="background:#f4f7f6; color:#000; border:1px solid #ccc; margin-bottom:10px;" onchange="sendConfigUpdate()">
@@ -158,6 +160,7 @@
             <textarea id="glossaryInput" style="width:100%; height:80px; padding:10px; border-radius:8px; border:1px solid #ccc;" placeholder="현장 용어 (예: 비계=Scaffolding)" onchange="sendConfigUpdate()"></textarea>
         </div>
 
+        <!-- 3번 카드: 발언권 제어 (요청 대기열) -->
         <div class="card">
             <div class="card-header" style="color:var(--danger);">👑 발언권 제어 (요청 대기열)</div>
             <ul id="requestList" class="participant-list">
@@ -165,6 +168,7 @@
             </ul>
         </div>
 
+        <!-- 4번 카드: 실시간 접속자 현황판 (추가된 기능) -->
         <div class="card">
             <div class="card-header" style="color:var(--primary);">👥 실시간 접속자 현황</div>
             <div id="participantList" class="participant-list">
@@ -173,6 +177,7 @@
         </div>
     </div>
 
+    <!-- 상태 배너 및 번역 윈도우 컨테이너 -->
     <div class="status-banner" id="statusBanner">
         <div class="status-text"><span id="statusMessage">시스템 대기 중. 마이크를 켜주세요.</span></div>
         <button id="speakerBtn" class="btn-danger" style="background: #fff; color: var(--danger); padding: 12px 30px; font-weight:700; border-radius:30px;" onclick="toggleConnection('admin')">🎙️ 메인 마이크 켜기</button>
@@ -181,7 +186,7 @@
     <div class="window-container" id="windowContainer"></div>
 </div>
 
-<!-- 모바일 동적 제어 버튼 -->
+<!-- 모바일 동적 권한 제어 버튼 -->
 <button id="requestSpeakBtn" onclick="requestToSpeak()">🙋‍♂️ 발언 요청하기</button>
 <button id="activeMicBtn" onclick="stopSpeakingLocally()">🔴 마이크 활성화됨 (발언 중)</button>
 
@@ -247,6 +252,7 @@
         } else showToast("로그인 실패", true);
     }
 
+    // 2단계 이름 분리 입력 후 결합 로직
     function joinMeeting() {
         const lang = document.getElementById('joinLang').value;
         const native = document.getElementById('joinNativeName').value.trim();
@@ -255,8 +261,9 @@
         if(!lang || !native) return showToast("언어와 이름을 입력해주세요.", true);
         
         clientLang = lang;
+        // 영문 이름이 있으면 결합: 山田太郎 (Yamada)
         clientName = eng ? `${native} (${eng})` : native;
-        currentRole = "viewer";
+        currentRole = "viewer"; // 항상 청취자로 시작
 
         document.getElementById('joinOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
@@ -282,7 +289,6 @@
             win.innerHTML = `<div class="window-header">${langNames[lang] || lang}</div><div id="box_${lang}" class="content-box"></div>`;
             document.getElementById('windowContainer').appendChild(win);
             
-            // 모바일 환영 인사 렌더링
             if(lang === clientLang && !isHost) {
                 const msgs = {"ko":"입장했습니다. 환영합니다! 🎉", "en":"Joined. Welcome! 🎉", "id":"Telah bergabung. Selamat datang! 🎉", "vi":"Đã tham gia. Chào mừng! 🎉", "zh":"已加入。欢迎！🎉"};
                 const greet = msgs[lang] || "모드로 입장했습니다. 환영합니다! 🎉";
@@ -316,6 +322,7 @@
         }
     }
 
+    // 발언 요청 로직
     function requestToSpeak() {
         if(ws && ws.readyState === 1) {
             ws.send(JSON.stringify({type: "request_speak"}));
@@ -328,6 +335,18 @@
 
     function adminAction(action, id) {
         if(ws && ws.readyState === 1) ws.send(JSON.stringify({type: "admin_action", action: action, target_id: id}));
+    }
+
+    // 마이크 강제 종료 (회수 또는 스스로 종료 시)
+    function stopSpeakingLocally() {
+        stopMicStream();
+        document.getElementById('activeMicBtn').style.display = "none";
+        const reqBtn = document.getElementById('requestSpeakBtn');
+        reqBtn.style.display = "block"; 
+        reqBtn.innerHTML = "🙋‍♂️ 발언 요청하기"; 
+        reqBtn.style.backgroundColor = "var(--primary)";
+        if(ws && ws.readyState === 1) ws.send(JSON.stringify({type: "cancel_request"}));
+        showToast("발언을 취소하고 마이크를 껐습니다.");
     }
 
     async function startMicStream() {
@@ -378,7 +397,10 @@
             if (res.type === "participant_list" && isHost) {
                 const list = document.getElementById('participantList');
                 list.innerHTML = "";
+                let isEmpty = true;
                 for (let l in res.data) {
+                    if (res.data[l].length === 0) continue;
+                    isEmpty = false;
                     let group = document.createElement('div'); group.className = "lang-group";
                     group.innerHTML = `<div class="lang-group-title">${langNames[l]||l} (${res.data[l].length}명)</div>`;
                     res.data[l].forEach(p => {
@@ -388,13 +410,14 @@
                     });
                     list.appendChild(group);
                 }
+                if (isEmpty) list.innerHTML = `<div style="color:#aaa; text-align:center; padding:10px;">접속자가 없습니다.</div>`;
             }
             else if (res.type === "admin_state" && isHost) {
                 const reqList = document.getElementById('requestList');
                 if(res.requests.length === 0) reqList.innerHTML = `<li style="color:#aaa; text-align:center; padding:10px;">대기 중인 요청이 없습니다.</li>`;
                 else reqList.innerHTML = res.requests.map(r => `<li class="p-item"><span>🙋‍♂️ ${r.name}</span><div><button style="background:var(--success); color:white; border:none; padding:6px 12px; border-radius:4px; margin-right:5px; cursor:pointer;" onclick="adminAction('approve','${r.id}')">승인</button><button style="background:#aaa; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;" onclick="adminAction('reject','${r.id}')">거절</button></div></li>`).join('');
             }
-            // 동적 발언권 획득/회수 처리 (Viewer 전용)
+            // 동적 발언권 획득/회수 처리 (페이지 새로고침 없음)
             else if (res.type === "speak_approved" && !isHost) {
                 startMicStream();
                 document.getElementById('requestSpeakBtn').style.display = "none";
@@ -405,7 +428,9 @@
                 stopMicStream();
                 document.getElementById('activeMicBtn').style.display = "none";
                 const reqBtn = document.getElementById('requestSpeakBtn');
-                reqBtn.style.display = "block"; reqBtn.innerHTML = "🙋‍♂️ 발언 요청하기"; reqBtn.style.backgroundColor = "var(--primary)";
+                reqBtn.style.display = "block"; 
+                reqBtn.innerHTML = "🙋‍♂️ 발언 요청하기"; 
+                reqBtn.style.backgroundColor = "var(--primary)";
                 showToast("🛑 발언권이 회수되었습니다. 듣기 모드로 전환됩니다.", true);
             }
             // 번역 렌더링
