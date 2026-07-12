@@ -226,7 +226,7 @@ clean current sentence
             system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-haiku-4-5-20251001",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
