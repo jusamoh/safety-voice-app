@@ -434,7 +434,7 @@
         authToken = roomToken;
         document.getElementById('loginOverlay').style.display = 'none';
         
-        // 🌟 수정된 로직: 자동 접속을 막고 모바일용 입장 모달창 띄우기
+        // 자동 접속을 막고 모바일용 입장 모달창 띄우기
         document.getElementById('joinOverlay').style.display = 'flex';
         if (urlRole === 'speaker') {
             document.getElementById('joinTitle').innerText = "🎙️ 토론자로 입장";
@@ -474,7 +474,7 @@
         updateWindows(); 
     }
 
-    // 🌟 추가된 함수: 입장 모달 폼 제어 및 유효성 검사
+    // 입장 모달 폼 제어 및 유효성 검사
     function checkJoinForm() {
         const lang = document.getElementById('joinLangSelect').value;
         if (lang) {
@@ -489,7 +489,7 @@
         }
     }
 
-    // 🌟 추가된 함수: 정보 입력 후 실제 접속 처리
+    // 정보 입력 후 실제 접속 처리 및 환영 메시지 출력
     function joinMeeting() {
         const lang = document.getElementById('joinLangSelect').value;
         const name = document.getElementById('joinNameInput').value.trim();
@@ -512,6 +512,40 @@
             document.body.classList.add('speaker-mode');
             setTimeout(() => toggleConnection('speaker'), 500);
         }
+
+        // 환영 인사말 다국어 딕셔너리
+        const welcomeMessages = {
+            "ko": "한국어로 입장했습니다. 환영합니다! 🎉",
+            "en": "Entered in English. Welcome! 🎉",
+            "zh": "已进入中文模式。欢迎！🎉",
+            "ja": "日本語で入場しました。歓迎します！🎉",
+            "id": "Masuk dalam bahasa Indonesia. Selamat datang! 🎉",
+            "vi": "Đã vào bằng tiếng Việt. Chào mừng! 🎉",
+            "th": "เข้าสู่ระบบด้วยภาษาไทย ยินดีต้อนรับ! 🎉",
+            "tl": "Pumasok sa Tagalog. Maligayang pagdating! 🎉",
+            "es": "Ingresó en español. ¡Bienvenidos! 🎉",
+            "ru": "Вошел на русском языке. Добро пожаловать! 🎉",
+            "mn": "Монгол хэлээр нэвтэрлээ. Тавтай морилно уу! 🎉",
+            "uz": "O'zbek tilida kiritildi. Xush kelibsiz! 🎉"
+        };
+        
+        // 국기 이모지를 제외한 순수 언어 이름만 추출
+        const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
+        // 사전에 등록된 환영 메시지가 없으면 기본 형태(언어이름 + 환영합니다)로 출력
+        const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다! 🎉`;
+
+        // 접속 애니메이션이 끝난 직후(800ms) 화면에 풍선과 알림(Toast) 띄우기
+        setTimeout(() => {
+            const box = ensureWindowExists(lang);
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.style.textAlign = 'center';
+            welcomeDiv.style.margin = '30px 0 20px 0';
+            welcomeDiv.innerHTML = `<span style="display:inline-block; background: rgba(52, 168, 83, 0.15); border: 1px solid #34a853; color: #34a853; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); backdrop-filter: blur(5px);">${welcomeText}</span>`;
+            box.appendChild(welcomeDiv);
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            
+            showToast(welcomeText);
+        }, 800);
     }
 
     function filterViewerWindows() {
@@ -560,7 +594,7 @@
                 select.appendChild(opt);
             }
             
-            // 🌟 새 창이 생겼을 때 모바일 입장 폼의 드롭다운에도 언어를 동기화
+            // 새 창이 생겼을 때 모바일 입장 폼의 드롭다운에도 언어를 동기화
             const joinSelect = document.getElementById('joinLangSelect');
             if (joinSelect && !joinSelect.querySelector(`option[value="${lang}"]`)) {
                 const joinOpt = document.createElement('option');
@@ -641,7 +675,7 @@
                     viewerSelect.appendChild(opt);
                 }
                 
-                // 🌟 QR 코드로 전달받은 타겟 언어들을 입장 폼 드롭다운에도 세팅
+                // QR 코드로 전달받은 타겟 언어들을 입장 폼 드롭다운에도 세팅
                 if (joinLangSelect && !joinLangSelect.querySelector(`option[value="${code}"]`)) {
                     const joinOpt = document.createElement('option');
                     joinOpt.value = code;
