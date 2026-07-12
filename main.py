@@ -78,11 +78,15 @@ class ConnectionManager:
         self.global_targets = "ko" 
         self.global_glossary = ""
 
-    async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str):
+    async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
         await websocket.accept()
         self.active_connections.append(websocket)
-        self.clients[websocket] = {"id": client_id, "name": name, "role": role}
+        # ui_lang(접속 언어) 정보를 클라이언트 사전에 추가 저장
+        self.clients[websocket] = {"id": client_id, "name": name, "role": role, "ui_lang": ui_lang}
+        
         await self.broadcast_admin_state()
+        await self.broadcast_user_list() # 누군가 접속하면 전체 명단을 관리자에게 갱신
+        
         await websocket.send_json({
             "type": "floor_state",
             "floor_owner": self.floor_owner,
@@ -103,6 +107,18 @@ class ConnectionManager:
             
         asyncio.create_task(self.broadcast_admin_state())
         asyncio.create_task(self.broadcast_floor_state())
+        asyncio.create_task(self.broadcast_user_list()) # 누군가 나가면 전체 명단을 관리자에게 갱신
+
+    async def broadcast_user_list(self):
+        # 현재 접속 중인 전체 유저 명단을 관리자 화면(현황판)에 뿌려주는 함수
+        users = list(self.clients.values())
+        msg = {"type": "user_list", "users": users}
+        for ws, info in self.clients.items():
+            if info["role"] == "admin":
+                try:
+                    await ws.send_json(msg)
+                except:
+                    pass
 
     async def broadcast_admin_state(self):
         state = {"type": "admin_state", "requests": self.requests}
@@ -148,7 +164,6 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     Respond ONLY with the newly updated summary string in Korean."""
     
     try:
-        # 🚨 [절대 수정 금지] 회원님 지시사항: 최신 4.5 버전 고정 (롤백/임의 수정 불가)
         response = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=150,
@@ -176,7 +191,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🚨 [AI 군기 잡기] 환각 방지 및 동시통역사 페르소나 절대 규칙 적용 (기술 2선, 3선 포함)
         system_prompt = f"""You are a professional, emotionless simultaneous interpreter machine.
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
@@ -202,7 +216,6 @@ clean current sentence
         for t in targets.split(','):
             system_prompt += f"[{t.strip()}]\nresult\n"
 
-        # 🚨 [절대 수정 금지] 회원님 지시사항: 최신 4.5 버전 고정 (롤백/임의 수정 불가)
         stream = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=500,
@@ -245,7 +258,6 @@ clean current sentence
         
         for lang, final_text in lang_text.items():
             if lang != 'original':
-                # 🚨 발화자 이름(name)을 그대로 사용 (예: [사회자(PC)], [사회자(Mobile)], [토론자_xxxx])
                 display_final = f"[{name}] {final_text}"
                 await manager.broadcast_json({
                     "type": "stream_end",
@@ -275,9 +287,10 @@ async def websocket_endpoint(
     role: str = Query("speaker"),
     client_id: str = Query(None),
     name: str = Query(None),
+    ui_lang: str = Query("ko"), # 🚨 추가된 파라미터: 접속자의 언어 그룹 정보를 받음
     endpointing: int = Query(500), 
     max_chars: int = Query(35),
-    glossary: str = Query("") # 🚨 고급 기술 1. STT 키워드 부스팅 파라미터 수신 추가
+    glossary: str = Query("") 
 ):
     if token not in ACTIVE_TOKENS:
         print(f"❌ [보안 차단] 유효하지 않은 토큰. (IP: {websocket.client})", flush=True)
@@ -287,8 +300,8 @@ async def websocket_endpoint(
     if not client_id: client_id = secrets.token_hex(4)
     if not name: name = f"User_{client_id}"
 
-    # 🚨 모바일 어드민 덮어쓰기 방지: 접속 시 global_targets를 강제 덮어쓰지 않음. (Config 메시지로만 업데이트)
-    await manager.connect(websocket, client_id, name, role)
+    # 연결 시 ui_lang을 ConnectionManager에 전달
+    await manager.connect(websocket, client_id, name, role, ui_lang)
     
     recent_history = [] 
     summary_state = {"text": ""} 
@@ -310,14 +323,11 @@ async def websocket_endpoint(
         else:
             dg_lang = "ko" if lang == "multi" else lang
             
-            # 🚨 고급 기술 1. STT 키워드 부스팅 (단어장 데이터 추출 및 URL 적용)
             keywords_param = ""
             if glossary:
-                # '=' 또는 ':' 또는 '-' 앞의 한글/영문 단어만 추출
                 extracted_words = re.findall(r'^([^=:-]+)', glossary, re.MULTILINE)
                 clean_words = [w.strip() for w in extracted_words if w.strip()]
                 if clean_words:
-                    # &keywords=비계&keywords=안전고리 형태로 조립
                     keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
                     print(f"👂 [STT 사전 교육 완료] 주입된 키워드: {clean_words}")
 
@@ -365,7 +375,6 @@ async def websocket_endpoint(
                                                 manager.is_admin_muted = False
                                                 await manager.broadcast_floor_state()
                                         elif msg.get("type") == "config":
-                                            # 오직 방장 권한의 Config 메시지만 글로벌 수첩을 업데이트합니다.
                                             if role == "admin":
                                                 if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                 if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
@@ -400,10 +409,7 @@ async def websocket_endpoint(
                                 if transcript or current_sentence:
                                     display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
                                     
-                                    # 항상 글로벌 수첩의 타겟을 기준으로 방송합니다.
                                     current_targets_list = manager.global_targets.split(',')
-                                    
-                                    # 🚨 발화자 이름(name)을 태그로 그대로 사용
                                     tag = f"[{name}] "
                                     
                                     await manager.broadcast_json({
