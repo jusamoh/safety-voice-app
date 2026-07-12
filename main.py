@@ -118,7 +118,6 @@ class ConnectionManager:
         users = []
         for info in self.clients.values():
             u = info.copy()
-            # 역할이 speaker이거나, 동적 발언권을 부여받은 청취자면 is_speaker = True
             u["is_speaker"] = u["role"] in ["admin", "speaker"] or u["id"] in self.speaking_allowed_clients
             users.append(u)
         msg = {"type": "user_list", "users": users}
@@ -226,7 +225,7 @@ clean current sentence
             system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
@@ -267,14 +266,18 @@ clean current sentence
         
         for lang, final_text in lang_text.items():
             if lang != 'original':
-                display_final = f"[{name}] {final_text}"
+                display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
+                # 🌟 To-Be 회의록 조립을 위해 raw_text, role, name을 개별적으로 프론트엔드에 전송
                 await manager.broadcast_json({
                     "type": "stream_end",
                     "lang": lang,
-                    "text": display_final,
+                    "text": display_final,          # UI 렌더링용 (이름 포함)
+                    "raw_text": final_text,         # 회의록 기록용 (순수 번역문)
                     "original_text": lang_text.get('original', ''),
                     "source_lang": source_lang,
-                    "msg_id": msg_id
+                    "msg_id": msg_id,
+                    "role": role,
+                    "name": '사회자' if role == 'admin' else name
                 })
                 
     except Exception as e:
@@ -315,7 +318,7 @@ async def websocket_endpoint(
     summary_state = {"text": ""} 
 
     try:
-        # 🌟 상태 관리 루프: 청취자가 발언권을 얻을 때 끊김 없이 즉시 오디오 루프로 전환합니다.
+        # 🌟 상태 관리 루프: 청취자가 발언권을 얻을 때 끊김 없이 즉시 오디오 루프로 전환
         while True:
             is_speaker = role in ["admin", "speaker"] or client_id in manager.speaking_allowed_clients
             
@@ -389,6 +392,10 @@ async def websocket_endpoint(
                                                         if info["id"] == tid:
                                                             try: await ws_client.send_json({"type": "speak_approved"})
                                                             except: pass
+                                                elif action == "reject":
+                                                    tid = msg.get("target_id")
+                                                    manager.requests = [r for r in manager.requests if r["id"] != tid]
+                                                    await manager.broadcast_admin_state()
                                                 elif action == "revoke":
                                                     tid = msg.get("target_id")
                                                     manager.speaking_allowed_clients.discard(tid)
@@ -399,7 +406,6 @@ async def websocket_endpoint(
                                                         if info["id"] == tid:
                                                             try: await ws_client.send_json({"type": "speak_revoked"})
                                                             except: pass
-                                                # 🌟 [신규 추가] 모든 청취자의 발언권을 일괄 회수하는 기능
                                                 elif action == "revoke_all_viewers":
                                                     revoked_ids = list(manager.speaking_allowed_clients)
                                                     manager.speaking_allowed_clients.clear()
