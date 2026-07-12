@@ -118,7 +118,6 @@ class ConnectionManager:
         users = []
         for info in self.clients.values():
             u = info.copy()
-            # 역할이 speaker이거나, 동적 발언권을 부여받은 청취자면 is_speaker = True
             u["is_speaker"] = u["role"] in ["admin", "speaker"] or u["id"] in self.speaking_allowed_clients
             users.append(u)
         msg = {"type": "user_list", "users": users}
@@ -174,7 +173,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     
     try:
         response = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=150,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -200,7 +199,8 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        system_prompt = f"""You are a professional, emotionless simultaneous interpreter machine.
+        # 🌟 한/중/일 다국어 자동 인식(Multi) 정확도를 극대화하는 강력한 프롬프트 주입
+        system_prompt = f"""You are a professional simultaneous interpreter for a multinational meeting involving Korean, Chinese, and Japanese speakers.
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
 
@@ -209,13 +209,13 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 {glossary_section}
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
-1. {lang_instruction}
-2. Fix STT typos based on the context.
+1. {lang_instruction} 
+2. [PHONETIC AUTO-CORRECTION]: The STT engine may misidentify the spoken language (e.g., transcribing Chinese or Japanese phonetically in Korean characters, like "씨에씨에" for 谢谢, or "소데스네" for そうですか). You MUST identify the true intended language, correct these phonetic misspellings based on the context/glossary, and then translate.
 3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
 4. Provide EXACTLY ONE best translation per language.
 5. CRITICAL: DO NOT converse with the speaker.
 6. CRITICAL: If the text is fragmented, meaningless, or a complete STT error, DO NOT explain it and DO NOT apologize. Just translate it literally or output it as-is. NEVER add conversational filler.
-7. [FILLER FILTERING]: Remove any meaningless filler words (uh, um, you know, etc.) and translate the core message into clean business language.
+7. [FILLER FILTERING]: Remove any meaningless filler words and translate the core message into clean business language.
 8. [TONE ALIGNMENT]: If the sentence implies danger, warning, or an urgent command, translate it using the strongest IMPERATIVE tone in the target language to ensure absolute safety.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
@@ -226,7 +226,7 @@ clean current sentence
             system_prompt += f"[{t.strip()}]\nresult\n"
 
         stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-3-5-haiku-20241022",
             max_tokens=500,
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
@@ -267,14 +267,18 @@ clean current sentence
         
         for lang, final_text in lang_text.items():
             if lang != 'original':
-                display_final = f"[{name}] {final_text}"
+                display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
+                # 🌟 To-Be 회의록 조립을 위해 개별 데이터 전송
                 await manager.broadcast_json({
                     "type": "stream_end",
                     "lang": lang,
                     "text": display_final,
+                    "raw_text": final_text,
                     "original_text": lang_text.get('original', ''),
                     "source_lang": source_lang,
-                    "msg_id": msg_id
+                    "msg_id": msg_id,
+                    "role": role,
+                    "name": '사회자' if role == 'admin' else name
                 })
                 
     except Exception as e:
@@ -389,6 +393,10 @@ async def websocket_endpoint(
                                                         if info["id"] == tid:
                                                             try: await ws_client.send_json({"type": "speak_approved"})
                                                             except: pass
+                                                elif action == "reject":
+                                                    tid = msg.get("target_id")
+                                                    manager.requests = [r for r in manager.requests if r["id"] != tid]
+                                                    await manager.broadcast_admin_state()
                                                 elif action == "revoke":
                                                     tid = msg.get("target_id")
                                                     manager.speaking_allowed_clients.discard(tid)
@@ -399,7 +407,6 @@ async def websocket_endpoint(
                                                         if info["id"] == tid:
                                                             try: await ws_client.send_json({"type": "speak_revoked"})
                                                             except: pass
-                                                # 🌟 [신규 추가] 모든 청취자의 발언권을 일괄 회수하는 기능
                                                 elif action == "revoke_all_viewers":
                                                     revoked_ids = list(manager.speaking_allowed_clients)
                                                     manager.speaking_allowed_clients.clear()
@@ -490,14 +497,14 @@ async def websocket_endpoint(
                     try:
                         await asyncio.gather(sender(), receiver())
                     except DowngradeException:
-                        # 🌟 발언권이 회수되거나 스스로 종료하면 오디오 통신을 끊고 상위 while 루프(텍스트 전용)로 다시 복귀합니다.
+                        # 🌟 발언권이 회수되거나 스스로 종료하면 오디오 통신을 끊고 상위 while 루프(텍스트 전용)로 다시 복귀
                         manager.speaking_allowed_clients.discard(client_id)
                         if manager.floor_owner == client_id:
                             manager.release_floor()
                         await manager.broadcast_user_list()
                         continue 
                 
-                # DowngradeException 없이 빠져나왔다면(정상 종료) 웹소켓 루프를 완전히 종료합니다.
+                # DowngradeException 없이 빠져나왔다면(정상 종료) 웹소켓 루프를 완전히 종료
                 break 
 
     except websockets.exceptions.ConnectionClosed:
