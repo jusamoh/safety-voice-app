@@ -22,14 +22,28 @@
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         body { background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); transition: background-color 0.3s ease; }
         
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #202124; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .login-box { background: var(--card-bg); padding: 40px; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.3); width: 90%; max-width: 400px; text-align: center; }
-        .login-box h2 { margin-top: 0; color: var(--primary); margin-bottom: 20px; font-weight: 700; }
-        .login-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: 0.2s; }
-        .login-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
-        .login-btn { background-color: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .login-btn:hover { background-color: var(--primary-hover); }
+        #loginOverlay, #adminSetupOverlay, #joinOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(32, 33, 36, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(8px); }
         
+        /* 🌟 모던 팝업(모달) 카드 스타일링 */
+        .login-box { background: var(--card-bg); padding: 45px 30px; border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); width: 90%; max-width: 420px; text-align: center; }
+        .login-box h2 { margin-top: 0; color: var(--text-main); margin-bottom: 10px; font-weight: 800; font-size: 24px; letter-spacing: -0.5px;}
+        .login-box p.subtitle { color: var(--text-muted); font-size: 15px; margin-bottom: 35px; font-weight: 500; line-height: 1.4;}
+        
+        /* 🌟 인체공학적 입력 폼 (터치 영역 확대) */
+        .login-box label { font-weight: 700; font-size: 13.5px; color: #3c4043; display: block; margin-bottom: 8px; text-align: left; }
+        .login-input { width: 100%; padding: 16px; margin-bottom: 20px; background: #f1f3f4; border: 2px solid transparent; color: #202124; border-radius: 14px; font-size: 16px; font-weight: 600; outline: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); appearance: none;}
+        .login-input::placeholder { color: #9aa0a6; font-weight: 500; }
+        .login-input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 4px 15px rgba(26,115,232,0.15); transform: translateY(-1px); }
+        
+        /* 🌟 세련된 메인 액션 버튼 */
+        .login-btn { background-color: var(--primary); color: white; border: none; padding: 18px; width: 100%; border-radius: 14px; font-size: 17px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 6px 15px rgba(26,115,232,0.3); letter-spacing: 0.5px;}
+        .login-btn:hover:not(:disabled) { background-color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26,115,232,0.4); }
+        .login-btn:disabled { background-color: #e0e0e0; color: #9aa0a6; cursor: not-allowed; box-shadow: none; transform: none; }
+        
+        /* 🌟 스무스한 애니메이션 효과 */
+        @keyframes slideDownFade { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in-anim { animation: slideDownFade 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 15px; font-weight: 500; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
         #toast.error { background-color: var(--danger); }
@@ -118,7 +132,7 @@
         body.viewer-mode .dashboard-layout, body.speaker-mode .dashboard-layout,
         body.viewer-mode .status-banner, body.speaker-mode .status-banner { display: none !important; }
         
-        body.viewer-mode .window-container, body.speaker-mode .window-container { max-width: 100%; padding: 0; gap: 0; height: 100vh; display: flex; flex-direction: column; padding-top: 60px;}
+        body.viewer-mode .window-container, body.speaker-mode .window-container { max-width: 100%; padding: 0; gap: 0; height: 100vh; display: flex; flex-direction: column; padding-top: 85px;}
         body.viewer-mode .window, body.speaker-mode .window { flex: 1; border: none; border-radius: 0; height: 100%; max-height: none; background: #000; }
         body.viewer-mode .window-header, body.speaker-mode .window-header { display: none; }
         body.viewer-mode .content-box, body.speaker-mode .content-box { background: #000; color: #fff; padding: 20px; padding-bottom: 140px; }
@@ -126,8 +140,17 @@
         body.viewer-mode .original-text, body.speaker-mode .original-text { color: #aaa; font-size: 15px; }
         body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #333; }
         
-        #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #111; padding: 12px 15px; z-index: 1000; border-bottom: 1px solid #333; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
-        body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; }
+        /* 🌟 대칭형 탑바 영역 (UI 개선 반영) */
+        #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: rgba(18, 18, 20, 0.85); padding: 16px 20px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0,0,0,0.3); }
+        body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; justify-content: center; }
+        .modern-topbar-container { display: flex; width: 100%; max-width: 600px; gap: 12px; align-items: center; }
+        .modern-select-wrapper { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; }
+        .modern-select-wrapper span { margin-right: 8px; font-size: 16px; }
+        .modern-select { background: transparent; border: none; color: white; font-weight: 700; font-size: 15px; width: 100%; outline: none; appearance: none; cursor: pointer; }
+        .modern-toggle-label { flex: 1; cursor: pointer; display: block; }
+        .modern-toggle-label input { display: none; }
+        .modern-toggle-content { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px 0; color: #aaa; font-weight: 700; font-size: 14px; text-align: center; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center;}
+        .modern-toggle-label input:checked + .modern-toggle-content { background: rgba(52, 168, 83, 0.15); border-color: rgba(52, 168, 83, 0.4); color: #34a853; }
         
         body.projector-mode { background-color: #000; color: #fff; padding: 0; height: 100vh; overflow: hidden; }
         body.projector-mode .navbar, 
@@ -152,7 +175,7 @@
         #exitProjectorBtn:hover { background: rgba(255,255,255,0.2); }
         body.projector-mode #exitProjectorBtn { display: block; }
 
-        .speaker-status-bar { position: fixed; top: 60px; left: 0; width: 100%; padding: 12px; text-align: center; font-weight: 700; z-index: 1500; font-size: 15px; color: white; display: none;}
+        .speaker-status-bar { position: fixed; top: 75px; left: 0; width: 100%; padding: 12px; text-align: center; font-weight: 700; z-index: 1500; font-size: 15px; color: white; display: none;}
         body.speaker-mode .speaker-status-bar, body.viewer-mode .speaker-status-bar { display: block; }
         .status-free { background: var(--success); }
         .status-mine { background: var(--primary); animation: pulseBlue 2s infinite; }
@@ -164,13 +187,15 @@
         .mobile-dictation-title { font-size: 12px; color: #ccc; margin-bottom: 4px; }
         .mobile-dictation-text { font-size: 16px; word-break: keep-all; }
 
-        #requestSpeakBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--danger); color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        /* 🌟 하단 플로팅 버튼 인체공학적 개선 */
+        #mobileMuteBtn, #activeMicBtn, #requestSpeakBtn { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 400px; border-radius: 16px; padding: 18px; font-weight: 800; font-size: 16px; text-align: center; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(5px); }
+        #mobileMuteBtn { background: rgba(217, 48, 37, 0.95); color: white; border: 1px solid rgba(255,255,255,0.1); }
+        #mobileMuteBtn.muted { background: rgba(95, 99, 104, 0.95); color: #e8eaed; border-color: transparent;}
+        #activeMicBtn { background: rgba(26, 115, 232, 0.95); color: white; animation: pulseBlue 2s infinite; border: 1px solid rgba(255,255,255,0.1);}
+        #requestSpeakBtn { background: rgba(249, 171, 0, 0.95); color: #202124; border: 1px solid rgba(255,255,255,0.2);}
+
         body.viewer-mode #requestSpeakBtn { display: block; }
-        
-        #mobileMuteBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--danger); color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
         body.speaker-mode #mobileMuteBtn { display: block; }
-        
-        #activeMicBtn { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary); color: white; border-radius: 30px; padding: 18px 30px; z-index: 1000; border: none; font-weight: 700; font-size: 18px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); animation: pulseBlue 2s infinite; }
 
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 90%; }
@@ -187,7 +212,6 @@
             .dictation-box { max-width: 100%; white-space: normal; font-size: 16px; }
             .window-container { grid-template-columns: 1fr; padding: 0 15px; gap: 15px; }
             .window { height: 350px; }
-            #requestSpeakBtn, #mobileMuteBtn, #activeMicBtn { padding: 14px 20px; font-size: 15px; bottom: 20px; right: 15px; border-radius: 25px; }
         }
     </style>
 </head>
@@ -196,55 +220,53 @@
 
 <div id="loginOverlay">
     <div class="login-box">
-        <h2>🚀 AI 통역 콘솔 로그인</h2>
-        <p style="color:var(--text-muted); font-size:14px; margin-bottom:30px; font-weight:500;">안전 관제 시스템 v4.0</p>
-        <input type="text" id="username" class="login-input" placeholder="관리자 아이디 (admin)">
-        <input type="password" id="password" class="login-input" placeholder="비밀번호" onkeyup="if(event.key==='Enter') attemptLogin()">
+        <h2>🚀 AI 통역 콘솔</h2>
+        <p class="subtitle">안전 관제 시스템 v4.0</p>
+        <label>관리자 아이디</label>
+        <input type="text" id="username" class="login-input" placeholder="admin">
+        <label>비밀번호</label>
+        <input type="password" id="password" class="login-input" placeholder="비밀번호 입력" onkeyup="if(event.key==='Enter') attemptLogin()">
         <button class="login-btn" onclick="attemptLogin()">시스템 접속</button>
     </div>
 </div>
 
-<div id="adminSetupOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #202124; z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
-    <div class="login-box" style="padding: 30px 20px;">
-        <h2 style="margin-top: 0; color: var(--warning); margin-bottom: 15px; font-weight: 700; font-size: 22px;">⚙️ 회의 기본 설정</h2>
-        <p style="color:var(--text-muted); font-size:13px; margin-bottom:25px; font-weight:500;">공식 회의록 기록을 위해 정보를 입력해주세요.</p>
+<div id="adminSetupOverlay" style="display: none;">
+    <div class="login-box">
+        <h2 style="color: var(--primary);">⚙️ 회의 기본 설정</h2>
+        <p class="subtitle">공식 회의록 기록을 위해 정보를 입력해주세요.</p>
         
-        <div style="text-align: left;">
-            <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">1. 회의 제목 (Meeting Title)</label>
-            <input type="text" id="adminMeetingTitleInput" class="login-input" style="background: #333; color: white; margin-bottom: 15px; padding: 12px; font-size: 15px;" placeholder="예: 토목 엔지니어링 학술대회">
-            
-            <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">2. 방장 이름 (Native Name)</label>
-            <input type="text" id="adminNativeNameInput" class="login-input" style="background: #333; color: white; margin-bottom: 15px; padding: 12px; font-size: 15px;" placeholder="예: 홍길동 소장">
-            
-            <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">3. 방장 영문 발음 (English Name)</label>
-            <input type="text" id="adminEnglishNameInput" class="login-input" style="background: #333; color: white; margin-bottom: 5px; padding: 12px; font-size: 15px;" placeholder="예: Hong" onkeyup="if(event.key==='Enter') startAdminMeeting()">
-            <p style="color:#888; font-size:11px; margin-top:0; margin-bottom:20px; font-weight:400; line-height: 1.3;">* 입력하신 정보는 회의록 헤더 및 파일명에 사용됩니다.</p>
-        </div>
+        <label>1. 회의 제목 (Meeting Title)</label>
+        <input type="text" id="adminMeetingTitleInput" class="login-input" placeholder="예: 토목 엔지니어링 학술대회">
         
-        <button class="login-btn" style="margin-top: 10px; background: var(--primary); padding: 14px; font-size: 16px;" onclick="startAdminMeeting()">회의 시작 (Start)</button>
+        <label>2. 방장 이름 (Native Name)</label>
+        <input type="text" id="adminNativeNameInput" class="login-input" placeholder="예: 홍길동 소장">
+        
+        <label>3. 방장 영문 발음 (English Name)</label>
+        <input type="text" id="adminEnglishNameInput" class="login-input" placeholder="예: Hong" onkeyup="if(event.key==='Enter') startAdminMeeting()">
+        
+        <button class="login-btn" onclick="startAdminMeeting()">회의 시작 (Start)</button>
     </div>
 </div>
 
-<div id="joinOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #202124; z-index: 9999; align-items: center; justify-content: center; flex-direction: column;">
-    <div class="login-box" style="padding: 30px 20px;">
-        <h2 id="joinTitle" style="margin-top: 0; color: var(--warning); margin-bottom: 15px; font-weight: 700; font-size: 22px;">👋 환영합니다</h2>
-        <p style="color:var(--text-muted); font-size:13px; margin-bottom:25px; font-weight:500;">원활한 소통을 위해 설정을 완료해주세요.</p>
+<div id="joinOverlay" style="display: none;">
+    <div class="login-box">
+        <h2 id="joinTitle" style="color: var(--warning);">👋 환영합니다</h2>
+        <p class="subtitle">원활한 소통을 위해 설정을 완료해주세요.</p>
         
-        <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px; text-align: left;">1. 내 언어 선택 (Language)</label>
-        <select id="joinLangSelect" class="login-input" style="background: #333; color: white; cursor: pointer; padding: 12px; font-size: 15px;" onchange="checkJoinForm()">
+        <label>1. 내 언어 선택 (Language)</label>
+        <select id="joinLangSelect" class="login-input" style="cursor: pointer;" onchange="checkJoinForm()">
             <option value="" disabled selected>선택 / Select</option>
         </select>
         
-        <div id="joinNameSection" style="display: none; margin-top: 15px; text-align: left;">
-            <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">2. 모국어 이름 (Native Name)</label>
-            <input type="text" id="joinNativeNameInput" class="login-input" style="background: #333; color: white; margin-bottom: 15px; padding: 12px; font-size: 15px;" placeholder="예: 홍길동, 山田太郎">
+        <div id="joinNameSection" style="display: none;">
+            <label>2. 모국어 이름 (Native Name)</label>
+            <input type="text" id="joinNativeNameInput" class="login-input" placeholder="예: 홍길동, 山田太郎">
             
-            <label style="font-weight: 600; font-size: 13px; color: #aaa; display: block; margin-bottom: 8px;">3. 영문 발음 (English Name)</label>
-            <input type="text" id="joinEnglishNameInput" class="login-input" style="background: #333; color: white; margin-bottom: 5px; padding: 12px; font-size: 15px;" placeholder="예: Hong, Yamada" onkeyup="if(event.key==='Enter') joinMeeting()">
-            <p style="color:#888; font-size:11px; margin-top:0; margin-bottom:20px; font-weight:400; line-height: 1.3;">* 사회자의 원활한 호명을 위해<br>반드시 영문 발음을 적어주세요.</p>
+            <label>3. 영문 발음 (English Name)</label>
+            <input type="text" id="joinEnglishNameInput" class="login-input" placeholder="예: Hong, Yamada" onkeyup="if(event.key==='Enter') joinMeeting()">
         </div>
         
-        <button id="joinBtn" class="login-btn" style="margin-top: 10px; background: #5f6368; color: #aaa; cursor: not-allowed; padding: 14px; font-size: 16px;" onclick="joinMeeting()" disabled>회의 입장 (Join)</button>
+        <button id="joinBtn" class="login-btn" onclick="joinMeeting()" disabled>회의 입장 (Join)</button>
     </div>
 </div>
 
@@ -262,15 +284,18 @@
     </nav>
 
     <div id="viewerTopBar">
-        <label style="color:#aaa; font-weight:700; font-size: 14px;">🌐 내 언어 선택:</label>
-        <select id="viewerLangSelect" class="styled-select" style="max-width: 150px; padding: 8px;" onchange="filterViewerWindows()">
-            <option value="" disabled selected>선택 / Select</option>
-        </select>
-        
-        <label style="display:flex; align-items:center; gap:5px; color:#fff; font-size:14px; cursor:pointer; background: #222; padding: 8px 12px; border-radius: 8px; border: 1px solid #444; margin-left: 10px;">
-            <input type="checkbox" id="autoTTSCheckbox" onchange="toggleAutoTTS()" style="accent-color: var(--success); width: 18px; height: 18px;">
-            <span id="autoTTSText" style="font-weight: 600;">🔇 자동 읽기 (OFF)</span>
-        </label>
+        <div class="modern-topbar-container">
+            <div class="modern-select-wrapper">
+                <span>🌐</span>
+                <select id="viewerLangSelect" class="modern-select" onchange="filterViewerWindows()">
+                    <option value="" disabled selected>언어 선택</option>
+                </select>
+            </div>
+            <label class="modern-toggle-label">
+                <input type="checkbox" id="autoTTSCheckbox" onchange="toggleAutoTTS()">
+                <div class="modern-toggle-content" id="autoTTSContent">🔇 자동 읽기 (OFF)</div>
+            </label>
+        </div>
     </div>
     
     <div id="speakerStatusBar" class="speaker-status-bar status-free" style="display: none;">🟢 마이크 개방됨 (자유롭게 발언하세요)</div>
@@ -308,7 +333,6 @@
             <div>
                 <label class="form-label">1. 회의 진행 단계 (엔진 스위칭)</label>
                 <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;" onchange="sendConfigUpdate()">
-                    <!-- 동기화 로직에 의해 덮어씌워지는 부분 -->
                 </select>
             </div>
 
@@ -376,7 +400,7 @@
     </div>
 
     <div id="viewerPlaceholder" style="display: none; color: #fff; text-align: center; margin-top: 80px; font-size: 20px; line-height: 1.6; font-weight: 700;">
-        👆 상단의 <b>[🌐 내 언어 선택]</b> 메뉴를 눌러<br>자신의 모국어를 선택해주세요.<br><br>
+        👆 상단의 <b>[🌐 언어 선택]</b> 메뉴를 눌러<br>자신의 모국어를 선택해주세요.<br><br>
         <span style="font-size: 15px; color: #aaa; font-weight: 400;">Please select your language from the top menu.</span>
     </div>
 
@@ -392,7 +416,7 @@
 </div>
 
 <button id="requestSpeakBtn" onclick="sendSpeakRequest()">🙋‍♂️ 발언 요청하기</button>
-<button id="mobileMuteBtn" class="active" onclick="toggleMobileMute()">🔴 마이크 ON (터치시 Mute)</button>
+<button id="mobileMuteBtn" class="active" onclick="toggleMobileMute()">🎤 마이크 ON (터치시 Mute)</button>
 
 <button id="activeMicBtn" onclick="stopDynamicSpeaking()">🔴 발언 중 (터치하여 종료)</button>
 
@@ -417,7 +441,6 @@
 
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // 🌟 확장된 40개국 언어 지원
     const langNames = {
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
         "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
@@ -448,19 +471,16 @@
         const viewerSelect = document.getElementById('viewerLangSelect');
 
         Object.keys(langNames).forEach(code => {
-            // 방장 채널 추가용
             if (!['ko'].includes(code) && selectExtra) {
                 const optExtra = document.createElement('option');
                 optExtra.value = code; optExtra.innerText = langNames[code];
                 selectExtra.appendChild(optExtra);
             }
-            // QR 접속자 언어 선택용 (40개 전체)
             if (joinLangSelect && !joinLangSelect.querySelector(`option[value="${code}"]`)) {
                 const joinOpt = document.createElement('option');
                 joinOpt.value = code; joinOpt.innerText = langNames[code];
                 joinLangSelect.appendChild(joinOpt);
             }
-            // 뷰어 탑바 언어 선택용 (40개 전체)
             if (viewerSelect && !viewerSelect.querySelector(`option[value="${code}"]`)) {
                 const viewOpt = document.createElement('option');
                 viewOpt.value = code; viewOpt.innerText = langNames[code];
@@ -494,18 +514,16 @@
     let isAutoTTS = false;
     function toggleAutoTTS() {
         const checkbox = document.getElementById('autoTTSCheckbox');
-        const textSpan = document.getElementById('autoTTSText');
+        const content = document.getElementById('autoTTSContent');
         isAutoTTS = checkbox.checked;
         
         if(isAutoTTS) {
-            textSpan.innerText = "🔊 자동 읽기 (ON)";
-            textSpan.style.color = "#34a853";
+            content.innerText = "🔊 자동 읽기 (ON)";
             showToast("🔊 자동 읽기 모드가 켜졌습니다. 이어폰을 착용해주세요.");
             const unlockMsg = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(unlockMsg);
         } else {
-            textSpan.innerText = "🔇 자동 읽기 (OFF)";
-            textSpan.style.color = "#fff";
+            content.innerText = "🔇 자동 읽기 (OFF)";
             showToast("🔇 자동 읽기 모드가 꺼졌습니다.");
             window.speechSynthesis.cancel();
         }
@@ -525,14 +543,17 @@
     function checkJoinForm() {
         const lang = document.getElementById('joinLangSelect').value;
         if (lang) {
-            document.getElementById('joinNameSection').style.display = 'block';
+            const nameSection = document.getElementById('joinNameSection');
+            if (nameSection.style.display === 'none') {
+                nameSection.style.display = 'block';
+                nameSection.classList.add('slide-in-anim');
+            }
             document.getElementById('joinNativeNameInput').focus();
             
             const btn = document.getElementById('joinBtn');
-            btn.style.background = 'var(--warning)';
-            btn.style.color = '#202124';
+            btn.style.background = 'var(--primary)';
+            btn.style.color = '#fff';
             btn.disabled = false;
-            btn.style.cursor = 'pointer';
         }
     }
 
@@ -541,7 +562,7 @@
         const nativeName = document.getElementById('joinNativeNameInput').value.trim();
         const englishName = document.getElementById('joinEnglishNameInput').value.trim();
         
-        if (!lang) return showToast("Please select your language first.", true);
+        if (!lang) return showToast("언어를 먼저 선택해주세요.", true);
         if (!nativeName) return showToast("모국어 이름(Native Name)을 입력해주세요.", true); 
         if (!englishName) return showToast("영문 발음(English Name)을 입력해주세요.", true); 
         
@@ -560,23 +581,23 @@
         }
 
         const welcomeMessages = {
-            "ko": "한국어로 입장했습니다. 환영합니다! 🎉",
-            "en": "Entered in English. Welcome! 🎉",
-            "zh": "已进入中文模式。欢迎！🎉",
-            "ja": "日本語で入場しました。歓迎します！🎉"
+            "ko": "한국어로 입장했습니다. 환영합니다!",
+            "en": "Entered in English. Welcome!",
+            "zh": "已进入中文模式。欢迎！",
+            "ja": "日本語で入場しました。歓迎します！"
         };
         const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
-        const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다! 🎉`;
+        const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다!`;
 
         setTimeout(() => {
             const box = ensureWindowExists(lang);
             const welcomeDiv = document.createElement('div');
             welcomeDiv.style.textAlign = 'center';
             welcomeDiv.style.margin = '30px 0 20px 0';
-            welcomeDiv.innerHTML = `<span style="display:inline-block; background: rgba(52, 168, 83, 0.15); border: 1px solid #34a853; color: #34a853; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); backdrop-filter: blur(5px);">${welcomeText}</span>`;
+            welcomeDiv.innerHTML = `<div style="display:inline-block; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #e8eaed; padding: 14px 28px; border-radius: 20px; font-weight: 600; font-size: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">✨ ${welcomeText}</div>`;
             box.appendChild(welcomeDiv);
             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-            showToast(welcomeText);
+            showToast(welcomeText + " 🎉");
         }, 800);
     }
 
@@ -663,7 +684,6 @@
             const glossaryData = document.getElementById('glossaryInput').value;
             ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(',') }));
             
-            // 🌟 방장이 모드를 변경할 때, 열려있는 연결을 끊고 재접속하여 엔진을 스위칭합니다.
             const newLangMode = document.getElementById('speakerLang').value;
             const isCurrentlyAzure = (ws.url.indexOf('lang=multi_azure') > -1);
             const isSwitchingToAzure = (newLangMode === 'multi_azure');
@@ -691,13 +711,11 @@
             else windowDiv.style.display = 'flex';
         });
 
-        // 🌟 발표자 언어 드롭다운 동기화 🌟
         if (isHost) {
             const speakerLangSelect = document.getElementById('speakerLang');
             const currentVal = speakerLangSelect.value;
             speakerLangSelect.innerHTML = ''; 
 
-            // 1. 선택된 번역 채널들을 단일 발표 모드 후보로 추가
             checkedLangs.forEach(lang => {
                 const opt = document.createElement('option');
                 opt.value = lang;
@@ -706,13 +724,11 @@
                 speakerLangSelect.appendChild(opt);
             });
 
-            // 2. 다국어 자유 토론 모드 옵션 추가
             const multiOpt = document.createElement('option');
             multiOpt.value = "multi_azure";
             multiOpt.innerText = `🌍 다국어 자유 토론 모드 (${checkedLangs.length}개국 자동 식별)`;
             speakerLangSelect.appendChild(multiOpt);
 
-            // 3. 기존에 선택했던 값이 새 리스트에 있다면 유지, 없으면 'ko'로
             if (speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) {
                 speakerLangSelect.value = currentVal;
             } else {
@@ -846,7 +862,6 @@
     function sendSpeakRequest() {
         if (!ws || ws.readyState !== 1) return showToast("서버와 연결되어 있지 않습니다.", true);
         
-        // 🌟 [추가] 청취자가 언어를 선택하지 않았을 경우 발언 요청 차단 및 영문 안내
         if (!isHost) {
             const viewerSelect = document.getElementById('viewerLangSelect');
             if (!viewerSelect || !viewerSelect.value) {
@@ -859,27 +874,21 @@
         if (!isRequested) {
             ws.send(JSON.stringify({type: "request_speak"}));
             btn.innerHTML = "⏳ 승인 대기 중 (터치 취소)";
-            btn.style.backgroundColor = "var(--warning)";
-            btn.style.color = "#202124";
             isRequested = true;
             showToast("사회자에게 발언을 요청했습니다.");
         } else {
             ws.send(JSON.stringify({type: "cancel_request"}));
             btn.innerHTML = "🙋‍♂️ 발언 요청하기";
-            btn.style.backgroundColor = "var(--danger)";
-            btn.style.color = "#fff";
             isRequested = false;
             showToast("발언 요청을 취소했습니다.");
         }
     }
 
     async function startDynamicSpeaking() {
-        // 🌟 [추가] 방장이 실수로 승인했더라도, 언어가 없으면 마이크 켜기 차단 및 스스로 권한 반납
         if (!isHost) {
             const viewerSelect = document.getElementById('viewerLangSelect');
             if (!viewerSelect || !viewerSelect.value) {
                 showToast("Please select your language from the top menu first.", true);
-                // 강제로 끊기지 않도록 스스로 발언 권한만 서버에 반납
                 if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: "downgrade_to_viewer"}));
                 return;
             }
@@ -912,8 +921,6 @@
         isRequested = false;
         const btn = document.getElementById('requestSpeakBtn');
         btn.innerHTML = "🙋‍♂️ 발언 요청하기";
-        btn.style.backgroundColor = "var(--danger)";
-        btn.style.color = "#fff";
         btn.style.display = 'block';
         document.getElementById('activeMicBtn').style.display = 'none';
         document.getElementById('speakerStatusBar').style.display = 'none';
@@ -963,12 +970,10 @@
                 audioTracks[0].enabled = !isMobileMuted;
                 if (isMobileMuted) {
                     btn.innerHTML = "🔇 내 마이크 꺼짐 (터치하여 켜기)";
-                    btn.style.backgroundColor = "#5f6368";
-                    btn.classList.remove('active');
+                    btn.classList.add('muted');
                 } else {
-                    btn.innerHTML = "🔴 마이크 ON (터치시 Mute)";
-                    btn.style.backgroundColor = "var(--danger)";
-                    btn.classList.add('active');
+                    btn.innerHTML = "🎤 마이크 ON (터치시 Mute)";
+                    btn.classList.remove('muted');
                 }
             }
         }
@@ -1107,7 +1112,6 @@
                     filterViewerWindows();
                 }
 
-                // 🌟 하이브리드 스위치 연동 및 청중 발화 언어 매칭
                 let spkLang = 'ko';
                 if (isHost) {
                     const sl = document.getElementById('speakerLang');
@@ -1117,7 +1121,6 @@
                     if (vl && vl.value) spkLang = vl.value;
                 }
                 
-                // 🌟 [추가] 혹시라도 빈 문자열이 서버로 넘어가 충돌나는 것을 막는 강제 방어막
                 if (!spkLang) spkLang = 'ko';
 
                 const ep = document.getElementById('endpointingSlider') ? document.getElementById('endpointingSlider').value : 500;
@@ -1242,7 +1245,6 @@
                         }
 
                         const rawText = res.text || "";
-                        // split('/') 로직을 제거하여 슬래시가 포함된 문장도 온전히 보존되도록 수정
                         const cleanText = rawText.trim();
                         const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                         const isSame = (res.source_lang === lang);
