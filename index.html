@@ -120,7 +120,6 @@
         body.viewer-mode .original-text, body.speaker-mode .original-text { color: #aaa; font-size: 15px; }
         body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #333; }
         
-        /* 🌟 터치 친화적 탑바 (상단 언어 선택 & 나가기) */
         #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: rgba(18, 18, 20, 0.95); padding: 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; justify-content: center; }
         .modern-topbar-container { display: flex; width: 100%; max-width: 600px; gap: 10px; align-items: center; }
@@ -160,12 +159,11 @@
         .mobile-dictation-title { font-size: 12px; color: #ccc; margin-bottom: 4px; }
         .mobile-dictation-text { font-size: 16px; word-break: keep-all; }
 
-        /* 🌟 하단 플로팅 버튼 (인체공학적 앵커) */
         #mobileMuteBtn, #activeMicBtn, #requestSpeakBtn { display: none; position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 450px; border-radius: 20px; padding: 22px; font-weight: 900; font-size: 18px; text-align: center; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000; cursor: pointer; }
-        #mobileMuteBtn { background: #d93025; color: white; }
-        #mobileMuteBtn.muted { background: #5f6368; }
-        #activeMicBtn { background: #1a73e8; color: white; animation: pulseBlue 2s infinite; }
-        #requestSpeakBtn { background: #f9ab00; color: #202124; }
+        #mobileMuteBtn { background: rgba(217, 48, 37, 0.95); color: white; border: 1px solid rgba(255,255,255,0.1); }
+        #mobileMuteBtn.muted { background: rgba(95, 99, 104, 0.95); color: #e8eaed; border-color: transparent;}
+        #activeMicBtn { background: rgba(26, 115, 232, 0.95); color: white; animation: pulseBlue 2s infinite; border: 1px solid rgba(255,255,255,0.1);}
+        #requestSpeakBtn { background: rgba(249, 171, 0, 0.95); color: #202124; border: 1px solid rgba(255,255,255,0.2);}
 
         body.viewer-mode #requestSpeakBtn { display: block; }
         body.speaker-mode #mobileMuteBtn { display: block; }
@@ -191,7 +189,6 @@
 <body>
 <div id="toast"></div>
 
-<!-- 로그인 / 설정 오버레이는 그대로 유지 (스타일 개선) -->
 <div id="loginOverlay">
     <div class="login-box">
         <h2>🚀 AI 통역 콘솔</h2>
@@ -238,7 +235,7 @@
 
 <div id="appContainer">
     <nav class="navbar">
-        <div class="nav-brand">🌍 학술대회 통역 콘솔</div>
+        <div class="nav-brand">🌍 글로벌 전문가 학술대회 통역 콘솔</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
             <button id="projectorBtn" class="btn-outline" onclick="toggleProjectorMode()">📽️ 빔 프로젝터 모드</button>
@@ -248,7 +245,6 @@
         </div>
     </nav>
 
-    <!-- 🌟 새로 개선된 탑바: 나가기 버튼 포함 -->
     <div id="viewerTopBar">
         <div class="modern-topbar-container">
             <select id="viewerLangSelect" class="modern-select" onchange="filterViewerWindows()">
@@ -363,6 +359,12 @@
 </div>
 
 <script>
+    // ✨ 보안: 초기 로드 시 캐시된 비밀번호 칸 강제 초기화
+    window.addEventListener('DOMContentLoaded', () => {
+        const pwdInput = document.getElementById('password');
+        if(pwdInput) pwdInput.value = '';
+    });
+
     function showToast(message, isError = false) {
         const toast = document.getElementById("toast");
         toast.innerText = message;
@@ -529,10 +531,15 @@
         }, 800);
     }
 
+    // ✨ 보안: 나가기 시 비밀번호 창 초기화 포함
     function leaveMeeting() {
         if (confirm("회의에서 나가시겠습니까?")) {
             if (ws && ws.readyState === WebSocket.OPEN) ws.close();
             if (stream) stream.getTracks().forEach(t => t.stop());
+            
+            const pwdInput = document.getElementById('password');
+            if(pwdInput) pwdInput.value = '';
+            
             window.location.href = window.location.pathname;
         }
     }
@@ -712,6 +719,9 @@
             const data = await res.json();
             if (data.success) {
                 authToken = data.token;
+                // ✨ 보안: 로그인 성공 시 비밀번호 입력창 지우기
+                document.getElementById('password').value = '';
+                
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('adminSetupOverlay').style.display = 'flex';
                 document.getElementById('adminMeetingTitleInput').focus();
@@ -750,11 +760,15 @@
         showToast(`[${meetingTitle}] 회의를 시작합니다.`);
     }
 
+    // ✨ 보안: 로그아웃 시 비밀번호 창 초기화 포함
     function logout() { 
         if (transcriptLog && transcriptLog.split('\n').length > 3) {
             downloadTranscript(); 
             showToast("회의가 종료되어 기록이 자동으로 저장되었습니다.");
         }
+        const pwdInput = document.getElementById('password');
+        if(pwdInput) pwdInput.value = '';
+        
         setTimeout(() => {
             window.location.reload();
         }, 800);
