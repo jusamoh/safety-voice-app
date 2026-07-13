@@ -11,8 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
-
-# 🌟 신규 추가: Azure Speech SDK
 import azure.cognitiveservices.speech as speechsdk
 
 # ==========================================
@@ -287,7 +285,6 @@ clean current sentence
         await manager.broadcast_json({"type": "status", "text": "❌ 번역 실패 (재시도 중)"})
     
     finally:
-        # 🌟 핵심 수정: sentence_complete 신호에 어떤 문장이 끝났는지 msg_id를 포함시킴
         await manager.broadcast_json({"type": "sentence_complete", "msg_id": msg_id})
         manager.release_floor()
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
@@ -308,7 +305,6 @@ async def websocket_endpoint(
     glossary: str = Query("") 
 ):
     if token not in ACTIVE_TOKENS:
-        print(f"❌ [보안 차단] 유효하지 않은 토큰. (IP: {websocket.client})", flush=True)
         await websocket.close(code=1008, reason="Unauthorized")
         return
 
@@ -350,20 +346,11 @@ async def websocket_endpoint(
                         raise Exception("Azure key missing")
                         
                     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
-                    
                     compressed_format = speechsdk.audio.AudioStreamFormat(compressed_stream_format=speechsdk.AudioStreamContainerFormat.ANY)
                     push_stream = speechsdk.audio.PushAudioInputStream(stream_format=compressed_format)
                     audio_config = speechsdk.audio.AudioConfig(stream=push_stream)
-
-                    auto_detect_source_language_config = speechsdk.languageconfig.AutoDetectSourceLanguageConfig(
-                        languages=["ko-KR", "en-US", "ja-JP", "zh-CN"]
-                    )
-
-                    recognizer = speechsdk.SpeechRecognizer(
-                        speech_config=speech_config,
-                        auto_detect_source_language_config=auto_detect_source_language_config,
-                        audio_config=audio_config
-                    )
+                    auto_detect_source_language_config = speechsdk.languageconfig.AutoDetectSourceLanguageConfig(languages=["ko-KR", "en-US", "ja-JP", "zh-CN"])
+                    recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, auto_detect_source_language_config=auto_detect_source_language_config, audio_config=audio_config)
 
                     azure_queue = asyncio.Queue()
                     loop = asyncio.get_running_loop()
@@ -392,15 +379,11 @@ async def websocket_endpoint(
                                     if data.get("bytes") is not None:
                                         if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
                                             push_stream.write(data.get("bytes"))
-                                            
                                     elif data.get("text") is not None:
                                         try:
                                             msg = json.loads(data.get("text"))
                                             msg_type = msg.get("type")
-                                            
-                                            if msg_type == "downgrade_to_viewer":
-                                                raise DowngradeException()
-
+                                            if msg_type == "downgrade_to_viewer": raise DowngradeException()
                                             if msg_type == "admin_action" and role == "admin":
                                                 action = msg.get("action")
                                                 if action == "approve":
@@ -420,8 +403,7 @@ async def websocket_endpoint(
                                                 elif action == "revoke":
                                                     tid = msg.get("target_id")
                                                     manager.speaking_allowed_clients.discard(tid)
-                                                    if manager.floor_owner == tid:
-                                                        manager.release_floor()
+                                                    if manager.floor_owner == tid: manager.release_floor()
                                                     await manager.broadcast_user_list()
                                                     for ws_client, info in manager.clients.items():
                                                         if info["id"] == tid:
@@ -430,8 +412,7 @@ async def websocket_endpoint(
                                                 elif action == "revoke_all_viewers":
                                                     revoked_ids = list(manager.speaking_allowed_clients)
                                                     manager.speaking_allowed_clients.clear()
-                                                    if manager.floor_owner in revoked_ids:
-                                                        manager.release_floor()
+                                                    if manager.floor_owner in revoked_ids: manager.release_floor()
                                                     await manager.broadcast_user_list()
                                                     for ws_client, info in manager.clients.items():
                                                         if info["id"] in revoked_ids:
@@ -447,12 +428,11 @@ async def websocket_endpoint(
                                                 if role == "admin":
                                                     if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                     if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
-                                        except DowngradeException as de:
-                                            raise de 
+                                        except DowngradeException as de: raise de 
                                         except: pass
                         except websockets.exceptions.ConnectionClosed: pass
                         except DowngradeException as de: raise de
-                        except Exception as e: print(f"🚨 Sender 에러: {e}", flush=True)
+                        except Exception: pass
 
                     async def receiver():
                         current_msg_id = secrets.token_hex(4)
@@ -462,31 +442,22 @@ async def websocket_endpoint(
                                 text = msg["text"]
                                 raw_lid = msg["lid"]
                                 
-                                if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
-                                    manager.set_floor(client_id)
-                                if role != "admin" and manager.floor_owner != client_id:
-                                    continue
+                                if manager.floor_owner is None and not manager.is_admin_muted and role != "admin": manager.set_floor(client_id)
+                                if role != "admin" and manager.floor_owner != client_id: continue
 
                                 if text:
                                     current_targets_list = manager.global_targets.split(',')
                                     tag = f"[{name}] "
-                                    
                                     if msg["type"] == "interim":
-                                        await manager.broadcast_json({
-                                            "type": "interim", 
-                                            "text": tag + text,
-                                            "targets": current_targets_list,
-                                            "msg_id": current_msg_id
-                                        })
+                                        await manager.broadcast_json({"type": "interim", "text": tag + text, "targets": current_targets_list, "msg_id": current_msg_id})
                                     elif msg["type"] == "final":
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         detected_lang = raw_lid[:2] if raw_lid != "unknown" else "multi_azure"
                                         asyncio.create_task(translate_and_send(text, detected_lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
                                         current_msg_id = secrets.token_hex(4)
-                        except Exception as e: print(f"🚨 Receiver 에러: {e}", flush=True)
+                        except Exception: pass
 
-                    try:
-                        await asyncio.gather(sender(), receiver())
+                    try: await asyncio.gather(sender(), receiver())
                     except DowngradeException:
                         recognizer.stop_continuous_recognition_async()
                         push_stream.close()
@@ -504,17 +475,14 @@ async def websocket_endpoint(
                     if glossary:
                         extracted_words = re.findall(r'^([^=:-]+)', glossary, re.MULTILINE)
                         clean_words = [w.strip() for w in extracted_words if w.strip()]
-                        if clean_words:
-                            keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
+                        if clean_words: keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
 
                     dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}"
                     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
                     ws_kwargs = {}
-                    if int(websockets.__version__.split('.')[0]) >= 14:
-                        ws_kwargs["additional_headers"] = headers
-                    else:
-                        ws_kwargs["extra_headers"] = headers
+                    if int(websockets.__version__.split('.')[0]) >= 14: ws_kwargs["additional_headers"] = headers
+                    else: ws_kwargs["extra_headers"] = headers
 
                     async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
                         await manager.broadcast_json({"type": "status", "text": "🚀 단일 언어 집중 모드 가동 중..."})
@@ -527,15 +495,11 @@ async def websocket_endpoint(
                                         if data.get("bytes") is not None:
                                             if role == "admin" or (not manager.is_admin_muted and (manager.floor_owner is None or manager.floor_owner == client_id)):
                                                 await dg_ws.send(data.get("bytes"))
-                                                
                                         elif data.get("text") is not None:
                                             try:
                                                 msg = json.loads(data.get("text"))
                                                 msg_type = msg.get("type")
-                                                
-                                                if msg_type == "downgrade_to_viewer":
-                                                    raise DowngradeException()
-
+                                                if msg_type == "downgrade_to_viewer": raise DowngradeException()
                                                 if msg_type == "admin_action" and role == "admin":
                                                     action = msg.get("action")
                                                     if action == "approve":
@@ -555,8 +519,7 @@ async def websocket_endpoint(
                                                     elif action == "revoke":
                                                         tid = msg.get("target_id")
                                                         manager.speaking_allowed_clients.discard(tid)
-                                                        if manager.floor_owner == tid:
-                                                            manager.release_floor()
+                                                        if manager.floor_owner == tid: manager.release_floor()
                                                         await manager.broadcast_user_list()
                                                         for ws_client, info in manager.clients.items():
                                                             if info["id"] == tid:
@@ -565,8 +528,7 @@ async def websocket_endpoint(
                                                     elif action == "revoke_all_viewers":
                                                         revoked_ids = list(manager.speaking_allowed_clients)
                                                         manager.speaking_allowed_clients.clear()
-                                                        if manager.floor_owner in revoked_ids:
-                                                            manager.release_floor()
+                                                        if manager.floor_owner in revoked_ids: manager.release_floor()
                                                         await manager.broadcast_user_list()
                                                         for ws_client, info in manager.clients.items():
                                                             if info["id"] in revoked_ids:
@@ -582,13 +544,11 @@ async def websocket_endpoint(
                                                     if role == "admin":
                                                         if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                         if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
-                                            except DowngradeException as de:
-                                                raise de 
+                                            except DowngradeException as de: raise de 
                                             except: pass
                             except websockets.exceptions.ConnectionClosed: pass
-                            except DowngradeException as de:
-                                raise de
-                            except Exception as e: print(f"🚨 Sender 에러: {e}", flush=True)
+                            except DowngradeException as de: raise de
+                            except Exception: pass
 
                         async def receiver():
                             current_sentence = ""
@@ -598,30 +558,20 @@ async def websocket_endpoint(
                                 while True:
                                     dg_result = await dg_ws.recv()
                                     dg_json = json.loads(dg_result)
-                                    
                                     if dg_json.get("type") == "Results":
                                         is_final = dg_json.get("is_final", False)
                                         speech_final = dg_json.get("speech_final", False)
                                         transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
                                         
                                         if transcript:
-                                            if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
-                                                manager.set_floor(client_id)
-                                            if role != "admin" and manager.floor_owner != client_id:
-                                                continue
+                                            if manager.floor_owner is None and not manager.is_admin_muted and role != "admin": manager.set_floor(client_id)
+                                            if role != "admin" and manager.floor_owner != client_id: continue
 
                                         if transcript or current_sentence:
                                             display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
-                                            
                                             current_targets_list = manager.global_targets.split(',')
                                             tag = f"[{name}] "
-                                            
-                                            await manager.broadcast_json({
-                                                "type": "interim", 
-                                                "text": tag + display_text.strip(),
-                                                "targets": current_targets_list,
-                                                "msg_id": current_msg_id
-                                            })
+                                            await manager.broadcast_json({"type": "interim", "text": tag + display_text.strip(), "targets": current_targets_list, "msg_id": current_msg_id})
 
                                         if is_final and transcript:
                                             if current_sentence: current_sentence += " " + transcript
@@ -631,36 +581,30 @@ async def websocket_endpoint(
 
                                         if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
                                             final_text = current_sentence.strip()
-                                            
                                             if final_text != last_translated_text:
                                                 last_translated_text = final_text
                                                 await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                                
                                                 asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
-                                            
                                             current_sentence = ""
                                             current_msg_id = secrets.token_hex(4)
                             except websockets.exceptions.ConnectionClosed: pass
-                            except Exception as e: print(f"🚨 Receiver 에러: {e}", flush=True)
+                            except Exception: pass
 
-                        try:
-                            await asyncio.gather(sender(), receiver())
+                        try: await asyncio.gather(sender(), receiver())
                         except DowngradeException:
                             manager.speaking_allowed_clients.discard(client_id)
-                            if manager.floor_owner == client_id:
-                                manager.release_floor()
+                            if manager.floor_owner == client_id: manager.release_floor()
                             await manager.broadcast_user_list()
                             continue 
                 break 
     except websockets.exceptions.ConnectionClosed: pass
-    except Exception as e: print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
+    except Exception as e: print(f"🚨 전체 웹소켓 에러: {e}", flush=True)
     finally: await manager.disconnect(websocket)
 
 if __name__ == "__main__":
     import multiprocessing
     import uvicorn
     multiprocessing.freeze_support()
-    
     port = int(os.environ.get("PORT", 10000))
     print(f"🚀 실시간 글로벌 통역 서버를 시작합니다... (Port: {port})")
     uvicorn.run(app, host="0.0.0.0", port=port)
