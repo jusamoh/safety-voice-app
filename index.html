@@ -702,14 +702,14 @@
                 const opt = document.createElement('option');
                 opt.value = lang;
                 const langDisplayName = langNames[lang] || lang;
-                opt.innerText = `🚀 단일 언어 발표 모드 (${langDisplayName} 고정 / Deepgram)`;
+                opt.innerText = `🚀 단일 언어 발표 모드 (${langDisplayName} 고정)`;
                 speakerLangSelect.appendChild(opt);
             });
 
             // 2. 다국어 자유 토론 모드 옵션 추가
             const multiOpt = document.createElement('option');
             multiOpt.value = "multi_azure";
-            multiOpt.innerText = `🌍 다국어 자유 토론 모드 (${checkedLangs.length}개국 자동 식별 / Azure)`;
+            multiOpt.innerText = `🌍 다국어 자유 토론 모드 (${checkedLangs.length}개국 자동 식별)`;
             speakerLangSelect.appendChild(multiOpt);
 
             // 3. 기존에 선택했던 값이 새 리스트에 있다면 유지, 없으면 'ko'로
