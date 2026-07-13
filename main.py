@@ -100,7 +100,8 @@ class ConnectionManager:
             "is_admin_muted": self.is_admin_muted
         })
 
-    def disconnect(self, websocket: WebSocket):
+    # 비동기 처리로 전환하여 브로드캐스트 대기 보장
+    async def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
         
@@ -113,9 +114,9 @@ class ConnectionManager:
                 self.floor_owner = None
             del self.clients[websocket]
             
-        asyncio.create_task(self.broadcast_admin_state())
-        asyncio.create_task(self.broadcast_floor_state())
-        asyncio.create_task(self.broadcast_user_list())
+        await self.broadcast_admin_state()
+        await self.broadcast_floor_state()
+        await self.broadcast_user_list()
 
     async def broadcast_user_list(self):
         users = []
@@ -661,7 +662,8 @@ async def websocket_endpoint(
                 break 
     except websockets.exceptions.ConnectionClosed: pass
     except Exception as e: print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
-    finally: manager.disconnect(websocket)
+    # await 키워드 추가로 강제 대기
+    finally: await manager.disconnect(websocket)
 
 if __name__ == "__main__":
     import multiprocessing
