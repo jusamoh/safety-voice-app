@@ -100,7 +100,6 @@ class ConnectionManager:
             "is_admin_muted": self.is_admin_muted
         })
 
-    # 비동기 처리로 전환하여 브로드캐스트 대기 보장
     async def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
@@ -203,7 +202,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🌟 극강의 정확도를 위한 토목/관로 엔지니어링 특화 프롬프트
         system_prompt = f"""You are an elite simultaneous interpreter for an international civil engineering expert seminar involving Korea, China, Japan, and the US.
 Domain focus: Horizontal Directional Drilling (HDD), Ground Penetrating Radar (GPR), small underground pipeline 3D mapping, and multi-jointed robot technologies.
 
@@ -289,7 +287,8 @@ clean current sentence
         await manager.broadcast_json({"type": "status", "text": "❌ 번역 실패 (재시도 중)"})
     
     finally:
-        await manager.broadcast_json({"type": "sentence_complete"})
+        # 🌟 핵심 수정: sentence_complete 신호에 어떤 문장이 끝났는지 msg_id를 포함시킴
+        await manager.broadcast_json({"type": "sentence_complete", "msg_id": msg_id})
         manager.release_floor()
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
 
@@ -343,13 +342,9 @@ async def websocket_endpoint(
                                     break 
                         except: pass
             else:
-                # ==================================================
-                # 🌟 하이브리드 엔진 분기점
-                # ==================================================
                 engine_mode = "azure" if lang == "multi_azure" else "deepgram"
                 
                 if engine_mode == "azure":
-                    # --- [다국어 토론 모드] ---
                     if not AZURE_SPEECH_KEY:
                         await websocket.send_json({"type": "status", "text": "❌ 엔진 API Key가 설정되지 않았습니다."})
                         raise Exception("Azure key missing")
@@ -387,7 +382,6 @@ async def websocket_endpoint(
                     recognizer.recognized.connect(recognized_cb)
                     recognizer.start_continuous_recognition_async()
                     
-                    # 보안 수정: 화면 표출 텍스트 변경
                     await manager.broadcast_json({"type": "status", "text": "🌐 다국어 자동 식별 모드 가동 중..."})
 
                     async def sender():
@@ -505,7 +499,6 @@ async def websocket_endpoint(
                         push_stream.close()
                         
                 else:
-                    # --- [단일 언어 발표 모드] ---
                     dg_lang = lang
                     keywords_param = ""
                     if glossary:
@@ -524,7 +517,6 @@ async def websocket_endpoint(
                         ws_kwargs["extra_headers"] = headers
 
                     async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
-                        # 보안 수정: 화면 표출 텍스트 변경
                         await manager.broadcast_json({"type": "status", "text": "🚀 단일 언어 집중 모드 가동 중..."})
                         
                         async def sender():
@@ -662,7 +654,6 @@ async def websocket_endpoint(
                 break 
     except websockets.exceptions.ConnectionClosed: pass
     except Exception as e: print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
-    # await 키워드 추가로 강제 대기
     finally: await manager.disconnect(websocket)
 
 if __name__ == "__main__":
@@ -670,8 +661,6 @@ if __name__ == "__main__":
     import uvicorn
     multiprocessing.freeze_support()
     
-    # Render가 부여하는 동적 포트를 읽고, 없을 경우에만 10000을 사용하도록 수정
     port = int(os.environ.get("PORT", 10000))
-    
     print(f"🚀 실시간 글로벌 통역 서버를 시작합니다... (Port: {port})")
     uvicorn.run(app, host="0.0.0.0", port=port)

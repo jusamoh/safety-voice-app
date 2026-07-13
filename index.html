@@ -84,10 +84,10 @@
 
         .dictation-box { font-size: 20px; color: #fbbc04; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; flex: 1;}
         
-        /* 🌟 새로 추가된 마이크 장치 선택 드롭다운 스타일 */
-        .mic-controls { display: flex; align-items: center; gap: 10px; justify-content: flex-end; flex-wrap: wrap;}
-        .mic-select-dropdown { padding: 10px 15px; border-radius: 10px; border: 1px solid #5f6368; background: #202124; color: white; font-size: 14px; font-weight: 600; outline: none; max-width: 200px; text-overflow: ellipsis; cursor: pointer; }
+        .mic-controls { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap;}
+        .mic-select-dropdown { padding: 10px; border-radius: 10px; border: 1px solid #5f6368; background: #202124; color: white; font-size: 14px; font-weight: 600; outline: none; max-width: 180px; text-overflow: ellipsis; cursor: pointer; }
         .mic-select-dropdown:focus { border-color: var(--primary); }
+        .lang-mapping-dropdown { padding: 10px; border-radius: 10px; border: 1px solid var(--primary); background: var(--primary); color: white; font-size: 14px; font-weight: 700; outline: none; cursor: pointer; }
 
         .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
         .req-item { display: flex; justify-content: space-between; align-items: center; background: #fdfdfd; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; font-weight: 600; }
@@ -168,7 +168,7 @@
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 90%; }
         #qrcode { margin: 30px auto; display: flex; justify-content: center; }
-
+        
         @media (max-width: 768px) {
             .navbar { flex-direction: column; padding: 15px; gap: 15px; text-align: center; }
             .nav-actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
@@ -184,7 +184,6 @@
 <body>
 <div id="toast"></div>
 
-<!-- 로그인 화면 -->
 <div id="loginOverlay">
     <div class="login-box">
         <h2>🚀 AI 통역 콘솔</h2>
@@ -197,7 +196,6 @@
     </div>
 </div>
 
-<!-- 방장용 초기 설정 화면 -->
 <div id="adminSetupOverlay" style="display: none;">
     <div class="login-box">
         <h2 style="color: var(--primary);">⚙️ 회의 기본 설정</h2>
@@ -219,7 +217,6 @@
     </div>
 </div>
 
-<!-- 참석자(QR) 입장 화면 -->
 <div id="joinOverlay" style="display: none;">
     <div class="login-box">
         <h2 id="joinTitle" style="color: var(--warning);">👋 환영합니다</h2>
@@ -250,7 +247,6 @@
         </div>
     </nav>
 
-    <!-- 모바일 탑바 -->
     <div id="viewerTopBar">
         <div class="modern-topbar-container">
             <select id="viewerLangSelect" class="modern-select" onchange="filterViewerWindows()">
@@ -328,7 +324,6 @@
         </div>
     </div>
 
-    <!-- 🌟 방송 컨트롤 바 (마이크 선택 기능 추가) -->
     <div class="status-banner" id="statusBanner">
         <div class="status-text">
             <span id="statusIndicator" class="status-dot"></span>
@@ -336,11 +331,11 @@
         </div>
         <div id="liveDictation" class="dictation-box"></div>
         <div class="mic-controls">
-            <!-- 🌟 하드웨어 물리 마이크 채널 선택 드롭다운 -->
+            <select id="directMicLangSelect" class="lang-mapping-dropdown" title="이 마이크의 언어를 확정합니다"></select>
             <select id="audioInputSelect" class="mic-select-dropdown" title="오디오 인터페이스 채널 지정">
                 <option value="default">기본 마이크</option>
             </select>
-            <button id="speakerBtn" class="btn-danger btn-icon" style="background: #fff; color: var(--danger); font-size: 16px; padding: 12px 25px;" onclick="toggleConnection('admin')">🎙️ 현장 마이크 켜기</button>
+            <button id="speakerBtn" class="btn-danger btn-icon" style="background: #fff; color: var(--danger); font-size: 16px; padding: 12px 20px;" onclick="toggleConnection('admin')">🎙️ 현장 마이크 켜기</button>
         </div>
     </div>
 
@@ -395,7 +390,18 @@
         }
     });
 
-    // 🌟 오디오 인터페이스 하드웨어 장치 목록(채널)을 불러오는 함수
+    // 🌟 프로젝터 모드 함수 추가 (이슈 1 해결)
+    function toggleProjectorMode() {
+        document.body.classList.add('projector-mode');
+        updateWindows(); 
+        showToast("📽️ 빔 프로젝터 모드가 실행되었습니다. (우측 상단 버튼으로 대시보드 복귀)");
+    }
+
+    function exitProjectorMode() {
+        document.body.classList.remove('projector-mode');
+        updateWindows(); 
+    }
+
     async function getMicrophones() {
         try {
             await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -455,6 +461,7 @@
         const joinLangSelect = document.getElementById('joinLangSelect');
         const viewerSelect = document.getElementById('viewerLangSelect');
         const adminLangSelect = document.getElementById('adminLangSelect');
+        const directMicLangSelect = document.getElementById('directMicLangSelect'); 
 
         Object.keys(langNames).forEach(code => {
             if (!['ko'].includes(code) && selectExtra) {
@@ -476,6 +483,11 @@
                 const adminOpt = document.createElement('option');
                 adminOpt.value = code; adminOpt.innerText = langNames[code];
                 adminLangSelect.appendChild(adminOpt);
+            }
+            if (directMicLangSelect && !directMicLangSelect.querySelector(`option[value="${code}"]`)) {
+                const directOpt = document.createElement('option');
+                directOpt.value = code; directOpt.innerText = langNames[code];
+                directMicLangSelect.appendChild(directOpt);
             }
         });
     });
@@ -540,6 +552,8 @@
         if (!englishName) return showToast("방장 영문 발음을 입력해주세요.", true);
         
         document.getElementById('viewerLangSelect').value = adminLang;
+        document.getElementById('directMicLangSelect').value = adminLang; 
+        
         meetingTitle = title;
         clientName = `${nativeName} (${englishName})`;
         
@@ -556,9 +570,7 @@
         document.getElementById('userBadge').innerText = clientName;
         updateWindows(); 
         
-        // 🌟 콘솔 진입 즉시 마이크 장치 목록 동기화
         getMicrophones();
-        
         showToast(`[${meetingTitle}] 회의를 시작합니다.`);
         requestWakeLock();
     }
@@ -860,7 +872,6 @@
         }
 
         try {
-            // 🌟 모바일 참석자의 마이크 스트림 활성화
             stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
             mediaRecorder.ondataavailable = (e) => {
@@ -1080,8 +1091,13 @@
 
                 let spkLang = 'ko';
                 if (isHost) {
-                    const sl = document.getElementById('speakerLang');
-                    if (sl && sl.value) spkLang = sl.value;
+                    const directLang = document.getElementById('directMicLangSelect');
+                    if (directLang && directLang.value) {
+                        spkLang = directLang.value;
+                    } else {
+                        const sl = document.getElementById('speakerLang');
+                        if (sl && sl.value) spkLang = sl.value;
+                    }
                 } else {
                     const vl = document.getElementById('viewerLangSelect');
                     if (vl && vl.value) spkLang = vl.value;
@@ -1108,7 +1124,6 @@
                             speakerBtn.classList.add('active');
                         }
                         
-                        // 🌟 지정된 하드웨어 마이크(오디오 채널) 매핑 로직
                         const audioSelect = document.getElementById('audioInputSelect');
                         const deviceId = audioSelect ? audioSelect.value : 'default';
                         const audioConstraints = { noiseSuppression: true, echoCancellation: true };
@@ -1258,8 +1273,10 @@
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
                     else if (res.type === "sentence_complete") {
-                        if (currentSentenceId && currentTranscriptData[currentSentenceId]) {
-                            const data = currentTranscriptData[currentSentenceId];
+                        // 🌟 핵심 수정: msg_id 기반으로 회의록을 저장하여 꼬임 방지 (이슈 2 해결)
+                        const targetId = res.msg_id || currentSentenceId;
+                        if (targetId && currentTranscriptData[targetId]) {
+                            const data = currentTranscriptData[targetId];
                             let roleStr = "청취자 (발언권 획득)";
                             let iconStr = "🎙️";
                             if (data.role === 'admin') { roleStr = "사회자 (방장)"; iconStr = "👑"; }
@@ -1278,14 +1295,16 @@
                             
                             transcriptLog += logEntry;
                             localStorage.setItem("savedTranscript", transcriptLog);
-                            delete currentTranscriptData[currentSentenceId];
+                            delete currentTranscriptData[targetId];
                         }
                         
-                        currentSentenceId = null;
-                        document.getElementById('liveDictation').innerText = "";
-                        const mobBox = document.getElementById('mobileDictationBox');
-                        const mobText = document.getElementById('mobileDictationText');
-                        if (mobBox && mobText) { mobText.innerText = "대기 중..."; mobBox.style.display = 'none'; }
+                        if (targetId === currentSentenceId || !res.msg_id) {
+                            currentSentenceId = null;
+                            document.getElementById('liveDictation').innerText = "";
+                            const mobBox = document.getElementById('mobileDictationBox');
+                            const mobText = document.getElementById('mobileDictationText');
+                            if (mobBox && mobText) { mobText.innerText = "대기 중..."; mobBox.style.display = 'none'; }
+                        }
                     }
                 };
                 
