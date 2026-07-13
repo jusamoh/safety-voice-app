@@ -19,24 +19,26 @@
             --text-main: #202124;
             --text-muted: #5f6368;
         }
-        /* 🌟 전체 폰트 기본 크기 상향 조정 */
         html { font-size: 17px; }
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         body { background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); transition: background-color 0.3s ease; }
         
-        #loginOverlay, #adminSetupOverlay, #joinOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(32, 33, 36, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(8px); }
+        #loginOverlay, #adminSetupOverlay, #joinOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(32, 33, 36, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(8px); overflow-y: auto;}
         
-        .login-box { background: var(--card-bg); padding: 45px 30px; border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); width: 90%; max-width: 420px; text-align: center; }
+        .login-box { background: var(--card-bg); padding: 45px 30px; border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); width: 90%; max-width: 420px; text-align: center; margin: auto;}
         .login-box h2 { margin-top: 0; color: var(--text-main); margin-bottom: 15px; font-weight: 800; font-size: 26px; }
         .login-box p.subtitle { color: var(--text-muted); font-size: 16px; margin-bottom: 35px; }
         
-        .login-box label { font-weight: 700; font-size: 15px; color: #3c4043; display: block; margin-bottom: 10px; text-align: left; }
-        .login-input { width: 100%; padding: 18px; margin-bottom: 25px; background: #f1f3f4; border: 2px solid transparent; color: #202124; border-radius: 16px; font-size: 17px; outline: none; transition: all 0.2s ease;}
+        .login-box label { font-weight: 700; font-size: 14.5px; color: #3c4043; display: block; margin-bottom: 8px; text-align: left; }
+        .login-input { width: 100%; padding: 16px; margin-bottom: 22px; background: #f1f3f4; border: 2px solid transparent; color: #202124; border-radius: 16px; font-size: 16px; outline: none; transition: all 0.2s ease; appearance: auto;}
         .login-input:focus { background: #fff; border-color: var(--primary); }
         
         .login-btn { background-color: var(--primary); color: white; border: none; padding: 18px; width: 100%; border-radius: 16px; font-size: 18px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; }
         .login-btn:hover:not(:disabled) { background-color: var(--primary-hover); }
         .login-btn:disabled { background-color: #e0e0e0; cursor: not-allowed; }
+
+        @keyframes slideDownFade { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in-anim { animation: slideDownFade 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
         #toast { visibility: hidden; min-width: 280px; background-color: #333; color: #fff; text-align: center; border-radius: 12px; padding: 18px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 16px; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
@@ -50,7 +52,6 @@
         .dashboard-layout { max-width: 1400px; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
         .card { background: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
         .card-header { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--bg-color); padding-bottom: 15px;}
-        .card-header span { font-size: 20px; }
         
         label.form-label { font-weight: 600; font-size: 14px; color: var(--text-muted); display: block; margin-bottom: 8px; }
         select.styled-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 15px; outline: none; background: #fafafa; cursor: pointer; }
@@ -61,18 +62,15 @@
         .lang-chip:has(input:checked) { background: #e8f0fe; border-color: var(--primary); color: var(--primary); font-weight: 700; box-shadow: 0 2px 6px rgba(26,115,232,0.2);}
         
         .add-lang-wrapper { display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 10px; border-radius: 8px; }
-        
         .slider-wrapper { display: flex; flex-direction: column; gap: 5px; background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid var(--border);}
         .slider-header { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); font-weight: 600;}
         .slider-val { color: var(--primary); font-weight: 700; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: var(--primary); }
-        
         textarea.styled-textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; resize: vertical; min-height: 80px; background: #fafafa; }
         
         .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 16px; }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 14px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 16px; }
         .btn-outline { background: transparent; border: 1px solid var(--border); padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 15px; }
-        .btn-icon { display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-full { width: 100%; padding: 12px; font-size: 15px; }
 
         .admin-mute-btn { opacity: 0.4; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(80%); }
@@ -85,7 +83,6 @@
         @keyframes blink { 50% { opacity: 0.4; } }
 
         .dictation-box { font-size: 20px; color: #fbbc04; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
-
         .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
         .req-item { display: flex; justify-content: space-between; align-items: center; background: #fdfdfd; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; font-weight: 600; }
         .req-actions { display: flex; gap: 5px; }
@@ -105,7 +102,6 @@
         .original-text { font-size: 14px; color: var(--text-muted); display: block; margin-bottom: 4px; }
         .same-lang-text { color: var(--text-main); font-weight: 700; font-size: 20px; display: block; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #f1f3f4; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); font-weight: 600; }
-        .tts-btn:hover { background: #e8eaed; }
 
         body.viewer-mode, body.speaker-mode { background-color: #000; color: #fff; padding: 0; }
         body.viewer-mode .navbar, body.speaker-mode .navbar, 
@@ -120,20 +116,16 @@
         body.viewer-mode .original-text, body.speaker-mode .original-text { color: #aaa; font-size: 15px; }
         body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #333; }
         
+        /* 🌟 터치 친화적 대칭형 탑바 */
         #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: rgba(18, 18, 20, 0.95); padding: 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; justify-content: center; }
         .modern-topbar-container { display: flex; width: 100%; max-width: 600px; gap: 10px; align-items: center; }
         .modern-select { background: rgba(255,255,255,0.1); border: none; color: white; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 16px; flex: 2; outline: none; appearance: none; text-align: center; }
-        .modern-exit-btn { background: rgba(217, 48, 37, 0.2); border: 1px solid rgba(217, 48, 37, 0.4); border-radius: 12px; padding: 12px 18px; color: #ff8a80; font-weight: 700; font-size: 15px; cursor: pointer; flex: 1; white-space: nowrap; }
+        .modern-exit-btn { background: rgba(217, 48, 37, 0.2); border: 1px solid rgba(217, 48, 37, 0.4); border-radius: 12px; padding: 12px 18px; color: #ff8a80; font-weight: 700; font-size: 15px; cursor: pointer; flex: 1; white-space: nowrap; text-align: center;}
 
         body.projector-mode { background-color: #000; color: #fff; padding: 0; height: 100vh; overflow: hidden; }
-        body.projector-mode .navbar, 
-        body.projector-mode .dashboard-layout, 
-        body.projector-mode .status-banner, 
-        body.projector-mode #viewerTopBar, 
-        body.projector-mode #mobileDictationBox, 
-        body.projector-mode #requestSpeakBtn, 
-        body.projector-mode #mobileMuteBtn { display: none !important; }
+        body.projector-mode .navbar, body.projector-mode .dashboard-layout, body.projector-mode .status-banner, 
+        body.projector-mode #viewerTopBar, body.projector-mode #mobileDictationBox, body.projector-mode #requestSpeakBtn, body.projector-mode #mobileMuteBtn { display: none !important; }
         
         body.projector-mode .window-container { max-width: 100%; padding: 20px; gap: 20px; height: 100vh; display: grid; align-content: center;}
         body.projector-mode .window { border: 1px solid #333; border-radius: 16px; background: #111; height: auto; min-height: 400px; max-height: 90vh; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
@@ -159,6 +151,7 @@
         .mobile-dictation-title { font-size: 12px; color: #ccc; margin-bottom: 4px; }
         .mobile-dictation-text { font-size: 16px; word-break: keep-all; }
 
+        /* 🌟 하단 플로팅 액션 버튼 */
         #mobileMuteBtn, #activeMicBtn, #requestSpeakBtn { display: none; position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 450px; border-radius: 20px; padding: 22px; font-weight: 900; font-size: 18px; text-align: center; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000; cursor: pointer; }
         #mobileMuteBtn { background: rgba(217, 48, 37, 0.95); color: white; border: 1px solid rgba(255,255,255,0.1); }
         #mobileMuteBtn.muted { background: rgba(95, 99, 104, 0.95); color: #e8eaed; border-color: transparent;}
@@ -171,7 +164,6 @@
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 90%; }
         #qrcode { margin: 30px auto; display: flex; justify-content: center; }
-
         .slider-group { display: flex; gap: 15px; }
 
         @media (max-width: 768px) {
@@ -189,6 +181,7 @@
 <body>
 <div id="toast"></div>
 
+<!-- 🌟 로그인 화면 -->
 <div id="loginOverlay">
     <div class="login-box">
         <h2>🚀 AI 통역 콘솔</h2>
@@ -201,20 +194,29 @@
     </div>
 </div>
 
+<!-- 🌟 방장용 초기 설정 화면 (방장 언어 선택 추가) -->
 <div id="adminSetupOverlay" style="display: none;">
     <div class="login-box">
         <h2 style="color: var(--primary);">⚙️ 회의 기본 설정</h2>
-        <p class="subtitle">기록을 위해 정보를 입력해주세요.</p>
-        <label>회의 제목</label>
+        <p class="subtitle">시스템 최적화를 위해 정보를 입력해주세요.</p>
+        
+        <label>1. 방장 언어 선택 (Admin Lang)</label>
+        <select id="adminLangSelect" class="login-input">
+            <option value="" disabled selected>언어를 선택하세요</option>
+        </select>
+        
+        <label>2. 회의 제목 (Title)</label>
         <input type="text" id="adminMeetingTitleInput" class="login-input" placeholder="회의명 입력">
-        <label>방장 이름</label>
+        <label>3. 방장 이름 (Native Name)</label>
         <input type="text" id="adminNativeNameInput" class="login-input" placeholder="홍길동 소장">
-        <label>영문 발음</label>
+        <label>4. 영문 발음 (English Name)</label>
         <input type="text" id="adminEnglishNameInput" class="login-input" placeholder="Hong" onkeyup="if(event.key==='Enter') startAdminMeeting()">
+        
         <button class="login-btn" onclick="startAdminMeeting()">회의 시작하기</button>
     </div>
 </div>
 
+<!-- 🌟 참석자(QR) 입장 화면 -->
 <div id="joinOverlay" style="display: none;">
     <div class="login-box">
         <h2 id="joinTitle" style="color: var(--warning);">👋 환영합니다</h2>
@@ -235,7 +237,7 @@
 
 <div id="appContainer">
     <nav class="navbar">
-        <div class="nav-brand">🌍 글로벌 전문가 학술대회 통역 콘솔</div>
+        <div class="nav-brand">🌍 학술대회 통역 콘솔</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
             <button id="projectorBtn" class="btn-outline" onclick="toggleProjectorMode()">📽️ 빔 프로젝터 모드</button>
@@ -245,6 +247,7 @@
         </div>
     </nav>
 
+    <!-- 🌟 모바일 대칭형 탑바 (나가기 포함) -->
     <div id="viewerTopBar">
         <div class="modern-topbar-container">
             <select id="viewerLangSelect" class="modern-select" onchange="filterViewerWindows()">
@@ -404,6 +407,7 @@
         const selectExtra = document.getElementById('extraLangSelect');
         const joinLangSelect = document.getElementById('joinLangSelect');
         const viewerSelect = document.getElementById('viewerLangSelect');
+        const adminLangSelect = document.getElementById('adminLangSelect'); // 🌟 방장 언어 선택 추가
 
         Object.keys(langNames).forEach(code => {
             if (!['ko'].includes(code) && selectExtra) {
@@ -420,6 +424,11 @@
                 const viewOpt = document.createElement('option');
                 viewOpt.value = code; viewOpt.innerText = langNames[code];
                 viewerSelect.appendChild(viewOpt);
+            }
+            if (adminLangSelect && !adminLangSelect.querySelector(`option[value="${code}"]`)) {
+                const adminOpt = document.createElement('option');
+                adminOpt.value = code; adminOpt.innerText = langNames[code];
+                adminLangSelect.appendChild(adminOpt);
             }
         });
     });
@@ -446,29 +455,76 @@
         }
     } 
 
-    let isAutoTTS = false;
-    function toggleAutoTTS() {
-        const checkbox = document.getElementById('autoTTSCheckbox');
-        isAutoTTS = checkbox.checked;
-        if(isAutoTTS) {
-            showToast("🔊 자동 읽기 모드가 켜졌습니다. 이어폰을 착용해주세요.");
-            const unlockMsg = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(unlockMsg);
-        } else {
-            showToast("🔇 자동 읽기 모드가 꺼졌습니다.");
-            window.speechSynthesis.cancel();
+    async function attemptLogin() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await res.json();
+            if (data.success) {
+                authToken = data.token;
+                // ✨ 보안: 로그인 성공 시 비밀번호 입력창 지우기
+                document.getElementById('password').value = '';
+                
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('adminSetupOverlay').style.display = 'flex';
+                document.getElementById('adminMeetingTitleInput').focus();
+                if(localStorage.getItem("savedMeetingTitle")) {
+                     document.getElementById('adminMeetingTitleInput').value = localStorage.getItem("savedMeetingTitle");
+                }
+            } else {
+                showToast(data.message, true);
+            }
+        } catch (e) { showToast("서버와 연결할 수 없습니다.", true); }
+    }
+
+    function startAdminMeeting() {
+        const adminLang = document.getElementById('adminLangSelect').value; // 🌟 방장 설정 언어 확인
+        const title = document.getElementById('adminMeetingTitleInput').value.trim();
+        const nativeName = document.getElementById('adminNativeNameInput').value.trim();
+        const englishName = document.getElementById('adminEnglishNameInput').value.trim();
+        
+        if (!adminLang) return showToast("방장 언어를 먼저 선택해주세요.", true);
+        if (!title) return showToast("회의 제목을 입력해주세요.", true);
+        if (!nativeName) return showToast("방장 모국어 이름을 입력해주세요.", true);
+        if (!englishName) return showToast("방장 영문 발음을 입력해주세요.", true);
+        
+        // 🌟 방장의 기본 언어 적용
+        document.getElementById('viewerLangSelect').value = adminLang;
+        meetingTitle = title;
+        clientName = `${nativeName} (${englishName})`;
+        
+        localStorage.setItem("savedMeetingTitle", meetingTitle);
+        
+        if (!transcriptLog) {
+            const dateStr = new Date().toISOString().slice(0, 10);
+            transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
+            localStorage.setItem("savedTranscript", transcriptLog);
         }
+        
+        document.getElementById('adminSetupOverlay').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('userBadge').innerText = clientName;
+        updateWindows(); // 방장 언어 기반으로 드롭다운 즉시 반영
+        showToast(`[${meetingTitle}] 회의를 시작합니다.`);
     }
 
-    function toggleProjectorMode() {
-        document.body.classList.add('projector-mode');
-        updateWindows(); 
-        showToast("📽️ 빔 프로젝터 모드가 실행되었습니다. (우측 상단 버튼으로 대시보드 복귀)");
-    }
-
-    function exitProjectorMode() {
-        document.body.classList.remove('projector-mode');
-        updateWindows(); 
+    // ✨ 보안: 로그아웃 시 비밀번호 창 초기화 포함
+    function logout() { 
+        if (transcriptLog && transcriptLog.split('\n').length > 3) {
+            downloadTranscript(); 
+            showToast("회의가 종료되어 기록이 자동으로 저장되었습니다.");
+        }
+        const pwdInput = document.getElementById('password');
+        if(pwdInput) pwdInput.value = '';
+        
+        setTimeout(() => {
+            window.location.reload();
+        }, 800);
     }
 
     function checkJoinForm() {
@@ -639,6 +695,7 @@
         }
     }
 
+    // 🌟 방장 언어 기반 엔진 옵션 동기화
     function updateWindows() {
         if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
             if (!isHost) { filterViewerWindows(); return; }
@@ -659,119 +716,28 @@
             const currentVal = speakerLangSelect.value;
             speakerLangSelect.innerHTML = ''; 
 
-            checkedLangs.forEach(lang => {
-                const opt = document.createElement('option');
-                opt.value = lang;
-                const langDisplayName = langNames[lang] || lang;
-                opt.innerText = `🚀 단일 언어 발표 모드 (${langDisplayName} 고정)`;
-                speakerLangSelect.appendChild(opt);
-            });
+            const adminLang = document.getElementById('viewerLangSelect').value || 'ko';
 
+            // 🌟 1. 방장 확정 언어 (초고속 모드)
+            const optAdmin = document.createElement('option');
+            optAdmin.value = adminLang;
+            optAdmin.innerText = `🚀 방장 언어 고정 (${langNames[adminLang]}) - 초고속 인식`;
+            speakerLangSelect.appendChild(optAdmin);
+
+            // 🌟 2. 미확정자 다국어 탐색 모드
             const multiOpt = document.createElement('option');
             multiOpt.value = "multi_azure";
-            multiOpt.innerText = `🌍 다국어 자유 토론 모드 (${checkedLangs.length}개국 자동 식별)`;
+            multiOpt.innerText = `🌍 언어 미확정자 자동 탐색 (다국어 식별 모드)`;
             speakerLangSelect.appendChild(multiOpt);
 
-            if (speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) {
+            if (currentVal && speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) {
                 speakerLangSelect.value = currentVal;
             } else {
-                speakerLangSelect.value = "ko";
+                speakerLangSelect.value = adminLang;
             }
         }
 
         sendConfigUpdate();
-    }
-
-    window.addEventListener('load', () => {
-        const viewerSelect = document.getElementById('viewerLangSelect');
-        const joinLangSelect = document.getElementById('joinLangSelect');
-        const urlTargets = new URLSearchParams(window.location.search).get('targets');
-
-        if (urlTargets) {
-            urlTargets.split(',').forEach(code => {
-                if (!viewerSelect.querySelector(`option[value="${code}"]`)) {
-                    const opt = document.createElement('option');
-                    opt.value = code;
-                    opt.innerText = langNames[code] || code;
-                    viewerSelect.appendChild(opt);
-                }
-                if (joinLangSelect && !joinLangSelect.querySelector(`option[value="${code}"]`)) {
-                    const joinOpt = document.createElement('option');
-                    joinOpt.value = code;
-                    joinOpt.innerText = langNames[code] || code;
-                    joinLangSelect.appendChild(joinOpt);
-                }
-            });
-        }
-        document.querySelectorAll('#targetCheckboxes input').forEach(cb => { cb.addEventListener('change', updateWindows); });
-        updateWindows(); 
-    });
-
-    async function attemptLogin() {
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
-        try {
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, password: p })
-            });
-            const data = await res.json();
-            if (data.success) {
-                authToken = data.token;
-                // ✨ 보안: 로그인 성공 시 비밀번호 입력창 지우기
-                document.getElementById('password').value = '';
-                
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('adminSetupOverlay').style.display = 'flex';
-                document.getElementById('adminMeetingTitleInput').focus();
-                if(localStorage.getItem("savedMeetingTitle")) {
-                     document.getElementById('adminMeetingTitleInput').value = localStorage.getItem("savedMeetingTitle");
-                }
-            } else {
-                showToast(data.message, true);
-            }
-        } catch (e) { showToast("서버와 연결할 수 없습니다.", true); }
-    }
-
-    function startAdminMeeting() {
-        const title = document.getElementById('adminMeetingTitleInput').value.trim();
-        const nativeName = document.getElementById('adminNativeNameInput').value.trim();
-        const englishName = document.getElementById('adminEnglishNameInput').value.trim();
-        
-        if (!title) return showToast("회의 제목을 입력해주세요.", true);
-        if (!nativeName) return showToast("방장 모국어 이름을 입력해주세요.", true);
-        if (!englishName) return showToast("방장 영문 발음을 입력해주세요.", true);
-        
-        meetingTitle = title;
-        clientName = `${nativeName} (${englishName})`;
-        
-        localStorage.setItem("savedMeetingTitle", meetingTitle);
-        
-        if (!transcriptLog) {
-            const dateStr = new Date().toISOString().slice(0, 10);
-            transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
-            localStorage.setItem("savedTranscript", transcriptLog);
-        }
-        
-        document.getElementById('adminSetupOverlay').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('userBadge').innerText = clientName;
-        showToast(`[${meetingTitle}] 회의를 시작합니다.`);
-    }
-
-    // ✨ 보안: 로그아웃 시 비밀번호 창 초기화 포함
-    function logout() { 
-        if (transcriptLog && transcriptLog.split('\n').length > 3) {
-            downloadTranscript(); 
-            showToast("회의가 종료되어 기록이 자동으로 저장되었습니다.");
-        }
-        const pwdInput = document.getElementById('password');
-        if(pwdInput) pwdInput.value = '';
-        
-        setTimeout(() => {
-            window.location.reload();
-        }, 800);
     }
 
     function showQRCode(roleType) {
