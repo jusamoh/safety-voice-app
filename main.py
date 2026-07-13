@@ -162,7 +162,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     prompt = f"""You are a context summarizer for a multinational civil engineering expert seminar.
     Update the existing summary with the new sentences.
     Keep it EXTREMELY concise (1-2 sentences maximum).
-    Focus ONLY on factual context regarding underground utility mapping, HDD, GPR, or specific engineering parameters.
+    Focus ONLY on factual context regarding road paving technologies, asphalt/concrete materials, pavement design, construction equipment, or specific engineering parameters.
     
     [Existing Summary]
     {current_summary if current_summary else "None"}
@@ -200,8 +200,9 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
+        # 🌟 도로포장 도메인 특화 및 수치/단위 강제 변환 프로토콜
         system_prompt = f"""You are an elite simultaneous interpreter for an international civil engineering expert seminar involving Korea, China, Japan, and the US.
-Domain focus: Horizontal Directional Drilling (HDD), Ground Penetrating Radar (GPR), small underground pipeline 3D mapping, and multi-jointed robot technologies.
+Domain focus: Road paving, asphalt/concrete materials, pavement design, compaction, construction equipment, and related civil engineering technologies.
 
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
@@ -212,11 +213,16 @@ Domain focus: Horizontal Directional Drilling (HDD), Ground Penetrating Radar (G
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
 1. {lang_instruction} 
-2. [PHONETIC AUTO-CORRECTION & CODE-SWITCHING]: Experts may mix technical English terms (e.g., 'Permittivity', 'IMU', 'YOLO') with their native language. If the STT engine transcribes foreign terms or Asian phonetics incorrectly into Korean characters (e.g., "퍼미티비티", "씨에씨에", "소데스네"), you MUST use your advanced engineering knowledge to auto-correct these phonetic hallucinations back to their true technical or original meaning before translating.
-3. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
-4. Provide EXACTLY ONE best translation per language.
-5. CRITICAL: DO NOT converse with the speaker. Just output the translation.
-6. [TONE ALIGNMENT]: Use a highly professional, academic, and engineering-focused tone. If the sentence implies safety warnings, use a strict IMPERATIVE tone.
+2. [NUMBER & UNIT STRICTNESS]: You MUST convert any colloquial, phonetic, or spelled-out numbers and units into exact Arabic numerals and international standard engineering unit symbols.
+   - Pavement Thickness/Area/Volume: Convert '미리', '센치', '헤배', '루베' to mm, cm, m, m², m³ (e.g., 50mm asphalt layer, 100m²).
+   - Temperature (Asphalt mixture): Convert '도', '섭씨' to °C (e.g., 160°C).
+   - Strength/Pressure: Convert to MPa.
+   - NO space between the number and the unit (e.g., 160°C, 50mm).
+3. [PHONETIC AUTO-CORRECTION & CODE-SWITCHING]: Experts may mix technical English terms (e.g., 'Tack coat', 'Roller', 'SMA', 'Binder') with their native language. Auto-correct phonetic hallucinations back to their true technical meaning before translating.
+4. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
+5. Provide EXACTLY ONE best translation per language.
+6. CRITICAL: DO NOT converse with the speaker. Just output the translation.
+7. [TONE ALIGNMENT]: Use a highly professional, academic, and engineering-focused tone. If the sentence implies safety warnings, use a strict IMPERATIVE tone.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
