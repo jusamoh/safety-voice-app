@@ -1242,7 +1242,8 @@
                         }
 
                         const rawText = res.text || "";
-                        const cleanText = rawText.split('/')[0].trim();
+                        // split('/') 로직을 제거하여 슬래시가 포함된 문장도 온전히 보존되도록 수정
+                        const cleanText = rawText.trim();
                         const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                         const isSame = (res.source_lang === lang);
                         
