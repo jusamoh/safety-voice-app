@@ -283,6 +283,7 @@
         </div>
     </nav>
 
+    <!-- 🌟 새롭게 디자인된 대칭형 탑바 영역 -->
     <div id="viewerTopBar">
         <div class="modern-topbar-container">
             <div class="modern-select-wrapper">
@@ -333,6 +334,7 @@
             <div>
                 <label class="form-label">1. 회의 진행 단계 (엔진 스위칭)</label>
                 <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;" onchange="sendConfigUpdate()">
+                    <!-- 동기화 로직에 의해 덮어씌워지는 부분 -->
                 </select>
             </div>
 
@@ -594,10 +596,10 @@
             const welcomeDiv = document.createElement('div');
             welcomeDiv.style.textAlign = 'center';
             welcomeDiv.style.margin = '30px 0 20px 0';
+            // 🌟 모달 팝업 알림 제거 (중복 방지)
             welcomeDiv.innerHTML = `<div style="display:inline-block; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #e8eaed; padding: 14px 28px; border-radius: 20px; font-weight: 600; font-size: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); backdrop-filter: blur(10px);">✨ ${welcomeText}</div>`;
             box.appendChild(welcomeDiv);
             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-            showToast(welcomeText + " 🎉");
         }, 800);
     }
 
