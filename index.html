@@ -541,7 +541,7 @@
         const nativeName = document.getElementById('joinNativeNameInput').value.trim();
         const englishName = document.getElementById('joinEnglishNameInput').value.trim();
         
-        if (!lang) return showToast("언어를 먼저 선택해주세요.", true);
+        if (!lang) return showToast("Please select your language first.", true);
         if (!nativeName) return showToast("모국어 이름(Native Name)을 입력해주세요.", true); 
         if (!englishName) return showToast("영문 발음(English Name)을 입력해주세요.", true); 
         
@@ -845,6 +845,16 @@
 
     function sendSpeakRequest() {
         if (!ws || ws.readyState !== 1) return showToast("서버와 연결되어 있지 않습니다.", true);
+        
+        // 🌟 [추가] 청취자가 언어를 선택하지 않았을 경우 발언 요청 차단 및 영문 안내
+        if (!isHost) {
+            const viewerSelect = document.getElementById('viewerLangSelect');
+            if (!viewerSelect || !viewerSelect.value) {
+                showToast("Please select your language from the top menu first.", true);
+                return;
+            }
+        }
+
         const btn = document.getElementById('requestSpeakBtn');
         if (!isRequested) {
             ws.send(JSON.stringify({type: "request_speak"}));
@@ -864,6 +874,17 @@
     }
 
     async function startDynamicSpeaking() {
+        // 🌟 [추가] 방장이 실수로 승인했더라도, 언어가 없으면 마이크 켜기 차단 및 스스로 권한 반납
+        if (!isHost) {
+            const viewerSelect = document.getElementById('viewerLangSelect');
+            if (!viewerSelect || !viewerSelect.value) {
+                showToast("Please select your language from the top menu first.", true);
+                // 강제로 끊기지 않도록 스스로 발언 권한만 서버에 반납
+                if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: "downgrade_to_viewer"}));
+                return;
+            }
+        }
+
         try {
             stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -1086,7 +1107,19 @@
                     filterViewerWindows();
                 }
 
-                const spkLang = document.getElementById('speakerLang') ? document.getElementById('speakerLang').value : 'ko';
+                // 🌟 하이브리드 스위치 연동 및 청중 발화 언어 매칭
+                let spkLang = 'ko';
+                if (isHost) {
+                    const sl = document.getElementById('speakerLang');
+                    if (sl && sl.value) spkLang = sl.value;
+                } else {
+                    const vl = document.getElementById('viewerLangSelect');
+                    if (vl && vl.value) spkLang = vl.value;
+                }
+                
+                // 🌟 [추가] 혹시라도 빈 문자열이 서버로 넘어가 충돌나는 것을 막는 강제 방어막
+                if (!spkLang) spkLang = 'ko';
+
                 const ep = document.getElementById('endpointingSlider') ? document.getElementById('endpointingSlider').value : 500;
                 const mx = document.getElementById('maxCharSlider') ? document.getElementById('maxCharSlider').value : 35;
                 
