@@ -184,7 +184,7 @@
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
         .qr-box { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 90%; }
         #qrcode { margin: 30px auto; display: flex; justify-content: center; }
-
+        
         @media (max-width: 768px) {
             .navbar { flex-direction: column; padding: 15px; gap: 15px; text-align: center; }
             .nav-actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
@@ -402,7 +402,6 @@
         if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
 
-    // 🌟 빔 프로젝터 API 및 CSS 제어 연동
     function toggleProjectorMode() {
         const elem = document.documentElement;
         if (elem.requestFullscreen) {
@@ -606,11 +605,11 @@
     function logout() { 
         if (transcriptLog && transcriptLog.split('\n').length > 3) {
             downloadTranscript(); 
-            showToast("회의가 종료되어 기록이 자동으로 저장되었습니다.");
+        } else {
+            const pwdInput = document.getElementById('password');
+            if(pwdInput) pwdInput.value = '';
+            setTimeout(() => { window.location.reload(); }, 800);
         }
-        const pwdInput = document.getElementById('password');
-        if(pwdInput) pwdInput.value = '';
-        setTimeout(() => { window.location.reload(); }, 800);
     }
 
     function checkJoinForm() {
@@ -786,7 +785,6 @@
 
         checkedLangs.forEach(lang => { ensureWindowExists(lang); });
         
-        // 🌟 활성화된 창의 개수를 파악하여 프로젝터 분할 레이아웃에 적용
         let visibleCount = 0;
         Array.from(container.children).forEach(windowDiv => {
             const lang = windowDiv.id.replace('win_', '');
@@ -995,12 +993,52 @@
         showToast("화면이 깔끔하게 초기화되었습니다.");
     }
 
-    function downloadTranscript() {
+    // 🌟 핵심 구현부: File System Access API 적용 (이슈 해결)
+    async function downloadTranscript() {
         const safeTitle = meetingTitle ? meetingTitle.replace(/[^a-zA-Z0-9가-힣]/g, '_') : '회의기록';
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([transcriptLog], { type: 'text/plain' }));
-        a.download = `${safeTitle}_${new Date().toISOString().slice(0,10)}.txt`;
-        a.click();
+        const fileName = `${safeTitle}_${new Date().toISOString().slice(0,10)}.txt`;
+        const fileContent = transcriptLog;
+
+        try {
+            if (window.showSaveFilePicker) {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{
+                        description: 'Text Files',
+                        accept: {'text/plain': ['.txt']},
+                    }],
+                });
+                const writable = await handle.createWritable();
+                await writable.write(fileContent);
+                await writable.close();
+                
+                showToast("✅ 지정하신 위치에 회의록이 안전하게 저장되었습니다.");
+                
+                // 로그아웃을 통해 다운로드 함수가 불렸을 경우를 대비해 패스워드 초기화 후 새로고침
+                if (document.getElementById('password') && document.getElementById('password').value !== "") {
+                    document.getElementById('password').value = '';
+                    setTimeout(() => { window.location.reload(); }, 800);
+                }
+            } else {
+                // API 미지원 브라우저의 경우 기존 방식(자동 다운로드)으로 Fallback 처리
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([fileContent], { type: 'text/plain' }));
+                a.download = fileName;
+                a.click();
+                showToast("✅ 회의록 다운로드가 완료되었습니다.");
+                
+                if (document.getElementById('password') && document.getElementById('password').value !== "") {
+                    document.getElementById('password').value = '';
+                    setTimeout(() => { window.location.reload(); }, 800);
+                }
+            }
+        } catch (err) {
+            // 사용자가 저장 창을 닫은(취소) 경우는 에러 표시 생략
+            if (err.name !== 'AbortError') {
+                console.error('Save failed:', err);
+                showToast("회의록 저장 중 오류가 발생했습니다.", true);
+            }
+        }
     }
 
     function addExtraLanguage() {
@@ -1281,7 +1319,6 @@
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
                     else if (res.type === "sentence_complete") {
-                        // 🌟 핵심 수정: 미저장된 모든 문장 버퍼를 일괄 방출(Flush)
                         for (const tid in currentTranscriptData) {
                             const data = currentTranscriptData[tid];
                             let roleStr = "청취자 (발언권 획득)";
