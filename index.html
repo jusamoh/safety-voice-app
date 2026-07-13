@@ -19,6 +19,7 @@
             --text-main: #202124;
             --text-muted: #5f6368;
         }
+        /* 🌟 전체 폰트 기본 크기 상향 조정 */
         html { font-size: 17px; }
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         body { background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); transition: background-color 0.3s ease; }
@@ -194,7 +195,7 @@
     </div>
 </div>
 
-<!-- 🌟 방장용 초기 설정 화면 (방장 언어 선택 추가) -->
+<!-- 🌟 방장용 초기 설정 화면 -->
 <div id="adminSetupOverlay" style="display: none;">
     <div class="login-box">
         <h2 style="color: var(--primary);">⚙️ 회의 기본 설정</h2>
@@ -368,6 +369,30 @@
         if(pwdInput) pwdInput.value = '';
     });
 
+    // 🌟 웨이크 락(Wake Lock) API 전역 변수 및 함수 추가
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => {
+                    console.log('Screen Wake Lock was released');
+                });
+                console.log('Screen Wake Lock is active');
+            } catch (err) {
+                console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+            }
+        }
+    }
+
+    // 🌟 화면(탭)을 다시 켰을 때 웨이크 락 재적용
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            await requestWakeLock();
+        }
+    });
+
     function showToast(message, isError = false) {
         const toast = document.getElementById("toast");
         toast.innerText = message;
@@ -407,7 +432,7 @@
         const selectExtra = document.getElementById('extraLangSelect');
         const joinLangSelect = document.getElementById('joinLangSelect');
         const viewerSelect = document.getElementById('viewerLangSelect');
-        const adminLangSelect = document.getElementById('adminLangSelect'); // 🌟 방장 언어 선택 추가
+        const adminLangSelect = document.getElementById('adminLangSelect');
 
         Object.keys(langNames).forEach(code => {
             if (!['ko'].includes(code) && selectExtra) {
@@ -467,7 +492,6 @@
             const data = await res.json();
             if (data.success) {
                 authToken = data.token;
-                // ✨ 보안: 로그인 성공 시 비밀번호 입력창 지우기
                 document.getElementById('password').value = '';
                 
                 document.getElementById('loginOverlay').style.display = 'none';
@@ -483,7 +507,7 @@
     }
 
     function startAdminMeeting() {
-        const adminLang = document.getElementById('adminLangSelect').value; // 🌟 방장 설정 언어 확인
+        const adminLang = document.getElementById('adminLangSelect').value;
         const title = document.getElementById('adminMeetingTitleInput').value.trim();
         const nativeName = document.getElementById('adminNativeNameInput').value.trim();
         const englishName = document.getElementById('adminEnglishNameInput').value.trim();
@@ -493,7 +517,6 @@
         if (!nativeName) return showToast("방장 모국어 이름을 입력해주세요.", true);
         if (!englishName) return showToast("방장 영문 발음을 입력해주세요.", true);
         
-        // 🌟 방장의 기본 언어 적용
         document.getElementById('viewerLangSelect').value = adminLang;
         meetingTitle = title;
         clientName = `${nativeName} (${englishName})`;
@@ -509,11 +532,13 @@
         document.getElementById('adminSetupOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('userBadge').innerText = clientName;
-        updateWindows(); // 방장 언어 기반으로 드롭다운 즉시 반영
+        updateWindows(); 
         showToast(`[${meetingTitle}] 회의를 시작합니다.`);
+        
+        // 🌟 방장 세션 시작 시 웨이크 락 실행
+        requestWakeLock();
     }
 
-    // ✨ 보안: 로그아웃 시 비밀번호 창 초기화 포함
     function logout() { 
         if (transcriptLog && transcriptLog.split('\n').length > 3) {
             downloadTranscript(); 
@@ -585,9 +610,11 @@
             box.appendChild(welcomeDiv);
             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
         }, 800);
+        
+        // 🌟 참가자 입장 시 웨이크 락 실행
+        requestWakeLock();
     }
 
-    // ✨ 보안: 나가기 시 비밀번호 창 초기화 포함
     function leaveMeeting() {
         if (confirm("회의에서 나가시겠습니까?")) {
             if (ws && ws.readyState === WebSocket.OPEN) ws.close();
@@ -595,6 +622,9 @@
             
             const pwdInput = document.getElementById('password');
             if(pwdInput) pwdInput.value = '';
+            
+            // 🌟 웨이크 락 자원 안전 반환
+            if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
             
             window.location.href = window.location.pathname;
         }
@@ -695,7 +725,6 @@
         }
     }
 
-    // 🌟 방장 언어 기반 엔진 옵션 동기화
     function updateWindows() {
         if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
             if (!isHost) { filterViewerWindows(); return; }
@@ -718,13 +747,11 @@
 
             const adminLang = document.getElementById('viewerLangSelect').value || 'ko';
 
-            // 🌟 1. 방장 확정 언어 (초고속 모드)
             const optAdmin = document.createElement('option');
             optAdmin.value = adminLang;
             optAdmin.innerText = `🚀 방장 언어 고정 (${langNames[adminLang]}) - 초고속 인식`;
             speakerLangSelect.appendChild(optAdmin);
 
-            // 🌟 2. 미확정자 다국어 탐색 모드
             const multiOpt = document.createElement('option');
             multiOpt.value = "multi_azure";
             multiOpt.innerText = `🌍 언어 미확정자 자동 탐색 (다국어 식별 모드)`;
