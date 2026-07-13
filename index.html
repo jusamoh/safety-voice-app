@@ -584,21 +584,26 @@
         
         meetingTitle = title;
         clientName = `${nativeName} (${englishName})`;
-        
+
         localStorage.setItem("savedMeetingTitle", meetingTitle);
         
-        if (!transcriptLog) {
-            const dateStr = new Date().toISOString().slice(0, 10);
-            transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
-            localStorage.setItem("savedTranscript", transcriptLog);
-        }
+        // 🌟 [수정된 부분] 무조건 기존 기록을 삭제하고 새로운 빈 문서로 덮어쓰기
+        const dateStr = new Date().toISOString().slice(0, 10);
+        transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
+        localStorage.setItem("savedTranscript", transcriptLog);
+        
+        // 🌟 화면에 남아있을지 모르는 이전 텍스트 찌꺼기 완벽 초기화
+        document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
+        document.getElementById('liveDictation').innerHTML = "";
+        currentTranscriptData = {};
         
         document.getElementById('adminSetupOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('userBadge').innerText = clientName;
         updateWindows(); 
+        
         getMicrophones();
-        showToast(`[${meetingTitle}] 회의를 시작합니다.`);
+        showToast(`[${meetingTitle}] 새로운 회의가 시작되었습니다. (이전 기록 초기화 됨)`);
         requestWakeLock();
     }
 
@@ -993,7 +998,6 @@
         showToast("화면이 깔끔하게 초기화되었습니다.");
     }
 
-    // 🌟 핵심 구현부: File System Access API 적용 (이슈 해결)
     async function downloadTranscript() {
         const safeTitle = meetingTitle ? meetingTitle.replace(/[^a-zA-Z0-9가-힣]/g, '_') : '회의기록';
         const fileName = `${safeTitle}_${new Date().toISOString().slice(0,10)}.txt`;
@@ -1014,13 +1018,11 @@
                 
                 showToast("✅ 지정하신 위치에 회의록이 안전하게 저장되었습니다.");
                 
-                // 로그아웃을 통해 다운로드 함수가 불렸을 경우를 대비해 패스워드 초기화 후 새로고침
                 if (document.getElementById('password') && document.getElementById('password').value !== "") {
                     document.getElementById('password').value = '';
                     setTimeout(() => { window.location.reload(); }, 800);
                 }
             } else {
-                // API 미지원 브라우저의 경우 기존 방식(자동 다운로드)으로 Fallback 처리
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(new Blob([fileContent], { type: 'text/plain' }));
                 a.download = fileName;
@@ -1033,7 +1035,6 @@
                 }
             }
         } catch (err) {
-            // 사용자가 저장 창을 닫은(취소) 경우는 에러 표시 생략
             if (err.name !== 'AbortError') {
                 console.error('Save failed:', err);
                 showToast("회의록 저장 중 오류가 발생했습니다.", true);
