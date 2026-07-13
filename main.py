@@ -343,24 +343,22 @@ async def websocket_endpoint(
                         except: pass
             else:
                 # ==================================================
-                # 🌟 하이브리드 엔진 분기점 (Azure vs Deepgram)
+                # 🌟 하이브리드 엔진 분기점
                 # ==================================================
                 engine_mode = "azure" if lang == "multi_azure" else "deepgram"
                 
                 if engine_mode == "azure":
-                    # --- [Azure Speech 가동: 4개국 토론 모드] ---
+                    # --- [다국어 토론 모드] ---
                     if not AZURE_SPEECH_KEY:
-                        await websocket.send_json({"type": "status", "text": "❌ Azure API Key가 설정되지 않았습니다."})
+                        await websocket.send_json({"type": "status", "text": "❌ 엔진 API Key가 설정되지 않았습니다."})
                         raise Exception("Azure key missing")
                         
                     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
                     
-                    # 브라우저의 압축된 WebM 오디오 스트림을 Azure가 Gstreamer를 통해 디코딩하도록 설정
                     compressed_format = speechsdk.audio.AudioStreamFormat(compressed_stream_format=speechsdk.AudioStreamContainerFormat.ANY)
                     push_stream = speechsdk.audio.PushAudioInputStream(stream_format=compressed_format)
                     audio_config = speechsdk.audio.AudioConfig(stream=push_stream)
 
-                    # 4개국 한정 LID (환각 현상 수학적 차단)
                     auto_detect_source_language_config = speechsdk.languageconfig.AutoDetectSourceLanguageConfig(
                         languages=["ko-KR", "en-US", "ja-JP", "zh-CN"]
                     )
@@ -388,7 +386,8 @@ async def websocket_endpoint(
                     recognizer.recognized.connect(recognized_cb)
                     recognizer.start_continuous_recognition_async()
                     
-                    await manager.broadcast_json({"type": "status", "text": "🌐 Azure 다국어 식별 가동 중..."})
+                    # 보안 수정: 화면 표출 텍스트 변경
+                    await manager.broadcast_json({"type": "status", "text": "🌐 다국어 자동 식별 모드 가동 중..."})
 
                     async def sender():
                         try:
@@ -458,7 +457,7 @@ async def websocket_endpoint(
                                         except: pass
                         except websockets.exceptions.ConnectionClosed: pass
                         except DowngradeException as de: raise de
-                        except Exception as e: print(f"🚨 Azure Sender 에러: {e}", flush=True)
+                        except Exception as e: print(f"🚨 Sender 에러: {e}", flush=True)
 
                     async def receiver():
                         current_msg_id = secrets.token_hex(4)
@@ -489,7 +488,7 @@ async def websocket_endpoint(
                                         detected_lang = raw_lid[:2] if raw_lid != "unknown" else "multi_azure"
                                         asyncio.create_task(translate_and_send(text, detected_lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
                                         current_msg_id = secrets.token_hex(4)
-                        except Exception as e: print(f"🚨 Azure Receiver 에러: {e}", flush=True)
+                        except Exception as e: print(f"🚨 Receiver 에러: {e}", flush=True)
 
                     try:
                         await asyncio.gather(sender(), receiver())
@@ -505,7 +504,7 @@ async def websocket_endpoint(
                         push_stream.close()
                         
                 else:
-                    # --- [Deepgram 가동: 단일 언어 발표 모드] ---
+                    # --- [단일 언어 발표 모드] ---
                     dg_lang = lang
                     keywords_param = ""
                     if glossary:
@@ -524,7 +523,8 @@ async def websocket_endpoint(
                         ws_kwargs["extra_headers"] = headers
 
                     async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
-                        await manager.broadcast_json({"type": "status", "text": "🚀 Deepgram 단일 언어 모드 가동 중..."})
+                        # 보안 수정: 화면 표출 텍스트 변경
+                        await manager.broadcast_json({"type": "status", "text": "🚀 단일 언어 집중 모드 가동 중..."})
                         
                         async def sender():
                             try:
@@ -595,7 +595,7 @@ async def websocket_endpoint(
                             except websockets.exceptions.ConnectionClosed: pass
                             except DowngradeException as de:
                                 raise de
-                            except Exception as e: print(f"🚨 Deepgram Sender 에러: {e}", flush=True)
+                            except Exception as e: print(f"🚨 Sender 에러: {e}", flush=True)
 
                         async def receiver():
                             current_sentence = ""
@@ -648,7 +648,7 @@ async def websocket_endpoint(
                                             current_sentence = ""
                                             current_msg_id = secrets.token_hex(4)
                             except websockets.exceptions.ConnectionClosed: pass
-                            except Exception as e: print(f"🚨 Deepgram Receiver 에러: {e}", flush=True)
+                            except Exception as e: print(f"🚨 Receiver 에러: {e}", flush=True)
 
                         try:
                             await asyncio.gather(sender(), receiver())
