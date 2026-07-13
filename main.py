@@ -669,5 +669,9 @@ if __name__ == "__main__":
     import multiprocessing
     import uvicorn
     multiprocessing.freeze_support()
-    print("🚀 실시간 글로벌 통역 서버 (Hybrid 엔진)를 시작합니다... (http://0.0.0.0:10000)")
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    
+    # Render가 부여하는 동적 포트를 읽고, 없을 경우에만 10000을 사용하도록 수정
+    port = int(os.environ.get("PORT", 10000))
+    
+    print(f"🚀 실시간 글로벌 통역 서버를 시작합니다... (Port: {port})")
+    uvicorn.run(app, host="0.0.0.0", port=port)
