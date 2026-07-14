@@ -188,17 +188,19 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰", "위험해"]):
             await manager.broadcast_json({"type": "alert"})
 
-        # 🌟 방어 로직 2: 영어 STT 엔진 특유의 환각 가비지 텍스트 강력 필터링
         text_lower = text.lower().strip()
         ignore_exact_phrases = [
             "that's the one", "yeah right there", "that's quite a lot", "good thinking",
             "that's the one yeah right there", "yeah that one right there", "that's quite remarkable",
-            "thank you", "hmm", "uh", "well", "so", "okay", "아", "음", "hola", "어", "yeah", "right"
+            "thank you", "hmm", "uh", "well", "so", "okay", "아", "음", "hola", "어", "yeah", "right",
+            "네", "아니요", "예", "아니"
         ]
         
-        # 특수문자를 모두 지운 순수 알파벳/한글로 완벽 일치 검사
+        # 순수 알파벳/한글 기준 정리
         clean_text = re.sub(r'[^a-z가-힣\s]', '', text_lower).strip()
-        if not clean_text or clean_text in ignore_exact_phrases:
+        
+        # 🌟 방어 로직 1: 2글자 이하의 파편화된 한국어 사담/헛소리 사전 폐기
+        if not clean_text or clean_text in ignore_exact_phrases or (len(clean_text) <= 2 and re.match(r'^[가-힣]+$', clean_text)):
             return 
 
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
@@ -209,7 +211,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🌟 방어 로직 3: LLM 프롬프트 후처리 보강 및 [SKIP] 장치 적용
+        # 🌟 방어 로직 2 & 3: 사담 완벽 배제 및 단일 번역 강제 (LLM 프롬프트)
         system_prompt = f"""You are an elite simultaneous interpreter for an international civil engineering expert seminar involving Korea, China, Japan, and the US.
 Domain focus: Road paving, asphalt/concrete materials, pavement design, compaction, construction equipment, and related civil engineering technologies.
 
@@ -223,12 +225,11 @@ Domain focus: Road paving, asphalt/concrete materials, pavement design, compacti
 CRITICAL INSTRUCTIONS (MUST OBEY):
 1. {lang_instruction} 
 2. [NUMBER & UNIT STRICTNESS]: Convert colloquial numbers/units into Arabic numerals and exact standard symbols (e.g., 50mm, 160°C, m², m³, MPa). NO space between number and unit.
-3. [DOMAIN FORCED CORRECTION (Pavement vs Payment)]: The context is 'KICT' (Korea Institute of Civil Engineering and Building Technology). If the STT inputs "Payment" or "Payment research team", you MUST absolutely translate it as "Pavement" (도로포장, 道路舗装, 道路铺装). Also, "Computer division" may refer to "Computing/Computational division" depending on context.
-4. [PHANTOM TEXT REJECTION]: If the STT hallucinated meaningless filler noises like "That's the one", "Good thinking", "Yeah, right there", or "That's quite a lot", DO NOT translate it. Output exactly [SKIP].
+3. [DOMAIN FORCED CORRECTION]: The context is 'KICT' (Korea Institute of Civil Engineering and Building Technology). STT input "Payment" MUST be translated as "Pavement" (도로포장).
+4. [CHITCHAT & WHISPER REJECTION]: If the STT picked up a meaningless filler noise, a background whisper, an incomplete casual remark, or internal staff chitchat (e.g., "안 하세요?", "박사 가시기 바랍니다", "That's the one", "아니요"), DO NOT translate it. Output exactly [SKIP].
 5. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
-6. Provide EXACTLY ONE best translation per language.
+6. [SINGLE DEFINITIVE TRANSLATION]: Provide EXACTLY ONE best translation per language. DO NOT use slashes (/) to provide multiple options or alternatives (e.g., Never output "안 하시나요? / 하지 않으십니까?"). Choose the single most academic and natural expression.
 7. CRITICAL: DO NOT converse with the speaker. Just output the translation.
-8. [TONE ALIGNMENT]: Use a highly professional, academic, and engineering-focused tone. If the sentence implies safety warnings, use a strict IMPERATIVE tone.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
@@ -271,7 +272,6 @@ clean current sentence
         
         original_text = lang_text.get('original', text)
         
-        # [SKIP] 방어벽: LLM이 유령 텍스트로 판단하여 [SKIP]을 뱉었다면, 화면 표출 없이 즉시 폐기
         if any("[SKIP]" in t.upper() for t in lang_text.values()):
             return
 
@@ -494,7 +494,6 @@ async def websocket_endpoint(
                         clean_words = [w.strip() for w in extracted_words if w.strip()]
                         if clean_words: keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
 
-                    # 🌟 방어 로직 1: STT 엔진 단에서 Payment, Computer 등 상습 오인식 단어 원천 치환
                     replace_rules = [
                         "payment:pavement", "Payment:Pavement", 
                         "payments:pavements", "Payments:Pavements",
