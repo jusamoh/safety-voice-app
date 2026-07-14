@@ -290,19 +290,23 @@
             <label class="form-label">1. 회의 진행 단계</label>
             <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;" onchange="sendConfigUpdate()"></select>
             
-            <label class="form-label" style="margin-top: 15px;">2. 통역 엔진 최적화</label>
-            <div class="slider-group">
-                <div class="slider-wrapper" style="flex:1;">
+            <label class="form-label" style="margin-top: 15px;">2. 통역 엔진 & 마이크 최적화</label>
+            <!-- 🌟 수정된 슬라이더 그룹: 주변잡음 차단 (노이즈 게이트) 추가 -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div class="slider-wrapper" style="flex:1; min-width: 100px;">
                     <div class="slider-header"><span>침묵 감지</span><span id="endpointVal" class="slider-val">0.5초</span></div>
                     <input type="range" id="endpointingSlider" min="100" max="1500" step="100" value="500" oninput="document.getElementById('endpointVal').innerText = (this.value/1000).toFixed(1) + '초'">
                 </div>
-                <div class="slider-wrapper" style="flex:1;">
+                <div class="slider-wrapper" style="flex:1; min-width: 100px;">
                     <div class="slider-header"><span>최대 길이</span><span id="maxCharVal" class="slider-val">30자</span></div>
                     <input type="range" id="maxCharSlider" min="30" max="150" step="10" value="30" oninput="document.getElementById('maxCharVal').innerText = this.value + '자'">
                 </div>
+                <div class="slider-wrapper" style="flex:1; min-width: 100px;">
+                    <div class="slider-header"><span style="color:var(--danger);">주변잡음 차단</span><span id="noiseGateVal" class="slider-val">15</span></div>
+                    <input type="range" id="noiseGateSlider" min="0" max="50" step="1" value="15" oninput="document.getElementById('noiseGateVal').innerText = this.value">
+                </div>
             </div>
 
-            <!-- 🌟 추가된 실시간 오인식 단어 수정 UI -->
             <div style="margin-top: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
                     <label class="form-label" style="margin:0;">3. 실시간 오인식 단어 수정 (전문 용어집)</label>
@@ -527,9 +531,16 @@
     });
     
     let ws = null, mediaRecorder = null, stream = null, isConnected = false;
+    let rawStream = null; 
+    let gatedStream = null; 
     let authToken = ""; 
     let currentSentenceId = null;
     let isFirstFloorState = true; 
+
+    // 🌟 노이즈 게이트(Web Audio API) 관련 전역 변수
+    let audioCtx = null;
+    let gateInterval = null;
+    let gateHoldTimer = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
@@ -678,7 +689,8 @@
     function leaveMeeting() {
         if (confirm("회의에서 나가시겠습니까?")) {
             if (ws && ws.readyState === WebSocket.OPEN) ws.close();
-            if (stream) stream.getTracks().forEach(t => t.stop());
+            if (rawStream) rawStream.getTracks().forEach(t => t.stop());
+            if (gatedStream) gatedStream.getTracks().forEach(t => t.stop());
             
             const pwdInput = document.getElementById('password');
             if(pwdInput) pwdInput.value = '';
@@ -885,6 +897,65 @@
         }
     }
 
+    // 🌟 소프트웨어 노이즈 게이트 핵심 로직
+    async function applyNoiseGate(inputStream) {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            const micNode = audioCtx.createMediaStreamSource(inputStream);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 512;
+            const gainNode = audioCtx.createGain();
+            const destNode = audioCtx.createMediaStreamDestination();
+
+            micNode.connect(analyser);
+            analyser.connect(gainNode);
+            gainNode.connect(destNode);
+
+            gainNode.gain.value = 0; // 초기에 게이트 닫힘 (무음)
+            let gateOpen = false;
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            if (gateInterval) clearInterval(gateInterval);
+
+            gateInterval = setInterval(() => {
+                const slider = document.getElementById('noiseGateSlider');
+                const thresholdVal = slider ? parseInt(slider.value) : 15;
+                const rmsThreshold = thresholdVal / 1000.0; // 예: 15 -> 0.015
+
+                analyser.getByteTimeDomainData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    let val = (dataArray[i] - 128) / 128.0;
+                    sum += val * val;
+                }
+                let rms = Math.sqrt(sum / bufferLength);
+
+                if (rms > rmsThreshold) {
+                    // 사람 목소리 등 특정 데시벨 이상 잡힐 때 게이트 오픈
+                    if (!gateOpen) {
+                        gainNode.gain.setTargetAtTime(1, audioCtx.currentTime, 0.05);
+                        gateOpen = true;
+                    }
+                    if (gateHoldTimer) clearTimeout(gateHoldTimer);
+                    // 말이 끊겨도 800ms 동안은 게이트를 유지하여 단어 끝이 잘리지 않게 방어
+                    gateHoldTimer = setTimeout(() => {
+                        gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+                        gateOpen = false;
+                    }, 800); 
+                }
+            }, 50);
+
+            return destNode.stream;
+        } catch (e) {
+            console.error("Noise gate 설정 실패. 기본 스트림으로 대체합니다:", e);
+            return inputStream; 
+        }
+    }
+
     async function startDynamicSpeaking() {
         if (!isHost) {
             const viewerSelect = document.getElementById('viewerLangSelect');
@@ -895,8 +966,10 @@
             }
         }
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            rawStream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
+            gatedStream = await applyNoiseGate(rawStream); // 🌟 노이즈 게이트 필터 거침
+            
+            mediaRecorder = new MediaRecorder(gatedStream, { mimeType: 'audio/webm' });
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0 && ws && ws.readyState === 1 && isDynamicSpeaker && !isAdminMuted) { ws.send(e.data); }
             };
@@ -906,7 +979,7 @@
             document.getElementById('requestSpeakBtn').style.display = 'none';
             document.getElementById('activeMicBtn').style.display = 'block';
             document.getElementById('speakerStatusBar').style.display = 'block';
-            showToast("✅ 마이크가 활성화되었습니다. 자유롭게 발언하세요.");
+            showToast("✅ 마이크가 활성화되었습니다. (주변 잡음 자동 차단 중)");
         } catch (err) {
             showToast("마이크 접근 권한이 필요합니다.", true);
             if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: "downgrade_to_viewer"}));
@@ -915,7 +988,11 @@
 
     function stopDynamicSpeaking() {
         if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-        if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
+        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
+        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
+        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
+        
         isDynamicSpeaker = false;
         if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: "downgrade_to_viewer"}));
         isRequested = false;
@@ -963,8 +1040,8 @@
     let isMobileMuted = false;
     function toggleMobileMute() {
         const btn = document.getElementById('mobileMuteBtn');
-        if (stream) {
-            const audioTracks = stream.getAudioTracks();
+        if (rawStream) {
+            const audioTracks = rawStream.getAudioTracks();
             if (audioTracks.length > 0) {
                 isMobileMuted = !isMobileMuted;
                 audioTracks[0].enabled = !isMobileMuted;
@@ -1180,7 +1257,9 @@
                             audioConstraints.deviceId = { exact: deviceId };
                         }
                         
-                        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                        rawStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                        gatedStream = await applyNoiseGate(rawStream); // 🌟 방장 마이크에도 노이즈 게이트 적용
+                        
                         updateStatus("✅ 마이크 연결됨 (현장 방송 중)", true);
                         playReadyBeep();
                         
@@ -1190,7 +1269,7 @@
                             void banner.offsetWidth;
                             banner.classList.add('flash-active');
                         }
-                        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                        mediaRecorder = new MediaRecorder(gatedStream, { mimeType: 'audio/webm' });
                         mediaRecorder.ondataavailable = (e) => { 
                             if (e.data.size > 0 && ws.readyState === 1) {
                                 if (role === 'admin') {
@@ -1368,7 +1447,11 @@
 
     function resetUI() {
         if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-        if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
+        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
+        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
+        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
+        
         isConnected = false;
         isFirstFloorState = true; 
         isDynamicSpeaker = false;
