@@ -87,7 +87,6 @@
         .mic-controls { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap;}
         .mic-select-dropdown { padding: 10px; border-radius: 10px; border: 1px solid #5f6368; background: #202124; color: white; font-size: 14px; font-weight: 600; outline: none; max-width: 180px; text-overflow: ellipsis; cursor: pointer; }
         .mic-select-dropdown:focus { border-color: var(--primary); }
-        .lang-mapping-dropdown { padding: 10px; border-radius: 10px; border: 1px solid var(--primary); background: var(--primary); color: white; font-size: 14px; font-weight: 700; outline: none; cursor: pointer; }
 
         .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
         .req-item { display: flex; justify-content: space-between; align-items: center; background: #fdfdfd; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; font-weight: 600; }
@@ -99,7 +98,6 @@
         .window-container { max-width: 1400px; margin: 0 auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .window { background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; height: 500px; }
         
-        /* 🌟 수정: 번역 창 헤더 및 닫기 버튼 스타일 */
         .window-header { position: relative; padding: 20px; border-bottom: 1px solid #f0f0f0; text-align: center; font-weight: 800; font-size: 18px; color: var(--primary); background: #f8fafd; border-radius: 16px 16px 0 0; cursor: grab; user-select: none; }
         .window-header:active { cursor: grabbing; }
         .win-close-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #9aa0a6; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 50%; transition: all 0.2s; display: flex; align-items: center; justify-content: center;}
@@ -291,9 +289,9 @@
         </div>
         
         <div class="card">
-            <div class="card-header"><span>🎙️</span> 엔진 설정</div>
-            <label class="form-label">1. 회의 진행 단계</label>
-            <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 600;" onchange="sendConfigUpdate()"></select>
+            <div class="card-header"><span>🎙️</span> 엔진 설정 (마스터 스위치)</div>
+            <label class="form-label" style="color:var(--primary);">1. 회의 진행 단계 (사회자/발표자 언어 선택)</label>
+            <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 800; background-color: #e8f0fe;" onchange="sendConfigUpdate()"></select>
             
             <label class="form-label" style="margin-top: 15px;">2. 통역 엔진 & 마이크 최적화</label>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -359,7 +357,7 @@
         </div>
         <div id="liveDictation" class="dictation-box"></div>
         <div class="mic-controls">
-            <select id="directMicLangSelect" class="lang-mapping-dropdown" title="이 마이크의 언어를 확정합니다"></select>
+            <!-- 🌟 UI 단순화: directMicLangSelect 완전 제거 -->
             <select id="audioInputSelect" class="mic-select-dropdown" title="오디오 인터페이스 채널 지정">
                 <option value="default">기본 마이크</option>
             </select>
@@ -503,7 +501,6 @@
         const joinLangSelect = document.getElementById('joinLangSelect');
         const viewerSelect = document.getElementById('viewerLangSelect');
         const adminLangSelect = document.getElementById('adminLangSelect');
-        const directMicLangSelect = document.getElementById('directMicLangSelect'); 
 
         Object.keys(langNames).forEach(code => {
             if (!['ko'].includes(code) && selectExtra) {
@@ -525,11 +522,6 @@
                 const adminOpt = document.createElement('option');
                 adminOpt.value = code; adminOpt.innerText = langNames[code];
                 adminLangSelect.appendChild(adminOpt);
-            }
-            if (directMicLangSelect && !directMicLangSelect.querySelector(`option[value="${code}"]`)) {
-                const directOpt = document.createElement('option');
-                directOpt.value = code; directOpt.innerText = langNames[code];
-                directMicLangSelect.appendChild(directOpt);
             }
         });
     });
@@ -598,7 +590,6 @@
         if (!englishName) return showToast("방장 영문 발음을 입력해주세요.", true);
         
         document.getElementById('viewerLangSelect').value = adminLang;
-        document.getElementById('directMicLangSelect').value = adminLang; 
         
         meetingTitle = title;
         clientName = `${nativeName} (${englishName})`;
@@ -720,7 +711,6 @@
         if (placeholder) placeholder.style.display = hasVisibleWindow ? 'none' : 'block';
     }
 
-    // 🌟 추가: 개별 언어 창 삭제 및 번역 요청 취소 함수
     window.removeLanguage = function(lang) {
         const checkbox = document.querySelector(`#targetCheckboxes input[value="${lang}"]`);
         const mainLang = document.getElementById('viewerLangSelect').value || 'ko';
@@ -731,8 +721,8 @@
         }
         
         if (checkbox) {
-            checkbox.checked = false; // 칩 체크해제
-            updateWindows();          // 윈도우 UI 및 백엔드 설정값 자동 업데이트 (번역 제외)
+            checkbox.checked = false; 
+            updateWindows();          
             showToast(`${langNames[lang] || lang} 번역 요청이 취소되었습니다.`);
         }
     };
@@ -746,7 +736,6 @@
             win.id = `win_${lang}`;
             win.draggable = true;
             
-            // 🌟 창 상단에 삭제(취소) 버튼 [✖] 추가
             win.innerHTML = `
                 <div class="window-header" title="마우스로 드래그하여 순서 변경">
                     ✥ ${langNames[lang] || lang}
@@ -796,7 +785,6 @@
         const mainWin = document.getElementById(`win_${mainLang}`);
 
         if (draggedItem !== this) {
-            // 🌟 강제 규칙: 기본(발표자) 언어 창은 드래그 앤 드롭으로 이동하거나 위치를 덮어쓸 수 없음
             if (draggedItem === mainWin || this === mainWin) {
                 showToast("발표자(기본) 언어 창은 항상 첫 번째 위치에 고정됩니다.", true);
                 return;
@@ -818,18 +806,21 @@
             const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
             if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
             const glossaryData = document.getElementById('glossaryInput').value;
-            // 여기서 백엔드로 선택된 타겟 언어 목록을 갱신해 보냄 (번역 취소 즉시 반영)
             ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(',') }));
             
             const newLangMode = document.getElementById('speakerLang').value;
-            const isCurrentlyAzure = (ws.url.indexOf('lang=multi_azure') > -1);
-            const isSwitchingToAzure = (newLangMode === 'multi_azure');
             
-            if (isCurrentlyAzure !== isSwitchingToAzure) {
-                showToast("엔진 스위칭 중...");
-                resetUI();
-                setTimeout(() => toggleConnection('admin'), 1000);
-            }
+            // 🌟 엔진 오토 핫 스왑(Auto Hot-swap) 로직: 언어가 다르면 라이브 중이라도 즉시 0.8초만에 재연결
+            try {
+                const currentUrl = new URL(ws.url);
+                const currentLang = currentUrl.searchParams.get('lang');
+                
+                if (currentLang && currentLang !== newLangMode) {
+                    showToast("통역 엔진 언어 변경 중... (자동 재연결)");
+                    resetUI();
+                    setTimeout(() => toggleConnection('admin'), 800);
+                }
+            } catch(e) { console.error("URL 파싱 오류", e); }
         }
     }
 
@@ -854,7 +845,6 @@
             }
         });
 
-        // 🌟 강제 로직: 기본 언어(방장/내 언어) 창을 무조건 첫 번째(왼쪽)로 이동
         const mainLang = document.getElementById('viewerLangSelect').value || 'ko';
         const mainWin = document.getElementById(`win_${mainLang}`);
         if (mainWin && mainWin.style.display !== 'none') {
@@ -863,18 +853,30 @@
         
         container.setAttribute('data-window-count', visibleCount);
 
+        // 🌟 수정: 마스터 스위치에 활성화된 모든 대상 언어를 목록으로 자동 주입
         if (isHost) {
             const speakerLangSelect = document.getElementById('speakerLang');
             const currentVal = speakerLangSelect.value;
             speakerLangSelect.innerHTML = ''; 
+            
             const adminLang = document.getElementById('viewerLangSelect').value || 'ko';
             const optAdmin = document.createElement('option');
             optAdmin.value = adminLang;
-            optAdmin.innerText = `🚀 방장 언어 고정 (${langNames[adminLang]}) - 초고속 인식`;
+            optAdmin.innerText = `🚀 기본 언어 (${langNames[adminLang] || adminLang}) 집중 모드`;
             speakerLangSelect.appendChild(optAdmin);
+            
+            checkedLangs.forEach(lang => {
+                if (lang !== adminLang) {
+                    const opt = document.createElement('option');
+                    opt.value = lang;
+                    opt.innerText = `🎙️ ${langNames[lang] || lang} 집중 모드`;
+                    speakerLangSelect.appendChild(opt);
+                }
+            });
+
             const multiOpt = document.createElement('option');
             multiOpt.value = "multi_azure";
-            multiOpt.innerText = `🌍 언어 미확정자 자동 탐색 (다국어 식별 모드)`;
+            multiOpt.innerText = `🌍 다국어 자동 탐색 (Azure 혼합 모드)`;
             speakerLangSelect.appendChild(multiOpt);
 
             if (currentVal && speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) {
@@ -1259,14 +1261,10 @@
                 }
 
                 let spkLang = 'ko';
+                // 🌟 수정: 오직 마스터 스위치(speakerLang)만을 기준 언어로 삼도록 로직 단일화
                 if (isHost) {
-                    const directLang = document.getElementById('directMicLangSelect');
-                    if (directLang && directLang.value) {
-                        spkLang = directLang.value;
-                    } else {
-                        const sl = document.getElementById('speakerLang');
-                        if (sl && sl.value) spkLang = sl.value;
-                    }
+                    const sl = document.getElementById('speakerLang');
+                    if (sl && sl.value) spkLang = sl.value;
                 } else {
                     const vl = document.getElementById('viewerLangSelect');
                     if (vl && vl.value) spkLang = vl.value;
