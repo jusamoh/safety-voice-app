@@ -109,9 +109,6 @@
         .same-lang-text { color: var(--text-main); font-weight: 700; font-size: 20px; display: block; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #f1f3f4; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); font-weight: 600; }
 
-        /* ==============================================================
-           🌟 완벽 복구된 프로젝터 모드 CSS (비율 등분 레이아웃)
-        ============================================================== */
         body.viewer-mode, body.speaker-mode { background-color: #000; color: #fff; padding: 0; }
         body.viewer-mode .navbar, body.speaker-mode .navbar, body.viewer-mode .dashboard-layout, body.speaker-mode .dashboard-layout, body.viewer-mode .status-banner, body.speaker-mode .status-banner { display: none !important; }
         body.viewer-mode .window-container, body.speaker-mode .window-container { max-width: 100%; padding: 0; gap: 0; height: 100vh; display: flex; flex-direction: column; padding-top: 85px;}
@@ -135,7 +132,6 @@
             box-sizing: border-box; 
         }
         
-        /* 🔥 창 개수에 따른 화면 강제 분할 뷰 */
         body.projector-mode .window-container[data-window-count="1"] { grid-template-columns: 1fr; grid-template-rows: 1fr; }
         body.projector-mode .window-container[data-window-count="2"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
         body.projector-mode .window-container[data-window-count="3"] { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr; }
@@ -152,7 +148,6 @@
         #exitProjectorBtn { display: none; position: fixed; top: 1vw; right: 1vw; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 1vh 2vw; border-radius: 3vw; z-index: 10000; font-size: 2vh; font-weight: 700; cursor: pointer; backdrop-filter: blur(10px); transition: background 0.3s;}
         #exitProjectorBtn:hover { background: rgba(217, 48, 37, 0.8); border-color: transparent;}
         body.projector-mode #exitProjectorBtn { display: block; }
-        /* ============================================================== */
 
         #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: rgba(18, 18, 20, 0.95); padding: 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; justify-content: center; }
@@ -307,13 +302,22 @@
                 </div>
             </div>
 
+            <!-- 🌟 추가된 실시간 오인식 단어 수정 UI -->
             <div style="margin-top: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 전문 용어집 (Phonetic Mapping)</label>
+                    <label class="form-label" style="margin:0;">3. 실시간 오인식 단어 수정 (전문 용어집)</label>
                     <button class="btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="document.getElementById('glossaryFile').click()">📁 파일 불러오기</button>
                     <input type="file" id="glossaryFile" accept=".txt,.csv" style="display: none;" onchange="loadGlossaryFile(event)">
                 </div>
-                <textarea id="glossaryInput" class="styled-textarea" placeholder="예: 비계=Scaffolding, HDD=수평지향굴착" onchange="sendConfigUpdate()"></textarea>
+                <div style="background: #e8eaed; color: #202124; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; line-height: 1.5; border-left: 4px solid var(--primary);">
+                    <b>💡 [사용 방법]</b> 엔진이 오인식한 발음과 정확한 용어를 <code>=</code> 기호로 연결하여 입력하세요.<br>
+                    텍스트 입력 후 <b>바탕화면(빈 곳)을 한 번 클릭하면</b> 회의 중단 없이 실시간 반영됩니다.<br>
+                    <span style="color: var(--primary); font-weight: 600; margin-top: 4px; display: inline-block;">[도로포장 현장 예시]</span><br>
+                    • 아스토=AASHTO<br>
+                    • 텍코치=Tack coat<br>
+                    • 사토 상=Dr. Sato
+                </div>
+                <textarea id="glossaryInput" class="styled-textarea" placeholder="여기에 오인식 단어를 입력하세요..." onchange="sendConfigUpdate()"></textarea>
             </div>
         </div>
 
@@ -587,12 +591,10 @@
 
         localStorage.setItem("savedMeetingTitle", meetingTitle);
         
-        // 🌟 [수정된 부분] 무조건 기존 기록을 삭제하고 새로운 빈 문서로 덮어쓰기
         const dateStr = new Date().toISOString().slice(0, 10);
         transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
         localStorage.setItem("savedTranscript", transcriptLog);
         
-        // 🌟 화면에 남아있을지 모르는 이전 텍스트 찌꺼기 완벽 초기화
         document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
         document.getElementById('liveDictation').innerHTML = "";
         currentTranscriptData = {};
