@@ -4,14 +4,19 @@ import os
 import sys
 import re  
 import secrets 
+import io
 from datetime import datetime
 import websockets
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 import azure.cognitiveservices.speech as speechsdk
+
+# 🌟 파일 파싱 라이브러리 (requirements.txt에 PyPDF2, python-docx, python-multipart 필수)
+import PyPDF2
+import docx
 
 # ==========================================
 # 💡 1. API 키 로드
@@ -47,32 +52,6 @@ ACTIVE_TOKENS = set()
 class DowngradeException(Exception):
     pass
 
-@app.post("/api/login")
-async def login(request: Request):
-    try:
-        data = await request.json()
-        user_id = str(data.get("username", data.get("id", ""))).strip()
-        password = str(data.get("password", "")).strip()
-        
-        if user_id in USER_DB and USER_DB[user_id] == password:
-            token = secrets.token_hex(16)
-            ACTIVE_TOKENS.add(token)
-            print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인 (토큰 발급됨)", flush=True)
-            return JSONResponse(content={"success": True, "token": token, "username": user_id})
-        else:
-            return JSONResponse(content={"success": False, "message": "아이디 또는 비밀번호가 틀렸습니다."}, status_code=401)
-    except Exception as e:
-        return JSONResponse(content={"success": False, "message": f"로그인 에러: {str(e)}"}, status_code=400)
-
-@app.get("/")
-async def get():
-    return FileResponse("index.html")
-
-@app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
-    from fastapi import Response
-    return Response(status_code=204)
-
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -82,6 +61,7 @@ class ConnectionManager:
         self.is_admin_muted = False
         self.global_targets = "ko" 
         self.global_glossary = ""
+        self.global_document_context = "" # 🌟 업로드된 문서 텍스트 저장용 전역 변수
         self.speaking_allowed_clients = set()
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
@@ -124,10 +104,8 @@ class ConnectionManager:
         msg = {"type": "user_list", "users": users}
         for ws, info in self.clients.items():
             if info["role"] == "admin":
-                try:
-                    await ws.send_json(msg)
-                except:
-                    pass
+                try: await ws.send_json(msg)
+                except: pass
 
     async def broadcast_admin_state(self):
         state = {"type": "admin_state", "requests": self.requests}
@@ -155,6 +133,64 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# ==========================================
+# 🌟 추가된 라우터: 다중 포맷 문서 업로드 및 텍스트 파싱
+# ==========================================
+@app.post("/api/upload_context")
+async def upload_context(file: UploadFile = File(...)):
+    content = await file.read()
+    ext = file.filename.split('.')[-1].lower()
+    extracted_text = ""
+    
+    try:
+        if ext in ['txt', 'csv']:
+            extracted_text = content.decode('utf-8')
+        elif ext == 'pdf':
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+            for page in pdf_reader.pages:
+                extracted_text += page.extract_text() + "\n"
+        elif ext == 'docx':
+            doc = docx.Document(io.BytesIO(content))
+            extracted_text = "\n".join([para.text for para in doc.paragraphs])
+        else:
+            return JSONResponse({"success": False, "message": "지원하지 않는 파일 형식입니다. (pdf, docx, txt 가능)"})
+        
+        # 클로드 토큰 한도 보호를 위해 최대 50,000자로 제한
+        extracted_text = extracted_text[:50000]
+        manager.global_document_context = extracted_text
+        print(f"📄 [문서 학습 성공] {file.filename} (길이: {len(extracted_text)} 자)", flush=True)
+        
+        return JSONResponse({"success": True, "message": "문서 파싱 및 AI 학습 준비 완료"})
+    except Exception as e:
+        print(f"❌ [문서 파싱 오류] {e}", flush=True)
+        return JSONResponse({"success": False, "message": f"문서 처리 중 오류 발생: {str(e)}"})
+
+@app.post("/api/login")
+async def login(request: Request):
+    try:
+        data = await request.json()
+        user_id = str(data.get("username", data.get("id", ""))).strip()
+        password = str(data.get("password", "")).strip()
+        
+        if user_id in USER_DB and USER_DB[user_id] == password:
+            token = secrets.token_hex(16)
+            ACTIVE_TOKENS.add(token)
+            print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인 (토큰 발급됨)", flush=True)
+            return JSONResponse(content={"success": True, "token": token, "username": user_id})
+        else:
+            return JSONResponse(content={"success": False, "message": "아이디 또는 비밀번호가 틀렸습니다."}, status_code=401)
+    except Exception as e:
+        return JSONResponse(content={"success": False, "message": f"로그인 에러: {str(e)}"}, status_code=400)
+
+@app.get("/")
+async def get():
+    return FileResponse("index.html")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    from fastapi import Response
+    return Response(status_code=204)
+
 async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
     new_text = "\n".join(new_sentences)
@@ -179,9 +215,8 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
             messages=[{"role": "user", "content": prompt}]
         )
         summary_state["text"] = response.content[0].text.strip()
-        print(f"\n🧠 [비서 요약 봇] 문맥 압축 완료: {summary_state['text']}\n", flush=True)
     except Exception as e:
-        print(f"Summary Error: {e}", flush=True)
+        pass
 
 async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
     try:
@@ -196,22 +231,21 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
             "네", "아니요", "예", "아니"
         ]
         
-        # 순수 알파벳/한글 기준 정리
         clean_text = re.sub(r'[^a-z가-힣\s]', '', text_lower).strip()
-        
-        # 🌟 방어 로직 1: 2글자 이하의 파편화된 한국어 사담/헛소리 사전 폐기
         if not clean_text or clean_text in ignore_exact_phrases or (len(clean_text) <= 2 and re.match(r'^[가-힣]+$', clean_text)):
             return 
 
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
         glossary_section = f"\n[CIVIL ENGINEERING GLOSSARY]\n{glossary_text}\n" if glossary_text.strip() else ""
+        
+        # 🌟 업로드된 문서 문맥을 프롬프트 블록으로 주입
+        doc_section = f"\n[REFERENCE DOCUMENT / PAPER CONTEXT]\n{manager.global_document_context}\n" if manager.global_document_context else ""
 
         if source_lang == "multi" or source_lang == "multi_azure":
             lang_instruction = "The STT engine detected the language automatically. However, cross-check the context."
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
-        # 🌟 방어 로직 2 & 3: 사담 완벽 배제 및 단일 번역 강제 (LLM 프롬프트)
         system_prompt = f"""You are an elite simultaneous interpreter for an international civil engineering expert seminar involving Korea, China, Japan, and the US.
 Domain focus: Road paving, asphalt/concrete materials, pavement design, compaction, construction equipment, and related civil engineering technologies.
 
@@ -221,14 +255,15 @@ Domain focus: Road paving, asphalt/concrete materials, pavement design, compacti
 [RECENT CONTEXT]
 {history_str}
 {glossary_section}
+{doc_section}
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
 1. {lang_instruction} 
-2. [NUMBER & UNIT STRICTNESS]: Convert colloquial numbers/units into Arabic numerals and exact standard symbols (e.g., 50mm, 160°C, m², m³, MPa). NO space between number and unit.
+2. [NUMBER & UNIT STRICTNESS]: Convert colloquial numbers/units into Arabic numerals and exact standard symbols (e.g., 50mm, 160°C, m², m³, MPa). NO space between number and unit. Verify values using [REFERENCE DOCUMENT / PAPER CONTEXT] if provided.
 3. [DOMAIN FORCED CORRECTION]: The context is 'KICT' (Korea Institute of Civil Engineering and Building Technology). STT input "Payment" MUST be translated as "Pavement" (도로포장).
 4. [CHITCHAT & WHISPER REJECTION]: If the STT picked up a meaningless filler noise, a background whisper, an incomplete casual remark, or internal staff chitchat (e.g., "안 하세요?", "박사 가시기 바랍니다", "That's the one", "아니요"), DO NOT translate it. Output exactly [SKIP].
-5. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}.
-6. [SINGLE DEFINITIVE TRANSLATION]: Provide EXACTLY ONE best translation per language. DO NOT use slashes (/) to provide multiple options or alternatives (e.g., Never output "안 하시나요? / 하지 않으십니까?"). Choose the single most academic and natural expression.
+5. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}. Utilize the [REFERENCE DOCUMENT / PAPER CONTEXT] to predict omitted subjects, disambiguate homophones, and ensure precise academic terminology.
+6. [SINGLE DEFINITIVE TRANSLATION]: Provide EXACTLY ONE best translation per language. DO NOT use slashes (/) to provide multiple options or alternatives.
 7. CRITICAL: DO NOT converse with the speaker. Just output the translation.
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
@@ -252,12 +287,10 @@ clean current sentence
         async for event in stream:
             if event.type == "content_block_delta":
                 buffer += event.delta.text
-                
                 matches = re.finditer(r'\[([a-zA-Z-]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
                 for match in matches:
                     lang = match.group(1).lower().strip()
                     text_so_far = match.group(2).strip()
-                    
                     lang_text[lang] = text_so_far
                     
                     if lang != 'original':
@@ -271,12 +304,10 @@ clean current sentence
                         })
         
         original_text = lang_text.get('original', text)
-        
         if any("[SKIP]" in t.upper() for t in lang_text.values()):
             return
 
         recent_history.append(original_text)
-        
         if len(recent_history) >= 5:
             sentences_to_summarize = recent_history[:3]
             del recent_history[:3] 
@@ -329,14 +360,12 @@ async def websocket_endpoint(
     if not name: name = f"User_{client_id}"
 
     await manager.connect(websocket, client_id, name, role, ui_lang)
-    
     recent_history = [] 
     summary_state = {"text": ""} 
 
     try:
         while True:
             is_speaker = role in ["admin", "speaker"] or client_id in manager.speaking_allowed_clients
-            
             if not is_speaker:
                 while True:
                     data = await websocket.receive()
@@ -356,7 +385,6 @@ async def websocket_endpoint(
                         except: pass
             else:
                 engine_mode = "azure" if lang == "multi_azure" else "deepgram"
-                
                 if engine_mode == "azure":
                     if not AZURE_SPEECH_KEY:
                         await websocket.send_json({"type": "status", "text": "❌ 엔진 API Key가 설정되지 않았습니다."})
@@ -494,11 +522,7 @@ async def websocket_endpoint(
                         clean_words = [w.strip() for w in extracted_words if w.strip()]
                         if clean_words: keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
 
-                    replace_rules = [
-                        "payment:pavement", "Payment:Pavement", 
-                        "payments:pavements", "Payments:Pavements",
-                        "computer:computing"
-                    ]
+                    replace_rules = ["payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
                     dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
