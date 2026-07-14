@@ -574,8 +574,7 @@ async def websocket_endpoint(
                     replace_rules = ["구독자:참석자", "payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
-                    dg_url = f"wss://[api.deepgram.com/v1/listen?model=nova-2&language=](https://api.deepgram.com/v1/listen?model=nova-2&language=){dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
-                    headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
+                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"                    headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
                     ws_kwargs = {}
                     if int(websockets.__version__.split('.')[0]) >= 14:
