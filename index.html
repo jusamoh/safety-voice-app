@@ -315,15 +315,19 @@
                     <button class="btn-outline" style="padding: 4px 8px; font-size: 12px;" onclick="document.getElementById('glossaryFile').click()">📁 파일 불러오기</button>
                     <input type="file" id="glossaryFile" accept=".txt,.csv" style="display: none;" onchange="loadGlossaryFile(event)">
                 </div>
-                <div style="background: #e8eaed; color: #202124; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; line-height: 1.5; border-left: 4px solid var(--primary);">
-                    <b>💡 [사용 방법]</b> 엔진이 오인식한 발음과 정확한 용어를 <code>=</code> 기호로 연결하여 입력하세요.<br>
-                    텍스트 입력 후 <b>바탕화면(빈 곳)을 한 번 클릭하면</b> 회의 중단 없이 실시간 반영됩니다.<br>
-                    <span style="color: var(--primary); font-weight: 600; margin-top: 4px; display: inline-block;">[도로포장 현장 예시]</span><br>
-                    • 아스토=AASHTO<br>
-                    • 텍코치=Tack coat<br>
-                    • 사토 상=Dr. Sato
-                </div>
                 <textarea id="glossaryInput" class="styled-textarea" placeholder="여기에 오인식 단어를 입력하세요..." onchange="sendConfigUpdate()"></textarea>
+            </div>
+
+            <!-- 🌟 새로 추가된 '사전 학습 문서 업로드' UI 구역 -->
+            <div style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                    <label class="form-label" style="margin:0;">4. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
+                    <button class="btn-outline" style="padding: 4px 8px; font-size: 12px; border-color: var(--primary); color: var(--primary);" onclick="document.getElementById('contextFile').click()">📄 문서 업로드</button>
+                    <input type="file" id="contextFile" accept=".txt,.pdf,.docx" style="display: none;" onchange="uploadContextFile(event)">
+                </div>
+                <div id="contextUploadStatus" style="background: #e8eaed; color: #202124; padding: 10px; border-radius: 8px; font-size: 13px; line-height: 1.5; border-left: 4px solid var(--primary);">
+                    발표자의 스크립트나 논문을 업로드하면 번역 AI가 문맥을 미리 파악합니다.
+                </div>
             </div>
         </div>
 
@@ -357,7 +361,6 @@
         </div>
         <div id="liveDictation" class="dictation-box"></div>
         <div class="mic-controls">
-            <!-- 🌟 UI 단순화: directMicLangSelect 완전 제거 -->
             <select id="audioInputSelect" class="mic-select-dropdown" title="오디오 인터페이스 채널 지정">
                 <option value="default">기본 마이크</option>
             </select>
@@ -411,6 +414,36 @@
     document.addEventListener('visibilitychange', async () => {
         if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
+
+    // 🌟 새로운 기능: 문서(PDF/DOCX/TXT) 업로드 및 서버 파싱 전송 로직
+    async function uploadContextFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const statusDiv = document.getElementById('contextUploadStatus');
+        statusDiv.innerHTML = "⏳ 문서 분석 및 AI 학습 중... 잠시만 기다려주세요.";
+        
+        try {
+            const res = await fetch('/api/upload_context', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                statusDiv.innerHTML = `✅ <b>${file.name}</b> 학습 완료!<br>이제 AI가 이 문서의 문맥을 참고하여 통역합니다.`;
+                showToast("✅ 문서 기반 AI 학습이 완료되었습니다.");
+            } else {
+                statusDiv.innerHTML = `❌ 오류 발생: ${data.message}`;
+                showToast("문서 업로드 실패", true);
+            }
+        } catch (err) {
+            statusDiv.innerHTML = `❌ 서버 연결 오류 (파일이 너무 크거나 네트워크가 불안정합니다)`;
+        }
+        event.target.value = ''; 
+    }
 
     function toggleProjectorMode() {
         const elem = document.documentElement;
@@ -810,7 +843,6 @@
             
             const newLangMode = document.getElementById('speakerLang').value;
             
-            // 🌟 엔진 오토 핫 스왑(Auto Hot-swap) 로직: 언어가 다르면 라이브 중이라도 즉시 0.8초만에 재연결
             try {
                 const currentUrl = new URL(ws.url);
                 const currentLang = currentUrl.searchParams.get('lang');
@@ -853,7 +885,6 @@
         
         container.setAttribute('data-window-count', visibleCount);
 
-        // 🌟 수정: 마스터 스위치에 활성화된 모든 대상 언어를 목록으로 자동 주입
         if (isHost) {
             const speakerLangSelect = document.getElementById('speakerLang');
             const currentVal = speakerLangSelect.value;
@@ -1261,7 +1292,6 @@
                 }
 
                 let spkLang = 'ko';
-                // 🌟 수정: 오직 마스터 스위치(speakerLang)만을 기준 언어로 삼도록 로직 단일화
                 if (isHost) {
                     const sl = document.getElementById('speakerLang');
                     if (sl && sl.value) spkLang = sl.value;
