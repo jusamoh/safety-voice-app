@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 import azure.cognitiveservices.speech as speechsdk
 
-# 🌟 파일 파싱 라이브러리 (requirements.txt에 PyPDF2, python-docx, python-multipart 필수)
 import PyPDF2
 import docx
 
@@ -38,13 +37,14 @@ app.add_middleware(
 )
 
 # ==========================================
-# 💰 2. 인증 & 글로벌 룸 세팅 (Room State)
+# 💰 2. 인증 & 글로벌 룸 세팅
 # ==========================================
 USER_DB = {
-    "admin": "1234",          
-    "samsung": "sam1234",     
-    "hyundai": "hdec1234",
-    "speaker": "speaker1234"     
+    "admin": "kict_admin",          
+    "korea_exp": "rok_pave",        
+    "china_exp": "prc_pave",        
+    "japan_exp": "jpn_pave",        
+    "speaker": "pave_speaker"       
 }
 
 ACTIVE_TOKENS = set()
@@ -61,7 +61,7 @@ class ConnectionManager:
         self.is_admin_muted = False
         self.global_targets = "ko" 
         self.global_glossary = ""
-        self.global_document_context = "" # 🌟 업로드된 문서 텍스트 저장용 전역 변수
+        self.global_document_context = "" 
         self.speaking_allowed_clients = set()
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
@@ -134,7 +134,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # ==========================================
-# 🌟 추가된 라우터: 다중 포맷 문서 업로드 및 텍스트 파싱
+# 🌟 문서 업로드 파싱
 # ==========================================
 @app.post("/api/upload_context")
 async def upload_context(file: UploadFile = File(...)):
@@ -153,16 +153,12 @@ async def upload_context(file: UploadFile = File(...)):
             doc = docx.Document(io.BytesIO(content))
             extracted_text = "\n".join([para.text for para in doc.paragraphs])
         else:
-            return JSONResponse({"success": False, "message": "지원하지 않는 파일 형식입니다. (pdf, docx, txt 가능)"})
+            return JSONResponse({"success": False, "message": "지원하지 않는 파일 형식입니다."})
         
-        # 클로드 토큰 한도 보호를 위해 최대 50,000자로 제한
         extracted_text = extracted_text[:50000]
         manager.global_document_context = extracted_text
-        print(f"📄 [문서 학습 성공] {file.filename} (길이: {len(extracted_text)} 자)", flush=True)
-        
         return JSONResponse({"success": True, "message": "문서 파싱 및 AI 학습 준비 완료"})
     except Exception as e:
-        print(f"❌ [문서 파싱 오류] {e}", flush=True)
         return JSONResponse({"success": False, "message": f"문서 처리 중 오류 발생: {str(e)}"})
 
 @app.post("/api/login")
@@ -175,7 +171,6 @@ async def login(request: Request):
         if user_id in USER_DB and USER_DB[user_id] == password:
             token = secrets.token_hex(16)
             ACTIVE_TOKENS.add(token)
-            print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인 (토큰 발급됨)", flush=True)
             return JSONResponse(content={"success": True, "token": token, "username": user_id})
         else:
             return JSONResponse(content={"success": False, "message": "아이디 또는 비밀번호가 틀렸습니다."}, status_code=401)
@@ -185,11 +180,6 @@ async def login(request: Request):
 @app.get("/")
 async def get():
     return FileResponse("index.html")
-
-@app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
-    from fastapi import Response
-    return Response(status_code=204)
 
 async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
@@ -215,9 +205,12 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
             messages=[{"role": "user", "content": prompt}]
         )
         summary_state["text"] = response.content[0].text.strip()
-    except Exception as e:
+    except Exception:
         pass
 
+# ==========================================
+# 🌍 3. 실시간 글로벌 통역 엔진 (Claude AI)
+# ==========================================
 async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
     try:
         if any(keyword in text for keyword in ["위험", "주의", "낙하", "사고", "멈춰", "위험해"]):
@@ -226,7 +219,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         text_lower = text.lower().strip()
         ignore_exact_phrases = [
             "that's the one", "yeah right there", "that's quite a lot", "good thinking",
-            "that's the one yeah right there", "yeah that one right there", "that's quite remarkable",
             "thank you", "hmm", "uh", "well", "so", "okay", "아", "음", "hola", "어", "yeah", "right",
             "네", "아니요", "예", "아니"
         ]
@@ -237,8 +229,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
         glossary_section = f"\n[CIVIL ENGINEERING GLOSSARY]\n{glossary_text}\n" if glossary_text.strip() else ""
-        
-        # 🌟 업로드된 문서 문맥을 프롬프트 블록으로 주입
         doc_section = f"\n[REFERENCE DOCUMENT / PAPER CONTEXT]\n{manager.global_document_context}\n" if manager.global_document_context else ""
 
         if source_lang == "multi" or source_lang == "multi_azure":
@@ -258,13 +248,28 @@ Domain focus: Road paving, asphalt/concrete materials, pavement design, compacti
 {doc_section}
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
-1. {lang_instruction} 
-2. [NUMBER & UNIT STRICTNESS]: Convert colloquial numbers/units into Arabic numerals and exact standard symbols (e.g., 50mm, 160°C, m², m³, MPa). NO space between number and unit. Verify values using [REFERENCE DOCUMENT / PAPER CONTEXT] if provided.
-3. [DOMAIN FORCED CORRECTION]: The context is 'KICT' (Korea Institute of Civil Engineering and Building Technology). STT input "Payment" MUST be translated as "Pavement" (도로포장).
-4. [CHITCHAT & WHISPER REJECTION]: If the STT picked up a meaningless filler noise, a background whisper, an incomplete casual remark, or internal staff chitchat (e.g., "안 하세요?", "박사 가시기 바랍니다", "That's the one", "아니요"), DO NOT translate it. Output exactly [SKIP].
-5. Translate ONLY the CURRENT SENTENCE into the exact language codes: {targets}. Utilize the [REFERENCE DOCUMENT / PAPER CONTEXT] to predict omitted subjects, disambiguate homophones, and ensure precise academic terminology.
-6. [SINGLE DEFINITIVE TRANSLATION]: Provide EXACTLY ONE best translation per language. DO NOT use slashes (/) to provide multiple options or alternatives.
-7. CRITICAL: DO NOT converse with the speaker. Just output the translation.
+1. [DOMAIN FORCED ANCHORING]: The sole context is 'Civil Engineering and Road Paving'. Homophones must be translated into engineering terms (e.g., "Binder" = Asphalt Binder, "Joint" = Pavement Joint, "Base" = Base course).
+2. [NUMERICAL & UNIT IMMUTABILITY]: Numbers, dimensions, and engineering units (e.g., MPa, mm, °C, kg/m³, kN) MUST be preserved exactly as spoken. Convert any colloquial numbers into strict Arabic numerals without spacing before the unit.
+3. [STT MEDIA-BIAS CORRECTION]: The STT input may contain media-biased misrecognitions. You MUST logically auto-correct broadcast terms (e.g., "구독자/subscribers", "채널/channel") into academic terms (e.g., "참석자/attendees", "세미나/seminar") based on the academic context.
+4. [MATERIAL SPECIFICITY]: Strictly differentiate between paving materials. Do not confuse "Cement" with "Concrete", or "Bitumen/Asphalt cement" with "Asphalt mixture". Use the exact corresponding terms in KR, CN, JP, and US standards.
+5. [SINGLE DEFINITIVE OUTPUT]: Provide EXACTLY ONE best translation per target language. NEVER use slashes (/) for alternatives or provide multiple options. Be decisive.
+6. [ACADEMIC FORMALITY]: Maintain a highly formal, objective, and professional academic tone. Use formal polite forms in Korean (e.g., ~입니다/합니다) and Japanese (e.g., です/ます), and formal written style in Chinese.
+7. [OMITTED SUBJECT INFERENCE]: Korean and Japanese speakers often omit subjects. You MUST accurately infer the omitted subject (e.g., "I", "We", "This study", "The pavement") based on the recent engineering context before translating to English or Chinese.
+8. [ACRONYM & ABBREVIATION RETENTION]: Internationally recognized civil engineering acronyms (e.g., PG, HMA, RAP, SMA, IRI) MUST be kept in English capital letters across all language outputs unless a strict local academic equivalent exists.
+9. [CHITCHAT & NOISE REJECTION]: If the STT captures meaningless filler words, coughs, or irrelevant background chitchat (e.g., "아", "음", "마이크 테스트"), DO NOT translate. Output exactly [SKIP].
+10. [CROSS-LINGUAL CONSISTENCY]: Ensure the core engineering concept remains identical across KR, EN, CN, and JP translations. Use the English US pavement standard as the semantic anchor.
+11. [GLOSSARY OVERRIDE]: If a [REFERENCE DOCUMENT / GLOSSARY] is provided, its terminology and context ABSOLUTELY OVERRIDE your pre-trained knowledge.
+12. [NO CONVERSING]: You are a translation engine. NEVER converse with the speaker, ask clarifying questions, or add meta-comments. Output ONLY the translated text.
+13. [INCOMPLETE SENTENCE HANDLING]: If the input sentence is grammatically incomplete but contains valid engineering data, translate the available fragment accurately without hallucinating an ending.
+14. [FORMAT STRICTNESS]: Respond EXACTLY in the requested tag format (e.g., [en] result). NEVER use markdown code blocks (```) or add any extra text outside the tags.
+15. [SPEAKER PERSPECTIVE ALIGNMENT]: Maintain the speaker's first-person perspective as the researcher/engineer. Do not translate as a third-party observer.
+16. [EQUIPMENT LOCALIZATION]: Translate construction machinery names into industry-standard terms (e.g., Paver, Roller, Grader, Milling machine) avoiding literal or generic translations.
+17. [METHODOLOGY & PROCESS PRESERVATION]: When translating construction methods or experimental procedures, preserve the chronological sequence and causal relationships exactly as spoken.
+18. [CULTURAL IDIOM NEUTRALIZATION]: Translate cultural idioms or metaphors into clear, objective engineering statements (e.g., translating a colloquial expression for "very strong" into "high durability or high structural capacity").
+19. [REGIONAL STANDARD AWARENESS]: Be aware that Korea/Japan/China use metric standards, while the US uses imperial. Do not auto-convert units unless specifically instructed, but translate the unit names accurately.
+20. [SAFETY & RISK ALERTNESS]: Terms related to construction safety, hazards, or structural failures MUST be translated with absolute clarity and urgency, avoiding any ambiguity.
+
+{lang_instruction}
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
@@ -522,10 +527,10 @@ async def websocket_endpoint(
                         clean_words = [w.strip() for w in extracted_words if w.strip()]
                         if clean_words: keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
 
-                    replace_rules = ["payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
+                    replace_rules = ["구독자:참석자", "payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
-                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
+                    dg_url = f"wss://[api.deepgram.com/v1/listen?model=nova-2&language=](https://api.deepgram.com/v1/listen?model=nova-2&language=){dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
                     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
                     ws_kwargs = {}
@@ -654,5 +659,5 @@ if __name__ == "__main__":
     import uvicorn
     multiprocessing.freeze_support()
     port = int(os.environ.get("PORT", 10000))
-    print(f"🚀 실시간 글로벌 통역 서버를 시작합니다... (Port: {port})")
+    print(f"🚀 KICT 한중일 도로포장 세미나 실시간 통역 서버를 시작합니다... (Port: {port})")
     uvicorn.run(app, host="0.0.0.0", port=port)

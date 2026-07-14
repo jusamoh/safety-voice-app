@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>글로벌 전문가 학술대회 통역 콘솔</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js](https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js)"></script>
     <style>
         :root {
             --primary: #1a73e8;
@@ -76,9 +76,21 @@
         .admin-mute-btn { opacity: 0.4; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(80%); }
         .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 800; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); filter: grayscale(0%); }
 
+        /* 상태 바 및 신규 대기 분석 UI 스타일 */
+        .waiting-analysis-card { max-width: 1400px; margin: 0 auto 20px auto; background: #f8fafd; border: 1px solid #d2e3fc; padding: 15px 20px; border-radius: 12px; display: none; }
+        .analysis-content { font-size: 14.5px; color: #3c4043; }
+        .time-flow { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13.5px; color: var(--text-muted); font-weight: 600; }
+        .time-flow .arrow { color: var(--primary); font-weight: bold; }
+        .status-sub-message { font-size: 13px; color: #9aa0a6; display: block; margin-top: 4px; font-weight: normal; }
+        
+        .thought-process-diagram { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 12.5px; color: #5f6368; padding: 12px; background: #f1f3f4; border-radius: 8px; font-weight: 600;}
+        .process-block { display: flex; align-items: center; gap: 6px; }
+        .dashed-line { border-bottom: 2px dashed #9aa0a6; width: 40px; margin-left: 4px; }
+        .explanatory-tip { font-size: 12.5px; color: #80868b; margin-top: 10px; font-style: italic; line-height: 1.5; }
+
         .status-banner { max-width: 1400px; margin: 0 auto 20px; padding: 15px 20px; background: #3c4043; color: white; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 15px;}
-        .status-text { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 250px;}
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #9aa0a6; display: inline-block; }
+        .status-text { font-weight: 600; font-size: 16px; display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 250px;}
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #9aa0a6; display: inline-block; margin-top: 6px; }
         .status-dot.live { background: #34a853; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.4; } }
 
@@ -113,7 +125,7 @@
         .tts-btn { position: absolute; right: 0; top: 0; background: #f1f3f4; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); font-weight: 600; }
 
         body.viewer-mode, body.speaker-mode { background-color: #000; color: #fff; padding: 0; }
-        body.viewer-mode .navbar, body.speaker-mode .navbar, body.viewer-mode .dashboard-layout, body.speaker-mode .dashboard-layout, body.viewer-mode .status-banner, body.speaker-mode .status-banner { display: none !important; }
+        body.viewer-mode .navbar, body.speaker-mode .navbar, body.viewer-mode .dashboard-layout, body.speaker-mode .dashboard-layout, body.viewer-mode .status-banner, body.speaker-mode .status-banner, body.viewer-mode #waitingAnalysisCard, body.speaker-mode #waitingAnalysisCard { display: none !important; }
         body.viewer-mode .window-container, body.speaker-mode .window-container { max-width: 100%; padding: 0; gap: 0; height: 100vh; display: flex; flex-direction: column; padding-top: 85px;}
         body.viewer-mode .window, body.speaker-mode .window { flex: 1; border: none; border-radius: 0; height: 100%; max-height: none; background: #000; }
         body.viewer-mode .window-header, body.speaker-mode .window-header { display: none; }
@@ -123,7 +135,7 @@
         body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #333; }
 
         body.projector-mode { background-color: #000; padding: 0; margin: 0; width: 100vw; height: 100vh; overflow: hidden; }
-        body.projector-mode .navbar, body.projector-mode .dashboard-layout, body.projector-mode .status-banner, body.projector-mode #viewerTopBar, body.projector-mode #mobileDictationBox, body.projector-mode #requestSpeakBtn, body.projector-mode #mobileMuteBtn { display: none !important; }
+        body.projector-mode .navbar, body.projector-mode .dashboard-layout, body.projector-mode .status-banner, body.projector-mode #viewerTopBar, body.projector-mode #mobileDictationBox, body.projector-mode #requestSpeakBtn, body.projector-mode #mobileMuteBtn, body.projector-mode #waitingAnalysisCard { display: none !important; }
         
         body.projector-mode .window-container { 
             display: grid; 
@@ -353,10 +365,27 @@
         </div>
     </div>
 
+    <!-- 대기 상태 분석 카드 -->
+    <div id="waitingAnalysisCard" class="waiting-analysis-card">
+        <h3 style="margin:0 0 10px 0; color:var(--primary); font-size:16px;">🔍 대기 상태 분석</h3>
+        <div class="analysis-content">
+            <p style="margin:0;"><strong>번역 지연 원인:</strong> 문장 미완료 (연속성 감지)</p>
+            <div class="time-flow">
+                <span>문장 시작 감지</span> <span class="arrow">→</span>
+                <span>불완전 문장 지속</span> <span class="arrow">→</span>
+                <span>번역 보류 ⏳</span> <span class="arrow">→</span>
+                <span>최종 마침표/무음 대기</span>
+            </div>
+        </div>
+    </div>
+
     <div class="status-banner" id="statusBanner">
         <div class="status-text">
             <span id="statusIndicator" class="status-dot"></span>
-            <span id="statusMessage">시스템 대기 중. 마이크를 켜주세요.</span>
+            <div>
+                <span id="statusMessage" style="display:block;">시스템 대기 중. 마이크를 켜주세요.</span>
+                <span id="statusSubMessage" class="status-sub-message" style="display:none;"></span>
+            </div>
         </div>
         <div id="liveDictation" class="dictation-box"></div>
         <div class="mic-controls">
@@ -414,7 +443,6 @@
         if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
 
-    // 강화된 문서 업로드 함수 (에러 추적기 탑재)
     async function uploadContextFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -431,7 +459,6 @@
                 body: formData
             });
 
-            // 서버 처리 에러 상세 출력
             if (!res.ok) {
                 const errorText = await res.text();
                 if (res.status === 404) {
@@ -764,7 +791,7 @@
         const mainLang = document.getElementById('viewerLangSelect').value || 'ko';
         
         if (lang === mainLang || (checkbox && checkbox.disabled)) {
-            showToast("발표자(기본) 언어는 닫을 수 없습니다.", true);
+            showToast("발표자(기본) 언어는 닫을 수 정 없습니다.", true);
             return;
         }
         
@@ -1159,20 +1186,18 @@
         reader.readAsText(file, "UTF-8");
     }
 
-    // 강화된 회의록 초기화 함수 (localStorage 정리 추가)
     function clearAllLogs() {
         if (confirm("정말로 화면을 초기화하시겠습니까? 저장되지 않은 회의록은 유실됩니다.")) {
             document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
             const dateStr = new Date().toISOString().slice(0, 10);
             transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
             currentTranscriptData = {};
-            localStorage.removeItem("savedTranscript"); // 로컬 저장소 데이터 삭제
+            localStorage.removeItem("savedTranscript");
             document.getElementById('liveDictation').innerHTML = "";
             showToast("화면과 로컬 저장소가 깔끔하게 초기화되었습니다.");
         }
     }
 
-    // 강화된 회의록 다운로드 함수 (에러 처리 및 로컬 저장소 대처)
     async function downloadTranscript() {
         if (!transcriptLog || transcriptLog.split('\n').length <= 3) {
             return showToast("다운로드할 회의록 내용이 없습니다.", true);
@@ -1182,20 +1207,17 @@
         const fileName = `${safeTitle}_${new Date().toISOString().slice(0,10)}.txt`;
         const fileContent = transcriptLog;
 
-        // localStorage 용량 초과 대처 로직 추가
         try {
             localStorage.setItem("savedTranscript", fileContent);
         } catch (e) {
             if (e.name === 'QuotaExceededError') {
                 showToast("⚠️ 로컬 저장소 용량이 초과되었습니다! 즉시 파일로 저장을 시도합니다.", true);
-                // 용량 초과 시, 추가적인 저장은 시도하지 않고 파일 다운로드로 넘어감
             }
         }
 
         updateStatus("📄 회의록 파일 생성 및 다운로드 중...");
 
         try {
-            // 현대적인 브라우저의 파일 저장 방식 (권한 필요)
             if (window.showSaveFilePicker) {
                 const handle = await window.showSaveFilePicker({
                     suggestedName: fileName,
@@ -1207,10 +1229,8 @@
                 const writable = await handle.createWritable();
                 await writable.write(fileContent);
                 await writable.close();
-                
                 showToast("✅ 지정하신 위치에 회의록이 안전하게 저장되었습니다.");
             } else {
-                // 구형 브라우저 방식 (자동 다운로드)
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(new Blob([fileContent], { type: 'text/plain' }));
                 a.download = fileName;
@@ -1218,7 +1238,6 @@
                 showToast("✅ 회의록 다운로드가 완료되었습니다. 다운로드 폴더를 확인하세요.");
             }
 
-            // 다운로드 성공 후, 데이터 정리 및 새로고침
             setTimeout(() => {
                 localStorage.removeItem("savedTranscript");
                 transcriptLog = "";
@@ -1264,22 +1283,16 @@
         window.speechSynthesis.speak(msg);
     }
 
-    // 🌟 새로운 자동 다운로드 확인 함수
     function checkAndTriggerAutoDownload() {
         if (!transcriptLog) return;
-        
-        // localStorage는 대략 5MB입니다. UTF-16에서 문자 하나는 2-4바이트입니다.
-        // 보수적으로 250만 문자로 한도를 추정합니다.
         const ESTIMATED_CHAR_CAPACITY = 2500000;
         const currentLength = transcriptLog.length;
         const usagePercentage = (currentLength / ESTIMATED_CHAR_CAPACITY) * 100;
 
         if (usagePercentage >= 90) {
             showToast("💾 회의록 용량이 90%에 도달하여 자동으로 저장을 시작합니다.", true);
-            // downloadTranscript는 상태를 정리하고 다시 로드하여 무한 루프를 방지합니다.
             downloadTranscript(); 
         } else if (usagePercentage >= 80) {
-            // 80%일 때 경고를 표시하는 것도 유용합니다.
              showToast(`⚠️ 회의록 용량이 ${usagePercentage.toFixed(1)}% 입니다. 미리 저장해 주세요.`);
         }
     }
@@ -1297,10 +1310,15 @@
         } catch (e) { console.log("오디오 재생 미지원 환경"); }
     }
 
-    function updateStatus(text, isRecording = false) {
+    function updateStatus(text, isRecording = false, subText = "") {
         const msg = document.getElementById('statusMessage');
+        const subMsg = document.getElementById('statusSubMessage');
         const dot = document.getElementById('statusIndicator');
         msg.innerText = text;
+        if(subMsg) {
+            subMsg.innerText = subText;
+            subMsg.style.display = subText ? 'block' : 'none';
+        }
         if (isRecording) dot.classList.add('live');
         else dot.classList.remove('live');
     }
@@ -1450,6 +1468,10 @@
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
 
+                        // 💡 대기 분석 상태 표출
+                        document.getElementById('waitingAnalysisCard').style.display = 'block';
+                        updateStatus("문장 완료 대기 중...", true, "정확한 번역을 위해, 연사가 말을 완전히 마칠 때까지 기다립니다.");
+
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) {
@@ -1474,7 +1496,16 @@
                                 div.className = 'sentence';
                                 box.appendChild(div);
                             }
-                            div.innerHTML = `<span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>`;
+                            // 💡 상세 분석 다이어그램 삽입
+                            div.innerHTML = `
+                                <span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>
+                                <div class="thought-process-diagram">
+                                    <div class="process-block"><span>불완전 문장</span><span class="dashed-line"></span></div>
+                                    <div class="process-block"><span>대기 중</span> ⏳</div>
+                                    <div class="process-block" style="cursor: pointer;" title="분석 진행 중"><span>대기 중</span> 🔄</div>
+                                </div>
+                                <p class="explanatory-tip">엔진은 문장의 완전성을 감지하여, 마침표나 연사의 무음을 기다립니다. 불완전한 문장을 번역하면 오번역이 발생할 수 있어 번역을 보류 중입니다.</p>
+                            `;
                             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                         });
                     } 
@@ -1555,10 +1586,12 @@
                         }
                         
                         localStorage.setItem("savedTranscript", transcriptLog);
-                        
-                        // 🌟 새로운 자동 다운로드 확인 기능
                         checkAndTriggerAutoDownload();
 
+                        // 💡 문장 완료 시 대기 상태 리셋
+                        document.getElementById('waitingAnalysisCard').style.display = 'none';
+                        updateStatus("대기 중...", false, "시스템 대기 중. 마이크를 켜주세요.");
+                        
                         currentSentenceId = null;
                         document.getElementById('liveDictation').innerText = "";
                         const mobBox = document.getElementById('mobileDictationBox');
@@ -1604,16 +1637,15 @@
         
         const speakerBtn = document.getElementById('speakerBtn');
         if (speakerBtn) { speakerBtn.innerHTML = "🎙️ 현장 마이크 켜기"; speakerBtn.classList.remove('active'); }
-        updateStatus("시스템 대기 중. 마이크를 켜주세요.", false);
+        document.getElementById('waitingAnalysisCard').style.display = 'none';
+        updateStatus("시스템 대기 중. 마이크를 켜주세요.", false, "");
     }
 
-    // 강화된 데이터 손실 방지 로직 (브라우저 종료/새로고침 시 경고)
     window.addEventListener('beforeunload', (e) => {
         if (isConnected && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
-            // 회의 중일 때만 경고
             if (transcriptLog && transcriptLog.split('\n').length > 3) {
                  e.preventDefault();
-                 e.returnValue = ''; // 크롬 등 현대 브라우저에서 경고창을 띄우기 위해 필요
+                 e.returnValue = ''; 
             }
         }
     });
