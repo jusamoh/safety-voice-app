@@ -318,7 +318,6 @@
                 <textarea id="glossaryInput" class="styled-textarea" placeholder="여기에 오인식 단어를 입력하세요..." onchange="sendConfigUpdate()"></textarea>
             </div>
 
-            <!-- 🌟 새로 추가된 '사전 학습 문서 업로드' UI 구역 -->
             <div style="margin-top: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
                     <label class="form-label" style="margin:0;">4. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
@@ -415,7 +414,7 @@
         if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
 
-    // 🌟 새로운 기능: 문서(PDF/DOCX/TXT) 업로드 및 서버 파싱 전송 로직
+    // 🌟 2. 강화된 에러 추적기를 탑재한 문서 업로드 함수
     async function uploadContextFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -431,18 +430,36 @@
                 method: 'POST',
                 body: formData
             });
+
+            // 🚨 서버 처리 에러의 민낯을 그대로 출력하는 방어벽
+            if (!res.ok) {
+                const errorText = await res.text();
+                if (res.status === 404) {
+                    statusDiv.innerHTML = `❌ <b>[HTTP 404 오류]</b> 백엔드에 업로드 기능이 아직 반영되지 않았습니다.<br>👉 <span style="color:var(--danger); font-weight:bold;">Render에서 'Clear build cache & deploy'를 꼭 실행해주세요.</span>`;
+                } else if (res.status === 422) {
+                    statusDiv.innerHTML = `❌ <b>[HTTP 422 오류]</b> 문서 처리 필수 라이브러리가 누락되었습니다.<br>👉 <span style="color:var(--danger); font-weight:bold;">Render에서 'Clear build cache & deploy'를 꼭 실행해주세요.</span>`;
+                } else {
+                    statusDiv.innerHTML = `❌ <b>[서버 오류 ${res.status}]</b> 상세: ${errorText}`;
+                }
+                return;
+            }
+
             const data = await res.json();
             if (data.success) {
                 statusDiv.innerHTML = `✅ <b>${file.name}</b> 학습 완료!<br>이제 AI가 이 문서의 문맥을 참고하여 통역합니다.`;
                 showToast("✅ 문서 기반 AI 학습이 완료되었습니다.");
             } else {
-                statusDiv.innerHTML = `❌ 오류 발생: ${data.message}`;
+                // undefined 방지: 메시지가 없으면 데이터 구조 자체를 텍스트로 보여줌
+                const errMsg = data.message || (data.detail ? JSON.stringify(data.detail) : '알 수 없는 시스템 거부');
+                statusDiv.innerHTML = `❌ 업로드 거부: ${errMsg}`;
                 showToast("문서 업로드 실패", true);
             }
         } catch (err) {
-            statusDiv.innerHTML = `❌ 서버 연결 오류 (파일이 너무 크거나 네트워크가 불안정합니다)`;
+            statusDiv.innerHTML = `❌ <b>네트워크 끊김 / 서버 재시작 중</b><br>Render 서버가 갱신 중입니다. 약 2~3분 뒤 다시 시도해 주세요.`;
+            console.error(err);
+        } finally {
+            event.target.value = ''; 
         }
-        event.target.value = ''; 
     }
 
     function toggleProjectorMode() {
