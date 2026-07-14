@@ -414,7 +414,7 @@
         if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
 
-    // 🌟 2. 강화된 에러 추적기를 탑재한 문서 업로드 함수
+    // 강화된 문서 업로드 함수 (에러 추적기 탑재)
     async function uploadContextFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -431,13 +431,13 @@
                 body: formData
             });
 
-            // 🚨 서버 처리 에러의 민낯을 그대로 출력하는 방어벽
+            // 서버 처리 에러 상세 출력
             if (!res.ok) {
                 const errorText = await res.text();
                 if (res.status === 404) {
-                    statusDiv.innerHTML = `❌ <b>[HTTP 404 오류]</b> 백엔드에 업로드 기능이 아직 반영되지 않았습니다.<br>👉 <span style="color:var(--danger); font-weight:bold;">Render에서 'Clear build cache & deploy'를 꼭 실행해주세요.</span>`;
+                    statusDiv.innerHTML = `❌ <b>[HTTP 404 오류]</b><br>백엔드 서버에 업로드 기능이 아직 반영되지 않았습니다.<br><span style="color:var(--danger); font-weight:bold;">반드시 터미널에서 기존 main.py를 완전히 종료(Ctrl+C)한 후 서버를 다시 실행해 주세요.</span>`;
                 } else if (res.status === 422) {
-                    statusDiv.innerHTML = `❌ <b>[HTTP 422 오류]</b> 문서 처리 필수 라이브러리가 누락되었습니다.<br>👉 <span style="color:var(--danger); font-weight:bold;">Render에서 'Clear build cache & deploy'를 꼭 실행해주세요.</span>`;
+                    statusDiv.innerHTML = `❌ <b>[HTTP 422 오류]</b><br>파일 처리 라이브422 에러 (python-multipart 미설치)`;
                 } else {
                     statusDiv.innerHTML = `❌ <b>[서버 오류 ${res.status}]</b> 상세: ${errorText}`;
                 }
@@ -449,13 +449,11 @@
                 statusDiv.innerHTML = `✅ <b>${file.name}</b> 학습 완료!<br>이제 AI가 이 문서의 문맥을 참고하여 통역합니다.`;
                 showToast("✅ 문서 기반 AI 학습이 완료되었습니다.");
             } else {
-                // undefined 방지: 메시지가 없으면 데이터 구조 자체를 텍스트로 보여줌
-                const errMsg = data.message || (data.detail ? JSON.stringify(data.detail) : '알 수 없는 시스템 거부');
-                statusDiv.innerHTML = `❌ 업로드 거부: ${errMsg}`;
+                statusDiv.innerHTML = `❌ 오류 발생: ${data.message || '알 수 없는 시스템 거부'}`;
                 showToast("문서 업로드 실패", true);
             }
         } catch (err) {
-            statusDiv.innerHTML = `❌ <b>네트워크 끊김 / 서버 재시작 중</b><br>Render 서버가 갱신 중입니다. 약 2~3분 뒤 다시 시도해 주세요.`;
+            statusDiv.innerHTML = `❌ <b>네트워크/서버 연결 오류</b><br>서버(main.py)가 꺼져 있거나 재시작이 필요합니다. 터미널을 확인하세요.`;
             console.error(err);
         } finally {
             event.target.value = ''; 
@@ -713,7 +711,7 @@
             setTimeout(() => toggleConnection('speaker'), 500);
         }
 
-        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場しました。歓迎します！" };
+        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場했습니다. 환영합니다！" };
         const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
         const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다!`;
 
@@ -1161,21 +1159,43 @@
         reader.readAsText(file, "UTF-8");
     }
 
+    // 강화된 회의록 초기화 함수 (localStorage 정리 추가)
     function clearAllLogs() {
-        document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
-        const dateStr = new Date().toISOString().slice(0, 10);
-        transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
-        localStorage.removeItem("savedTranscript");
-        document.getElementById('liveDictation').innerHTML = "";
-        showToast("화면이 깔끔하게 초기화되었습니다.");
+        if (confirm("정말로 화면을 초기화하시겠습니까? 저장되지 않은 회의록은 유실됩니다.")) {
+            document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
+            currentTranscriptData = {};
+            localStorage.removeItem("savedTranscript"); // 로컬 저장소 데이터 삭제
+            document.getElementById('liveDictation').innerHTML = "";
+            showToast("화면과 로컬 저장소가 깔끔하게 초기화되었습니다.");
+        }
     }
 
+    // 강화된 회의록 다운로드 함수 (에러 처리 및 로컬 저장소 대처)
     async function downloadTranscript() {
+        if (!transcriptLog || transcriptLog.split('\n').length <= 3) {
+            return showToast("다운로드할 회의록 내용이 없습니다.", true);
+        }
+
         const safeTitle = meetingTitle ? meetingTitle.replace(/[^a-zA-Z0-9가-힣]/g, '_') : '회의기록';
         const fileName = `${safeTitle}_${new Date().toISOString().slice(0,10)}.txt`;
         const fileContent = transcriptLog;
 
+        // localStorage 용량 초과 대처 로직 추가
         try {
+            localStorage.setItem("savedTranscript", fileContent);
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                showToast("⚠️ 로컬 저장소 용량이 초과되었습니다! 즉시 파일로 저장을 시도합니다.", true);
+                // 용량 초과 시, 추가적인 저장은 시도하지 않고 파일 다운로드로 넘어감
+            }
+        }
+
+        updateStatus("📄 회의록 파일 생성 및 다운로드 중...");
+
+        try {
+            // 현대적인 브라우저의 파일 저장 방식 (권한 필요)
             if (window.showSaveFilePicker) {
                 const handle = await window.showSaveFilePicker({
                     suggestedName: fileName,
@@ -1189,27 +1209,30 @@
                 await writable.close();
                 
                 showToast("✅ 지정하신 위치에 회의록이 안전하게 저장되었습니다.");
-                
-                if (document.getElementById('password') && document.getElementById('password').value !== "") {
-                    document.getElementById('password').value = '';
-                    setTimeout(() => { window.location.reload(); }, 800);
-                }
             } else {
+                // 구형 브라우저 방식 (자동 다운로드)
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(new Blob([fileContent], { type: 'text/plain' }));
                 a.download = fileName;
                 a.click();
-                showToast("✅ 회의록 다운로드가 완료되었습니다.");
-                
-                if (document.getElementById('password') && document.getElementById('password').value !== "") {
-                    document.getElementById('password').value = '';
-                    setTimeout(() => { window.location.reload(); }, 800);
-                }
+                showToast("✅ 회의록 다운로드가 완료되었습니다. 다운로드 폴더를 확인하세요.");
             }
+
+            // 다운로드 성공 후, 데이터 정리 및 새로고침
+            setTimeout(() => {
+                localStorage.removeItem("savedTranscript");
+                transcriptLog = "";
+                currentTranscriptData = {};
+                window.location.reload(); 
+            }, 1500);
+
         } catch (err) {
-            if (err.name !== 'AbortError') {
+            if (err.name === 'AbortError') {
+                showToast("💾 저장이 사용자에 의해 취소되었습니다. (데이터는 유지됨)", true);
+            } else {
                 console.error('Save failed:', err);
-                showToast("회의록 저장 중 오류가 발생했습니다.", true);
+                showToast(`❌ 회의록 저장 중 오류가 발생했습니다: ${err.message || '알 수 없는 오류'}`, true);
+                updateStatus("❌ 회의록 저장 실패");
             }
         }
     }
@@ -1239,6 +1262,26 @@
         else if (lang === 'ko') msg.lang = 'ko-KR';
         else msg.lang = lang; 
         window.speechSynthesis.speak(msg);
+    }
+
+    // 🌟 새로운 자동 다운로드 확인 함수
+    function checkAndTriggerAutoDownload() {
+        if (!transcriptLog) return;
+        
+        // localStorage는 대략 5MB입니다. UTF-16에서 문자 하나는 2-4바이트입니다.
+        // 보수적으로 250만 문자로 한도를 추정합니다.
+        const ESTIMATED_CHAR_CAPACITY = 2500000;
+        const currentLength = transcriptLog.length;
+        const usagePercentage = (currentLength / ESTIMATED_CHAR_CAPACITY) * 100;
+
+        if (usagePercentage >= 90) {
+            showToast("💾 회의록 용량이 90%에 도달하여 자동으로 저장을 시작합니다.", true);
+            // downloadTranscript는 상태를 정리하고 다시 로드하여 무한 루프를 방지합니다.
+            downloadTranscript(); 
+        } else if (usagePercentage >= 80) {
+            // 80%일 때 경고를 표시하는 것도 유용합니다.
+             showToast(`⚠️ 회의록 용량이 ${usagePercentage.toFixed(1)}% 입니다. 미리 저장해 주세요.`);
+        }
     }
 
     function playReadyBeep() {
@@ -1512,6 +1555,10 @@
                         }
                         
                         localStorage.setItem("savedTranscript", transcriptLog);
+                        
+                        // 🌟 새로운 자동 다운로드 확인 기능
+                        checkAndTriggerAutoDownload();
+
                         currentSentenceId = null;
                         document.getElementById('liveDictation').innerText = "";
                         const mobBox = document.getElementById('mobileDictationBox');
@@ -1559,6 +1606,18 @@
         if (speakerBtn) { speakerBtn.innerHTML = "🎙️ 현장 마이크 켜기"; speakerBtn.classList.remove('active'); }
         updateStatus("시스템 대기 중. 마이크를 켜주세요.", false);
     }
+
+    // 강화된 데이터 손실 방지 로직 (브라우저 종료/새로고침 시 경고)
+    window.addEventListener('beforeunload', (e) => {
+        if (isConnected && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
+            // 회의 중일 때만 경고
+            if (transcriptLog && transcriptLog.split('\n').length > 3) {
+                 e.preventDefault();
+                 e.returnValue = ''; // 크롬 등 현대 브라우저에서 경고창을 띄우기 위해 필요
+            }
+        }
+    });
+
 </script>
 </body>
 </html>
