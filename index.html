@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글로벌 도로포장 학술회의 라이브 통역 시스템</title>
+    <style>
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .header h1 { margin: 0; font-size: 20px; color: #1a73e8; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-danger { background: #ea4335; color: white; }
+        .btn-success { background: #34a853; color: white; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .panel h3 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        
+        .channel-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+        .channel-selector select { flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        .channel-tags { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .channel-tag { padding: 6px 12px; border-radius: 20px; border: 1px solid #1a73e8; color: #1a73e8; font-size: 14px; font-weight: 500; }
+        
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; }
+        .control-group input[type="range"] { width: 100%; }
+        .control-group textarea { width: 100%; height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: none; font-size: 12px; }
+        
+        .request-list { min-height: 150px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; padding: 10px; margin-bottom: 15px; }
+        .request-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border: 1px solid #ddd; margin-bottom: 5px; border-radius: 4px; }
+        
+        #translation-area { background: #202124; color: #fff; padding: 20px; border-radius: 8px; min-height: 300px; max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg-box { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; }
+        .msg-tag { font-size: 12px; font-weight: bold; color: #8ab4f8; margin-bottom: 4px; }
+        .msg-text { font-size: 16px; line-height: 1.4; }
+        
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+        .login-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* 알럿 모달 */
+        #alert-modal { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #dc3545; color: white; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 18px; z-index: 2000; box-shadow: 0 4px 12px rgba(220,53,69,0.5); animation: blink 1s infinite alternate; }
+        @keyframes blink { from { opacity: 1; } to { opacity: 0.8; } }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-top: 0;">시스템 로그인</h2>
+            <input type="text" id="username" placeholder="아이디" value="admin">
+            <input type="password" id="password" placeholder="비밀번호">
+            <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="login()">로그인</button>
+            <p id="login-error" style="color: red; font-size: 12px; margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <div id="alert-modal">⚠️ 안전/위험 관련 키워드가 감지되었습니다!</div>
+
+    <div class="container" id="main-content" style="display: none;">
+        <div class="header">
+            <h1>🌐 도로포장 전문 라이브 동시통역 시스템</h1>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span id="status-indicator" style="color: #666; font-size: 14px;">대기 중...</span>
+                <button class="btn btn-primary" id="btn-start" onclick="startSystem()">🎙️ 통역 시작</button>
+                <button class="btn btn-danger" id="btn-stop" onclick="stopSystem()" style="display: none;">⏹️ 정지</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- 1. 채널 패널 -->
+            <div class="panel">
+                <h3>📺 방송 채널 및 공유</h3>
+                <div class="channel-selector">
+                    <select id="add-channel">
+                        <option value="en">US 영어 (English)</option>
+                        <option value="ja">JP 일본어 (日本語)</option>
+                        <option value="zh">CN 중국어 (中文)</option>
+                        <option value="ko">KR 한국어 (Korean)</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addChannel()">추가</button>
+                </div>
+                <div class="channel-tags" id="active-channels">
+                    <div class="channel-tag" data-lang="ko">KR 한국어</div>
+                    <div class="channel-tag" data-lang="en">US 영어</div>
+                    <div class="channel-tag" data-lang="zh">CN 중국어</div>
+                </div>
+            </div>
+
+            <!-- 2. 엔진 설정 패널 -->
+            <div class="panel">
+                <h3>💡 엔진 설정</h3>
+                <div class="control-group">
+                    <label>1. 회의 진행 단계 (언어 감지)</label>
+                    <select id="engine-lang" style="width: 100%; padding: 8px; border-radius: 4px;">
+                        <option value="ko">방장 언어 고정 (KR 한국어) - 초고속 인식</option>
+                        <option value="multi_azure">다국어 릴레이 토론 (AI 자동 식별)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>2. 전문 용어집 (Phonetic Mapping)</label>
+                    <textarea id="glossary-input" placeholder="term=translation 형식으로 입력 (예: Base Course=기층)"></textarea>
+                </div>
+                
+                <!-- 새로 추가된 PPT/PDF 업로드 UI -->
+                <div class="control-group" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin: 0;">3. 발표자 원고 업로드 (학습용)</label>
+                        <label style="cursor: pointer; background: #f8f9fa; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                            📁 파일 불러오기
+                            <input type="file" id="contextFileInput" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
+                        </label>
+                    </div>
+                    <div id="contextUploadStatus" style="font-size: 11px; color: #666; background: #fdfdfd; border: 1px dashed #ddd; padding: 8px; border-radius: 4px; text-align: center;">
+                        도로포장 원고(PPTX, PDF, DOCX)를 업로드하면<br>AI가 문맥을 파악하여 통역 품질이 극대화됩니다.
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="applyConfig()">⚙️ 설정 적용 (방장 전용)</button>
+            </div>
+
+            <!-- 3. 제어 센터 패널 -->
+            <div class="panel">
+                <h3>👑 사회자 제어 센터</h3>
+                <div class="request-list" id="request-list">
+                    <div style="color: #999; text-align: center; margin-top: 50px; font-size: 12px;">대기 중인 발언 요청이 없습니다.</div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-danger" style="flex: 1;" onclick="adminAction('mute_all')">전체 음소거</button>
+                    <button class="btn btn-success" style="flex: 1;" onclick="adminAction('unmute_all')">음소거 해제</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="background: #111;">
+            <div id="translation-area">
+                <!-- 번역 결과 출력 영역 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 💡 Render 서버 절대 경로 하드코딩
+        const BASE_API_URL = "[https://safety-voice-app.onrender.com](https://safety-voice-app.onrender.com)";
+        const BASE_WS_URL = "wss://safety-voice-app.onrender.com";
+
+        let ws;
+        let token = "";
+        let role = "";
+        let mediaRecorder;
+        let audioStream;
+        let activeTargets = ['ko', 'en', 'zh'];
+
+        // 로그인 로직
+        async function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+            try {
+                const res = await fetch(`${BASE_API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    token = data.token;
+                    role = user === 'admin' ? 'admin' : 'speaker';
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                } else {
+                    document.getElementById('login-error').innerText = data.message;
+                }
+            } catch (e) {
+                document.getElementById('login-error').innerText = "서버 접속 실패";
+            }
+        }
+
+        // 채널 추가 로직
+        function addChannel() {
+            const sel = document.getElementById('add-channel');
+            const val = sel.value;
+            const text = sel.options[sel.selectedIndex].text;
+            
+            if (!activeTargets.includes(val)) {
+                activeTargets.push(val);
+                const tagsDiv = document.getElementById('active-channels');
+                const tag = document.createElement('div');
+                tag.className = 'channel-tag';
+                tag.dataset.lang = val;
+                tag.innerText = text;
+                tag.onclick = () => {
+                    activeTargets = activeTargets.filter(t => t !== val);
+                    tag.remove();
+                };
+                tagsDiv.appendChild(tag);
+            }
+        }
+
+        // 파일 업로드 (PPT, PDF 등) 로직
+        document.getElementById('contextFileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('contextUploadStatus');
+            statusEl.innerHTML = `<span style="color: #1a73e8; font-weight: bold;">⏳ 업로드 및 추출 중... (${file.name})</span>`;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(`${BASE_API_URL}/api/upload_context`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.innerHTML = `<span style="color: #34a853; font-weight: bold;">✅ AI 컨텍스트 학습 완료: ${file.name}</span>`;
+                } else {
+                    statusEl.innerHTML = `<span style="color: #ea4335; font-weight: bold;">❌ 업로드 실패: ${result.message}</span>`;
+                }
+            } catch (error) {
+                statusEl.innerHTML = `<span style="color: #ea4335; font-weight: bold;">❌ 서버 통신 오류</span>`;
+            }
+            e.target.value = ''; 
+        });
+
+        // 환경 설정 전송
+        function applyConfig() {
+            if (role !== 'admin' || !ws || ws.readyState !== WebSocket.OPEN) return;
+            const glossary = document.getElementById('glossary-input').value;
+            const targetsStr = activeTargets.join(',');
+            ws.send(JSON.stringify({
+                type: "config",
+                glossary: glossary,
+                targets: targetsStr
+            }));
+            alert("설정이 서버에 적용되었습니다.");
+        }
+
+        // 방장 액션 (음소거, 권한 승인 등)
+        function adminAction(action, target_id = null) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "admin_action", action: action, target_id: target_id }));
+            }
+        }
+
+        // 시스템 시작 (마이크 접근 및 웹소켓 연결)
+        async function startSystem() {
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const lang = document.getElementById('engine-lang').value;
+                const targetsStr = activeTargets.join(',');
+                
+                const wsUrl = `${BASE_WS_URL}/ws?token=${token}&role=${role}&lang=${lang}&targets=${targetsStr}`;
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    document.getElementById('btn-start').style.display = 'none';
+                    document.getElementById('btn-stop').style.display = 'inline-block';
+                    document.getElementById('status-indicator').innerText = '🟢 마이크 캡처 및 전송 중...';
+                    
+                    mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+                            ws.send(event.data);
+                        }
+                    };
+                    mediaRecorder.start(250);
+                    
+                    // 시작 직후 설정 동기화
+                    setTimeout(applyConfig, 500);
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    const area = document.getElementById('translation-area');
+                    
+                    if (data.type === 'status') {
+                        document.getElementById('status-indicator').innerText = data.text;
+                    } else if (data.type === 'alert') {
+                        const alertBox = document.getElementById('alert-modal');
+                        alertBox.style.display = 'block';
+                        setTimeout(() => alertBox.style.display = 'none', 5000);
+                    } else if (data.type === 'admin_state' && role === 'admin') {
+                        const list = document.getElementById('request-list');
+                        if (data.requests.length === 0) {
+                            list.innerHTML = '<div style="color: #999; text-align: center; margin-top: 50px; font-size: 12px;">대기 중인 발언 요청이 없습니다.</div>';
+                        } else {
+                            list.innerHTML = '';
+                            data.requests.forEach(req => {
+                                list.innerHTML += `
+                                    <div class="request-item">
+                                        <span>🙋‍♂️ ${req.name}</span>
+                                        <div>
+                                            <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="adminAction('approve', '${req.id}')">승인</button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="adminAction('reject', '${req.id}')">거절</button>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }
+                    } else if (data.type === 'stream_end') {
+                        const msgBox = document.createElement('div');
+                        msgBox.className = 'msg-box';
+                        msgBox.innerHTML = `
+                            <div class="msg-tag">${data.lang.toUpperCase()} | ${data.name}</div>
+                            <div class="msg-text">${data.raw_text}</div>
+                        `;
+                        area.appendChild(msgBox);
+                        area.scrollTop = area.scrollHeight;
+                    }
+                };
+
+                ws.onclose = () => stopSystem();
+                
+            } catch (err) {
+                alert('마이크 접근 권한이 필요합니다.');
+            }
+        }
+
+        // 시스템 종료
+        function stopSystem() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+            if (ws) ws.close();
+            
+            document.getElementById('btn-start').style.display = 'inline-block';
+            document.getElementById('btn-stop').style.display = 'none';
+            document.getElementById('status-indicator').innerText = '대기 중...';
+        }
+    </script>
+</body>
+</html>
