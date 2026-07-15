@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 
 import azure.cognitiveservices.speech as speechsdk
-import PyPDF2  # fitz 대신 절대 오류가 안 나는 PyPDF2로 복구
+import PyPDF2
 import docx
 from pptx import Presentation
 
@@ -71,9 +71,23 @@ async def login(request: Request):
     except Exception as e:
         return JSONResponse(content={"success": False, "message": f"로그인 에러: {str(e)}"}, status_code=400)
 
+# ==========================================
+# 💡 3. 경로 인식 오류 방지를 위한 절대 경로 처리
+# ==========================================
 @app.get("/")
 async def get():
-    return FileResponse("index.html")
+    # main.py 파일이 위치한 현재 폴더의 절대 경로를 추적
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    index_path = os.path.join(base_dir, "index.html")
+    
+    # 파일이 존재하는지 검사 후 전송 (서버 다운 방지)
+    if not os.path.exists(index_path):
+        return JSONResponse(
+            status_code=404, 
+            content={"success": False, "message": f"서버에 index.html 파일이 없습니다. (확인된 경로: {index_path})"}
+        )
+        
+    return FileResponse(index_path)
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -174,7 +188,6 @@ async def upload_context(file: UploadFile = File(...)):
         if ext in ['txt', 'csv']:
             extracted_text = content.decode('utf-8')
         elif ext == 'pdf':
-            # fitz 대신 절대 오류 안 나는 PyPDF2 사용
             try:
                 pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
                 for page in pdf_reader.pages:
