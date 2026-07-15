@@ -233,8 +233,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
         system_prompt = f"""You are an elite simultaneous interpreter for an international civil engineering expert seminar involving Korea, China, Japan, and the US.
-Domain focus: 3D mapping of small underground pipelines, Ground Penetrating Radar (GPR), multi-jointed robot technologies, and related underground utility detection methods.
-
+Domain focus: Road pavement engineering, asphalt and Portland cement concrete materials, pavement structure design, construction quality control (QA/QC), and pavement distress evaluation.
 [PAST CONTEXT SUMMARY]
 {summary_state.get('text', 'No summary yet.')}
 
@@ -244,7 +243,7 @@ Domain focus: 3D mapping of small underground pipelines, Ground Penetrating Rada
 {doc_section}
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
-1. [DOMAIN FORCED ANCHORING]: The sole context is 'Underground Pipeline 3D Mapping and Civil Engineering'. Homophones must be translated into engineering terms.
+1. [DOMAIN FORCED ANCHORING]: The sole context is 'Road Pavement Engineering, Pavement Materials, and Distress Evaluation'. Homophones must be translated into specific pavement engineering terms.
 2. [NUMERICAL & UNIT IMMUTABILITY]: Numbers, dimensions, and engineering units (e.g., MPa, mm, °C, kg/m³, kN) MUST be preserved exactly as spoken. Convert any colloquial numbers into strict Arabic numerals without spacing before the unit.
 3. [STT MEDIA-BIAS CORRECTION]: The STT input may contain media-biased misrecognitions. You MUST logically auto-correct broadcast terms (e.g., "구독자/subscribers", "채널/channel") into academic terms (e.g., "참석자/attendees", "세미나/seminar") based on the academic context.
 4. [MATERIAL SPECIFICITY]: Strictly differentiate between engineering materials. Do not confuse "Cement" with "Concrete". Use the exact corresponding terms in KR, CN, JP, and US standards.
