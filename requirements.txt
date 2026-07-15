@@ -6,3 +6,4 @@ azure-cognitiveservices-speech
 python-multipart
 PyPDF2
 python-docx
+python-pptx

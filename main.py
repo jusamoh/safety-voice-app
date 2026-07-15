@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 
 import azure.cognitiveservices.speech as speechsdk
-import fitz  # PyMuPDF 적용 (PDF 파싱용)
+import PyPDF2  # fitz 대신 절대 오류가 안 나는 PyPDF2로 복구
 import docx
 from pptx import Presentation
 
@@ -162,7 +162,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # ==========================================
-# 🌟 문서 업로드 파싱 (PyMuPDF 적용 및 PPT 지원)
+# 🌟 문서 업로드 파싱 (PyPDF2로 롤백, PPT 지원 유지)
 # ==========================================
 @app.post("/api/upload_context")
 async def upload_context(file: UploadFile = File(...)):
@@ -174,11 +174,13 @@ async def upload_context(file: UploadFile = File(...)):
         if ext in ['txt', 'csv']:
             extracted_text = content.decode('utf-8')
         elif ext == 'pdf':
+            # fitz 대신 절대 오류 안 나는 PyPDF2 사용
             try:
-                pdf_doc = fitz.open(stream=content, filetype="pdf")
-                for page in pdf_doc:
-                    extracted_text += page.get_text() + "\n"
-                pdf_doc.close()
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+                for page in pdf_reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        extracted_text += text + "\n"
             except Exception as e:
                 return JSONResponse({"success": False, "message": f"PDF 파싱 오류: {str(e)}"})
         elif ext in ['doc', 'docx']:
