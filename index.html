@@ -20,7 +20,8 @@
         .channel-selector { display: flex; gap: 10px; margin-bottom: 20px; }
         .channel-selector select { flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
         .channel-tags { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        .channel-tag { padding: 6px 12px; border-radius: 20px; border: 1px solid #1a73e8; color: #1a73e8; font-size: 14px; font-weight: 500; }
+        .channel-tag { padding: 6px 12px; border-radius: 20px; border: 1px solid #1a73e8; color: #1a73e8; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .channel-tag:hover { background: #e8f0fe; }
         
         .control-group { margin-bottom: 15px; }
         .control-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; }
@@ -51,17 +52,17 @@
             <input type="text" id="username" placeholder="아이디" value="admin">
             <input type="password" id="password" placeholder="비밀번호">
             <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="login()">로그인</button>
-            <p id="login-error" style="color: red; font-size: 12px; margin-top: 10px;"></p>
+            <p id="login-error" style="color: red; font-size: 12px; margin-top: 10px; font-weight: bold;"></p>
         </div>
     </div>
 
-    <div id="alert-modal">⚠️ 안전/위험 관련 키워드가 감지되었습니다!</div>
+    <div id="alert-modal">⚠️ 안전/위험/파손 관련 키워드가 감지되었습니다!</div>
 
     <div class="container" id="main-content" style="display: none;">
         <div class="header">
             <h1>🌐 도로포장 전문 라이브 동시통역 시스템</h1>
             <div style="display: flex; gap: 10px; align-items: center;">
-                <span id="status-indicator" style="color: #666; font-size: 14px;">대기 중...</span>
+                <span id="status-indicator" style="color: #666; font-size: 14px; font-weight: bold;">대기 중...</span>
                 <button class="btn btn-primary" id="btn-start" onclick="startSystem()">🎙️ 통역 시작</button>
                 <button class="btn btn-danger" id="btn-stop" onclick="stopSystem()" style="display: none;">⏹️ 정지</button>
             </div>
@@ -85,6 +86,7 @@
                     <div class="channel-tag" data-lang="en">US 영어</div>
                     <div class="channel-tag" data-lang="zh">CN 중국어</div>
                 </div>
+                <div style="font-size: 11px; color: #888; margin-top: -10px; margin-bottom: 10px;">* 태그를 클릭하면 채널이 삭제됩니다.</div>
             </div>
 
             <!-- 2. 엔진 설정 패널 -->
@@ -99,14 +101,14 @@
                 </div>
                 <div class="control-group">
                     <label>2. 전문 용어집 (Phonetic Mapping)</label>
-                    <textarea id="glossary-input" placeholder="term=translation 형식으로 입력 (예: Base Course=기층)"></textarea>
+                    <textarea id="glossary-input" placeholder="term=translation 형식으로 입력&#10;예: Rutting=소성변형&#10;Base Course=기층"></textarea>
                 </div>
                 
-                <!-- 새로 추가된 PPT/PDF 업로드 UI -->
+                <!-- 발표자 원고 업로드 UI -->
                 <div class="control-group" style="margin-top: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <label style="margin: 0;">3. 발표자 원고 업로드 (학습용)</label>
-                        <label style="cursor: pointer; background: #f8f9fa; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                        <label style="cursor: pointer; background: #f8f9fa; border: 1px solid #ccc; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; color: #333;">
                             📁 파일 불러오기
                             <input type="file" id="contextFileInput" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
                         </label>
@@ -126,8 +128,8 @@
                     <div style="color: #999; text-align: center; margin-top: 50px; font-size: 12px;">대기 중인 발언 요청이 없습니다.</div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-danger" style="flex: 1;" onclick="adminAction('mute_all')">전체 음소거</button>
-                    <button class="btn btn-success" style="flex: 1;" onclick="adminAction('unmute_all')">음소거 해제</button>
+                    <button class="btn btn-danger" style="flex: 1;" onclick="adminAction('mute_all')">토론 전체 음소거</button>
+                    <button class="btn btn-success" style="flex: 1;" onclick="adminAction('unmute_all')">토론 음소거 해제</button>
                 </div>
             </div>
         </div>
@@ -140,9 +142,10 @@
     </div>
 
     <script>
-        // 💡 Render 서버 절대 경로 하드코딩
-        const BASE_API_URL = "[https://safety-voice-app.onrender.com](https://safety-voice-app.onrender.com)";
-        const BASE_WS_URL = "wss://safety-voice-app.onrender.com";
+        // 💡 마크다운 변환 오류 원천 차단: 브라우저 환경에서 동적으로 상대 경로 생성
+        const BASE_API_URL = ""; 
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const BASE_WS_URL = `${protocol}//${window.location.host}`;
 
         let ws;
         let token = "";
@@ -151,10 +154,12 @@
         let audioStream;
         let activeTargets = ['ko', 'en', 'zh'];
 
-        // 로그인 로직
+        // 1. 로그인 로직 (undefined 방지 및 에러 상세 출력)
         async function login() {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('login-error');
+            errorEl.innerText = "로그인 중...";
             
             try {
                 const res = await fetch(`${BASE_API_URL}/api/login`, {
@@ -162,22 +167,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: user, password: pass })
                 });
+                
                 const data = await res.json();
                 
-                if (data.success) {
+                if (res.ok && data.success) {
                     token = data.token;
                     role = user === 'admin' ? 'admin' : 'speaker';
                     document.getElementById('login-overlay').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                 } else {
-                    document.getElementById('login-error').innerText = data.message;
+                    const errorMsg = data.message || data.detail || JSON.stringify(data);
+                    errorEl.innerText = errorMsg;
                 }
             } catch (e) {
-                document.getElementById('login-error').innerText = "서버 접속 실패";
+                errorEl.innerText = "서버 접속 실패: 서버가 완전히 켜질 때까지 약 1분 정도 기다린 후 다시 시도해주세요.";
             }
         }
 
-        // 채널 추가 로직
+        // 2. 채널 추가 로직
         function addChannel() {
             const sel = document.getElementById('add-channel');
             const val = sel.value;
@@ -198,7 +205,7 @@
             }
         }
 
-        // 파일 업로드 (PPT, PDF 등) 로직
+        // 3. 파일 업로드 (PPT, PDF 등) 로직
         document.getElementById('contextFileInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -216,10 +223,11 @@
                 });
                 const result = await response.json();
 
-                if (result.success) {
+                if (response.ok && result.success) {
                     statusEl.innerHTML = `<span style="color: #34a853; font-weight: bold;">✅ AI 컨텍스트 학습 완료: ${file.name}</span>`;
                 } else {
-                    statusEl.innerHTML = `<span style="color: #ea4335; font-weight: bold;">❌ 업로드 실패: ${result.message}</span>`;
+                    const errorMsg = result.message || "알 수 없는 에러";
+                    statusEl.innerHTML = `<span style="color: #ea4335; font-weight: bold;">❌ 업로드 실패: ${errorMsg}</span>`;
                 }
             } catch (error) {
                 statusEl.innerHTML = `<span style="color: #ea4335; font-weight: bold;">❌ 서버 통신 오류</span>`;
@@ -227,9 +235,12 @@
             e.target.value = ''; 
         });
 
-        // 환경 설정 전송
+        // 4. 환경 설정 전송
         function applyConfig() {
-            if (role !== 'admin' || !ws || ws.readyState !== WebSocket.OPEN) return;
+            if (role !== 'admin' || !ws || ws.readyState !== WebSocket.OPEN) {
+                if (role !== 'admin') alert("설정 변경은 방장(admin)만 가능합니다.");
+                return;
+            }
             const glossary = document.getElementById('glossary-input').value;
             const targetsStr = activeTargets.join(',');
             ws.send(JSON.stringify({
@@ -240,14 +251,14 @@
             alert("설정이 서버에 적용되었습니다.");
         }
 
-        // 방장 액션 (음소거, 권한 승인 등)
+        // 5. 방장 액션 (음소거, 권한 승인 등)
         function adminAction(action, target_id = null) {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "admin_action", action: action, target_id: target_id }));
             }
         }
 
-        // 시스템 시작 (마이크 접근 및 웹소켓 연결)
+        // 6. 시스템 시작 (마이크 접근 및 웹소켓 연결)
         async function startSystem() {
             try {
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -261,7 +272,7 @@
                 ws.onopen = () => {
                     document.getElementById('btn-start').style.display = 'none';
                     document.getElementById('btn-stop').style.display = 'inline-block';
-                    document.getElementById('status-indicator').innerText = '🟢 마이크 캡처 및 전송 중...';
+                    document.getElementById('status-indicator').innerHTML = '<span style="color: #34a853;">🟢 마이크 캡처 및 전송 중...</span>';
                     
                     mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
                     mediaRecorder.ondataavailable = (event) => {
@@ -271,7 +282,6 @@
                     };
                     mediaRecorder.start(250);
                     
-                    // 시작 직후 설정 동기화
                     setTimeout(applyConfig, 500);
                 };
 
@@ -280,7 +290,7 @@
                     const area = document.getElementById('translation-area');
                     
                     if (data.type === 'status') {
-                        document.getElementById('status-indicator').innerText = data.text;
+                        document.getElementById('status-indicator').innerHTML = `<span style="color: #1a73e8;">${data.text}</span>`;
                     } else if (data.type === 'alert') {
                         const alertBox = document.getElementById('alert-modal');
                         alertBox.style.display = 'block';
@@ -318,11 +328,11 @@
                 ws.onclose = () => stopSystem();
                 
             } catch (err) {
-                alert('마이크 접근 권한이 필요합니다.');
+                alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.');
             }
         }
 
-        // 시스템 종료
+        // 7. 시스템 종료
         function stopSystem() {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
             if (audioStream) audioStream.getTracks().forEach(t => t.stop());
@@ -330,7 +340,7 @@
             
             document.getElementById('btn-start').style.display = 'inline-block';
             document.getElementById('btn-stop').style.display = 'none';
-            document.getElementById('status-indicator').innerText = '대기 중...';
+            document.getElementById('status-indicator').innerHTML = '<span style="color: #666;">대기 중...</span>';
         }
     </script>
 </body>
