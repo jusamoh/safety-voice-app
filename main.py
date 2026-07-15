@@ -555,7 +555,7 @@ async def websocket_endpoint(
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
                     # 마크다운 찌꺼기 없는 완벽하고 깨끗한 URL
-                    dg_url = f"wss://[api.deepgram.com/v1/listen?model=nova-2&language=](https://api.deepgram.com/v1/listen?model=nova-2&language=){dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
+                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
                     
                     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
