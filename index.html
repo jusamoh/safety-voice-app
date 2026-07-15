@@ -140,6 +140,10 @@
     </div>
 
     <script>
+        // 💡 Render 서버 절대 경로 하드코딩
+        const BASE_API_URL = "[https://safety-voice-app.onrender.com](https://safety-voice-app.onrender.com)";
+        const BASE_WS_URL = "wss://safety-voice-app.onrender.com";
+
         let ws;
         let token = "";
         let role = "";
@@ -153,7 +157,7 @@
             const pass = document.getElementById('password').value;
             
             try {
-                const res = await fetch('/api/login', {
+                const res = await fetch(`${BASE_API_URL}/api/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: user, password: pass })
@@ -206,7 +210,7 @@
             formData.append("file", file);
 
             try {
-                const response = await fetch('/api/upload_context', {
+                const response = await fetch(`${BASE_API_URL}/api/upload_context`, {
                     method: 'POST',
                     body: formData
                 });
@@ -250,8 +254,7 @@
                 const lang = document.getElementById('engine-lang').value;
                 const targetsStr = activeTargets.join(',');
                 
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}&role=${role}&lang=${lang}&targets=${targetsStr}`;
+                const wsUrl = `${BASE_WS_URL}/ws?token=${token}&role=${role}&lang=${lang}&targets=${targetsStr}`;
                 
                 ws = new WebSocket(wsUrl);
                 
