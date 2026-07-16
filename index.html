@@ -127,14 +127,12 @@
         .win-close-btn:hover { color: var(--danger); background: #fce8e6; }
         
         .content-box { flex: 1; overflow-y: auto; padding: 25px; background-color: #ffffff; border-radius: 0 0 16px 16px; font-size: 1.2rem; line-height: 1.8; scroll-behavior: smooth;}
-        
-        .sentence { margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px dashed #ccc; position: relative;}
+        .sentence { margin-bottom: 25px; padding-bottom: 25px; padding-right: 85px; border-bottom: 1px dashed var(--border); position: relative; word-wrap: break-word; overflow-wrap: break-word;}
         .draft-text { color: #777; font-style: italic; font-weight: 500;}
-        .latest-text { font-size: 1.6rem; font-weight: 800; color: var(--text-main); display: block; margin-top: 8px; word-break: keep-all; }
+        .latest-text { font-size: 1.6rem; font-weight: 800; color: var(--text-main); display: block; margin-top: 8px; word-break: break-all; }
         .original-text { font-size: 1.05rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; }
-        .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; word-break: keep-all; }
+        .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; word-break: break-all; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #e8eaed; border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: var(--text-main); font-weight: 800; }
-
         /* -------------------------------------------
            미디어 쿼리 최적화: 울트라 와이드 및 모바일 
            ------------------------------------------- */
@@ -1011,7 +1009,7 @@
 
             const multiOpt = document.createElement('option');
             multiOpt.value = "multi_azure";
-            multiOpt.innerText = `🌍 다국어 자동 탐색 (Azure 혼합 모드)`;
+            multiOpt.innerText = `🌍 다국어 자동 탐색 (AI 혼합 모드)`;
             speakerLangSelect.appendChild(multiOpt);
 
             if (currentVal && speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) {
