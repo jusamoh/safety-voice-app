@@ -212,7 +212,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
         response = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=200,
-            temperature=0.1,  # 💡 요약 과정에서의 소설 쓰기 방지
+            temperature=0.0,  # 💡 요약 과정에서의 소설 쓰기 방지
             messages=[{"role": "user", "content": prompt}]
         )
         summary_state["text"] = response.content[0].text.strip()
@@ -302,7 +302,7 @@ clean current sentence
         stream = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=700,
-            temperature=0.1,  # 💡 AI의 창의성을 0%로 억제 (여기에 반드시 추가)
+            temperature=0.0,  # 💡 AI의 창의성을 0%로 억제 (여기에 반드시 추가)
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
             stream=True
