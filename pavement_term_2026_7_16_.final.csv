@@ -1,0 +1,568 @@
+﻿Primary Key,English,Korean,Japanese,Chinese
+PAV-00001,"AAR, alkali aggregate reaction","AAR, 알칼리 골재 반응",AAR、アルカリ骨材反応,AAR、碱骨料反应
+PAV-00004,AASHTO Classification System,AASHTO 토질분류법,AASHTO土質分類法,AASHTO土分类法
+PAV-00007,abrasion accelate test,마모촉진시험,摩耗促進試験,磨耗加速试验
+PAV-00010,"abrasion reduction, loss",마모량,摩耗量,磨耗量
+PAV-00013,abrasion resistance,마모 저항성,摩耗抵抗性,抗磨性
+PAV-00016,"abrasion resistance of concrete, mortar surface by rotating cutter method",회전 절삭 방식 콘크리트 모르타르 표면 내마모성,回転切削方式コンクリートモルタル表面耐摩耗性,旋转切削法混凝土砂浆表面耐磨性
+PAV-00019,absolute volume,절대 부피,絶対体積,绝对体积
+PAV-00022,absorption factor,흡수 인자,吸水係数,吸水因子
+PAV-00025,accelerating agent,촉진제,促進剤,促进剂
+PAV-00028,Acceptable Quality Level (AQL),합격품질한계(AQL),合格品質限界（AQL）,接收质量限（AQL）
+PAV-00031,Acceptance,인수 판정,受入れ判定,验收
+PAV-00034,Acceptance Plan,인수검사계획,受入れ検査計画,验收方案
+PAV-00037,Accuracy,정확도,正確さ,准确度
+PAV-00040,Additive Silo,첨가제 사일로,添加剤サイロ,添加剂料仓
+PAV-00043,Adjusted Payment,지급액 조정,支払額調整,支付调整
+PAV-00046,admixture,혼화재,混和材,掺合料
+PAV-00049,after curing,후 양생,後養生,后养护
+PAV-00052,aggregate abrasion,골재 마모,骨材摩耗,骨料磨耗
+PAV-00055,aggregate film rate,골재 피막율,骨材被膜率,骨料包裹率
+PAV-00058,aggregate interlocking,골재 맞물림,骨材かみ合い,骨料嵌锁
+PAV-00061,aggregate segregation,골재 분리,骨材分離,骨料离析
+PAV-00064,Aggregates,골재,骨材,集料
+PAV-00067,agitation,교반,撹拌,搅拌
+PAV-00070,air content,공기량,空気量,含气量
+PAV-00073,air entraining agent,공기 연행제,空気連行剤,引气剂
+PAV-00076,air void,공극,空隙,空隙
+PAV-00079,air-entraining and high range water reducing admixture,공기 연행 고성능 감수제,空気連行高性能減水剤,引气高效减水剂
+PAV-00082,Alligator Cracking,거북등균열,亀甲状ひび割れ,龟裂
+PAV-00085,allowable bearing capacity,허용 지지력,許容支持力,允许承载力
+PAV-00088,alumina,알루미나,アルミナ,氧化铝
+PAV-00091,angle of internal friction,내부마찰각,内部摩擦角,内摩擦角
+PAV-00094,anti frost heave layer,동결융해방지층,凍上防止層,防冻胀层
+PAV-00097,apparent density,겉보기 밀도,見かけ密度,表观密度
+PAV-00100,apparent specific gravity,겉보기 비중,見かけ比重,表观比重
+PAV-00103,Asphalt,아스팔트,アスファルト,沥青
+PAV-00106,asphalt base course,아스팔트 기층,アスファルト基層,沥青基层
+PAV-00109,Asphalt Concrete (AC),아스팔트 콘크리트(AC),アスファルトコンクリート（AC）,沥青混凝土（AC）
+PAV-00112,Asphalt Concrete Base (ACB),아스팔트 콘크리트 기층(ACB),アスファルトコンクリート路盤（ACB）,沥青混凝土基层（ACB）
+PAV-00115,Asphalt Concrete Pavement (ACP),아스팔트 콘크리트 포장(ACP),アスファルトコンクリート舗装（ACP）,沥青混凝土路面（ACP）
+PAV-00118,asphalt concrete recycled aggregate,아스팔트 콘크리트 재생골재,アスファルトコンクリート再生骨材,沥青混凝土再生骨料
+PAV-00121,Asphalt Concrete Surface (ACS),아스팔트 콘크리트 표층(ACS),表層用アスファルトコンクリート（ACS）,沥青混凝土面层（ACS）
+PAV-00124,asphalt mixture,아스팔트 혼합물,アスファルト混合物,沥青混合料
+PAV-00127,asphalt primer,아스팔트 프라이머,アスファルトプライマー,沥青底漆
+PAV-00130,asphalt rate,아스팔트 함량,アスファルト含有率,沥青含量
+PAV-00133,asphalt surface course,아스팔트 표층,アスファルト表層,沥青面层
+PAV-00136,Asphalt Treated Permeable Base (ATPB),아스팔트 처리 투수성 기층(ATPB),アスファルト処理透水性路盤（ATPB）,沥青处治透水基层（ATPB）
+PAV-00139,autoclaved light weight concrete,고압 증기 양생 경량 콘크리트,高圧蒸気養生軽量コンクリート,高压蒸汽养护轻质混凝土
+PAV-00142,Average Annual Daily Traffic (AADT),연평균 일교통량(AADT),年平均日交通量（AADT）,年平均日交通量（AADT）
+PAV-00145,Average Annual Daily Truck Traffic (AADTT),연평균 일트럭교통량(AADTT),年平均日トラック交通量（AADTT）,年平均日货车交通量（AADTT）
+PAV-00148,Back calculation,역산해석,逆解析,模量反算
+PAV-00151,backup material,백업 재료,バックアップ材料,支撑材料
+PAV-00154,Base,기층,路盤,基层
+PAV-00157,Base Course,기층,路盤層,基层
+PAV-00160,base course surface,기층 표면,基層表面,基层表面
+PAV-00163,batch,배치,バッチ,批次
+PAV-00166,batch mixer,배치식 믹서,バッチ式ミキサー,间歇式搅拌机
+PAV-00169,batch plant,배치식 플랜트,バッチ式プラント,间歇式搅拌站
+PAV-00172,Batch Tower,배치 타워,バッチタワー,间歇式拌和楼
+PAV-00175,"BB, black base",검은색 기층,ブラックベース,黑色基层
+PAV-00178,bearing capacity,지지력,支持力,承载力
+PAV-00181,bearing ratio,지지력비,支持力比,承载力比
+PAV-00184,"BFS, blast furnace slag",고로 슬래그,高炉スラグ,高炉矿渣
+PAV-00187,Bias,편의,かたより,偏倚
+PAV-00190,Biased Sample,편의표본,偏りのある試料,有偏样本
+PAV-00193,binder,결합재,結合材,胶凝材料
+PAV-00196,bituminous material,역청 재료,瀝青材料,沥青材料
+PAV-00199,Blaine Fineness,블레인 분말도,ブレーン比表面積,勃氏比表面积
+PAV-00202,"blast furnace slag power type Ⅰ, Ⅱ, Ⅲ","고로 슬래그 분말 Ⅰ, Ⅱ, Ⅲ형",高炉スラグ粉末Ⅰ、Ⅱ、Ⅲ型,高炉矿渣粉Ⅰ、Ⅱ、Ⅲ型
+PAV-00205,blast-furnace slag cement,고로 슬래그 시멘트,高炉スラグセメント,高炉矿渣水泥
+PAV-00208,bleeding,블리딩,ブリーディング,泛油
+PAV-00211,Bleeding/Flushing,블리딩(플러싱),フラッシング（ブリーディング）,泛油
+PAV-00214,blistering,기포 발생,ブリスタリング,起泡
+PAV-00217,blow up,팽창,ブローアップ,鼓包
+PAV-00220,Bottom-Up Transverse Cracking,하면기점 횡방향 균열,下面起点横ひび割れ,自下而上横向裂缝
+PAV-00223,british pendulum number,영국식 진자 수,ブリティッシュペンジュラム数,英国摆数
+PAV-00226,british pendulum tester,영국식 진자 시험기,ブリティッシュペンジュラム試験機,英国摆测定仪
+PAV-00229,brittle failure,취성파괴,脆性破壊,脆性破坏
+PAV-00232,brittleness index,취성지수,脆性指数,脆性指数
+PAV-00235,bulk cement,벌크 시멘트,バルクセメント,散装水泥
+PAV-00238,Bulk Saturated Surface Dry Specific Gravity,표면건조 포화 비중,表乾比重,表干毛体积相对密度
+PAV-00241,Bulk Specific Gravity,용적비중,かさ比重,毛体积相对密度
+PAV-00244,bulk specific gravity of compacted asphalt concrete,다짐 아스팔트 콘크리트 벌크 비중,締固めアスファルトコンクリート嵩比重,压实沥青混凝土堆积密度
+PAV-00247,bulk volume of filler,필러의 벌크 부피,フィラーのバルク体積,填料的堆积体积
+PAV-00250,Buyer's Risk (β),소비자 위험(β),消費者危険（β）,使用方风险（β）
+PAV-00253,California Bearing Ratio (CBR),CBR(캘리포니아 지지력비),CBR（カリフォルニア支持力比）,加州承载比（CBR）
+PAV-00256,cellulose fiber,셀룰로오스섬유,セルロース繊維,纤维素纤维
+PAV-00259,cement concrete pavement,시멘트콘크리트포장,セメントコンクリート舗装,水泥混凝土路面
+PAV-00262,cement stabilization,시멘트안정처리,セメント安定処理,水泥稳定处理
+PAV-00265,cement stabilized filter base,시멘트안정처리필터기층,セメント安定処理フィルター基層,水泥稳定处理滤层基层
+PAV-00268,Cement-Treated Base (CTB),시멘트 안정처리 기층(CTB),セメント安定処理路盤（CTB）,水泥稳定基层（CTB）
+PAV-00271,Cement-Treated Permeable Base (CTPB),시멘트 처리 투수성 기층(CTPB),セメント処理透水性路盤（CTPB）,水泥处治透水基层（CTPB）
+PAV-00274,chips,칩,チップ,碎石
+PAV-00277,Cleanliness,청정도,清浄度,洁净度
+PAV-00280,coarse aggregate,굵은 골재,粗骨材,粗骨料
+PAV-00283,coarse asphalt mixture,굵은 아스팔트 혼합물,粗粒度アスファルト混合物,粗粒式沥青混合料
+PAV-00286,Coarse Grained,조립토,粗粒土,粗粒土
+PAV-00289,coefficient of absorption,흡수 계수,吸水係数,吸水系数
+PAV-00292,coefficient of bearing capacity,지지력계수,支持力係数,承载力系数
+PAV-00295,coefficient of curvature,곡률 계수,曲率係数,曲率系数
+PAV-00298,coefficient of layer equivalency,층등가계수,層等価係数,层当量系数
+PAV-00301,Coefficient of Thermal Expansion (CTE),열팽창계수(CTE),線膨張係数（CTE）,线膨胀系数（CTE）
+PAV-00304,coefficient of uniformity,균등계수,均等係数,均匀系数
+PAV-00307,Coefficient of Variation,변동계수,変動係数,变异系数
+PAV-00310,Cohesion,점착력,粘着力,黏聚力
+PAV-00313,cold asphalt,냉혼합아스팔트,冷混合アスファルト,冷拌沥青混合料
+PAV-00316,cold bin,냉골재저장소,冷骨材貯蔵庫,冷骨料仓
+PAV-00319,cold joint,냉접합부,冷接合部,冷接缝
+PAV-00322,cold weather concrete,저온 콘크리트,低温コンクリート,低温混凝土
+PAV-00325,collected dust,집진 분진,集塵粉塵,集尘粉尘
+PAV-00328,color pavement,컬러포장,カラー舗装,彩色路面
+PAV-00331,compacting factor test,다짐 계수 시험,締固め係数試験,压实系数试验
+PAV-00334,compaction of asphalt mixture,아스팔트 혼합물 다짐,アスファルト混合物の締固め,沥青混合料压实
+PAV-00337,complete protection method,완전 보호 공법,完全保護工法,完全保护工法
+PAV-00340,complex modulus,복소 탄성률,複素弾性率,复数模量
+PAV-00343,composite reaction modulus,복합 반력 계수,複合反力係数,复合反应模量
+PAV-00346,Compressive Strength,압축강도,圧縮強度,抗压强度
+PAV-00349,concrete mixer,콘크리트믹서,コンクリートミキサー,混凝土搅拌机
+PAV-00352,concrete pavement,콘크리트포장,コンクリート舗装,混凝土路面
+PAV-00355,concrete slab,콘크리트슬래브,コンクリートスラブ,混凝土板
+PAV-00358,consistency,일관성,一貫性,一致性
+PAV-00361,consistometer,일관성계,一貫性計,稠度计
+PAV-00364,consolidation,다짐,締固め,压实
+PAV-00367,construction joint,시공접합부,施工ジョイント,施工接缝
+PAV-00370,Continuously Reinforced Concrete Pavement (CRCP),연속철근 콘크리트 포장(CRCP),連続鉄筋コンクリート舗装（CRCP）,连续配筋混凝土路面（CRCP）
+PAV-00373,"contraction crack, shrinkage crack",수축균열,収縮ひび割れ,收缩裂缝
+PAV-00376,contraction joint,수축접합부,収縮ジョイント,收缩接缝
+PAV-00379,Control Charts,관리도,管理図,控制图
+PAV-00382,conventional concrete,통상콘크리트,通常コンクリート,常规混凝土
+PAV-00385,conversion factor,변환 계수,変換係数,转换系数
+PAV-00388,core cutter method,코어커터법,コアカッター法,钻芯法
+PAV-00391,coring,코어 채취,コア採取,钻芯取样
+PAV-00394,corner break,모서리파손,コーナーブレーク,角隅断裂
+PAV-00397,cracking ratio,균열률,ひび割れ率,裂缝率
+PAV-00400,Creep,크리프,クリープ,蠕变
+PAV-00403,"CRM, crumb rubber modifier",폐타이어고무분말,廃タイヤゴム粉末,废旧轮胎橡胶粉
+PAV-00406,crushed aggregate,쇄석,砕石,碎石
+PAV-00409,crushed aggregate base,쇄석기층,砕石基層,碎石基层
+PAV-00412,crushed sand,쇄사,砕砂,机制砂
+PAV-00415,curing,양생,養生,养护
+PAV-00418,cut back asphalt,커트백아스팔트,カットバックアスファルト,稀释沥青
+PAV-00421,deflection,처짐,たわみ,挠度
+PAV-00424,deformation strength,변형 강도,変形強度,变形强度
+PAV-00427,deformation strength test,변형 강도 시험,変形強度試験,变形强度试验
+PAV-00430,degree of saturation,포화도,飽和度,饱和度
+PAV-00433,Deleterious Materials,유해물질,有害物,有害物质
+PAV-00436,dense gradation,밀입도,密粒度,密级配
+PAV-00439,"dense grade asphalt mixture, pavement",밀입도 아스팔트 혼합물,密粒度アスファルト混合物,密级配沥青混合料
+PAV-00442,dense grade gap asphalt mixture,밀입도 갭 아스팔트 혼합물,密粒度ギャップアスファルト混合物,密级配间断沥青混合料
+PAV-00445,Densification,치밀화,密実化,密实化
+PAV-00448,design elasticity,설계탄성,設計弾性,设计弹性
+PAV-00451,design life,설계수명,設計寿命,设计寿命
+PAV-00454,design of mix proportion,혼합 설계,混合設計,混合料设计
+PAV-00457,design penetration,설계침입도,設計貫入度,设计针入度
+PAV-00460,deterioration,열화,劣化,劣化
+PAV-00463,diamond grinding,다이아몬드 그라인딩,ダイヤモンドグラインディング,金刚石研磨
+PAV-00466,Dispute Resolution,분쟁해결,紛争解決,争议解决
+PAV-00469,distress,포장손상,舗装損傷,路面病害
+PAV-00472,dowel bar,다웰바,ダウエルバー,传力杆
+PAV-00475,drainage works,배수 공사,排水工事,排水工程
+PAV-00478,Draindown,드레인다운,ドレインダウン,沥青析漏
+PAV-00481,dredging,준설,浚渫,疏浚
+PAV-00484,"drier, dryer",건조기,乾燥機,干燥机
+PAV-00487,driving wheel,구동륜,駆動輪,驱动轮
+PAV-00490,"drop hammer, ram, monkey",낙하식다짐기,ドロップハンマー,夯杆
+PAV-00493,dry construction,건식 시공,乾式工法,干式施工
+PAV-00496,dry density,건조 밀도,乾燥密度,干密度
+PAV-00499,drying shrinkage,건조 수축,乾燥収縮,干燥收缩
+PAV-00502,ductility,연성,延性,延性
+PAV-00505,durability,내구성,耐久性,耐久性
+PAV-00508,durability of water permeable,투수성 내구성,透水性耐久性,透水性耐久性
+PAV-00511,durable liquidity pavement,내구성 투수성 포장,耐久性透水性舗装,耐久性透水性路面
+PAV-00514,dust collector fine,집진기 미분,集塵機微粉,集尘机细粉
+PAV-00517,dynamic modulus of elasticity,동탄성계수,動的弾性係数,动弹性模量
+PAV-00520,early curing,초기양생,初期養生,早期养护
+PAV-00523,"ecophalt, eco asphalt",에코 아스팔트,エコアスファルト,生态沥青
+PAV-00526,edge punch out,포장 모서리 파손,エッジパンチアウト,边缘破损
+PAV-00529,effective asphalt content,유효 아스팔트 함량,有効アスファルト含有量,有效沥青含量
+PAV-00532,Effective Specific Gravity,유효비중,有効比重,有效相对密度
+PAV-00535,Elasticity,탄성,弾性,弹性
+PAV-00538,emulsified asphalt,유화 아스팔트,乳化アスファルト,乳化沥青
+PAV-00541,Enhanced Integrated Climatic Model,개선 통합 기후모형(EICM),強化統合気候モデル（EICM）,增强型综合气候模型（EICM）
+PAV-00544,entrapped air,갇힌 공기,閉じ込められた空気,夹气
+PAV-00547,environmental load,환경 하중,環境荷重,环境荷载
+PAV-00550,Equivalent Single Axle Load (ESAL),등가단축하중(ESAL),等価単軸荷重（ESAL）,等效单轴荷载（ESAL）
+PAV-00553,Erosion,침식,侵食,侵蚀
+PAV-00556,estimated mean texture depth,예상 평균 텍스처 깊이,推定平均テクスチャ深さ,估计平均纹理深度
+PAV-00559,excessive deformation,과도한 변형,過度な変形,过度变形
+PAV-00562,"expansion additive, expanding additive",팽창제,膨張剤,膨胀剂
+PAV-00565,expansion joint,팽창이음,膨張目地,膨胀缝
+PAV-00568,exposed fine size aggregate concrete pavement,노출세골재콘크리트포장,露出細粒骨材コンクリート舗装,露骨料混凝土路面
+PAV-00571,Falling Weight Deflectometer (FWD),낙하추식 처짐측정기(FWD),FWD（重錘落下式たわみ測定装置）,落锤式弯沉仪（FWD）
+PAV-00574,fatigue crack,피로 균열,疲労ひび割れ,疲劳裂缝
+PAV-00577,Fatigue Cracking,피로균열,疲労ひび割れ,疲劳开裂
+PAV-00580,Fatigue Resistance,피로저항성,疲労抵抗性,抗疲劳性能
+PAV-00583,Faulting,단차,目地段差,错台
+PAV-00586,field heated reclaimed asphalt pavement,현장 가열 재생 아스팔트 포장,現場加熱再生アスファルト舗装,现场加热再生沥青路面
+PAV-00589,filler,충전재,フィラー,填料
+PAV-00592,"filter course, sand blanket","필터층, 모래층",フィルター層、砂層,滤层、砂垫层
+PAV-00595,fine aggregate,세골재,細骨材,细骨料
+PAV-00598,fine aggregate percentage,세골재 비율,細骨材率,细骨料百分比
+PAV-00601,fine graded asphalt concrete pavement,세립도아스팔트콘크리트포장,細粒度アスファルトコンクリート舗装,细粒度沥青混凝土路面
+PAV-00604,fine graded asphalt mixture,세립도아스팔트혼합물,細粒度アスファルト混合物,细粒度沥青混合料
+PAV-00607,fine graded gap asphalt mixture,세립도갭아스팔트혼합물,細粒度ギャップアスファルト混合物,细粒度间断级配沥青混合料
+PAV-00610,Fine Grained,세립토,細粒土,细粒土
+PAV-00613,fine particle,미립자,微粒子,细颗粒
+PAV-00616,fine soil,세립토,細粒土,细粒土
+PAV-00619,fineness,세립도,細粒度,细度
+PAV-00622,fineness modulus,세기 계수,細度係数,细度模数
+PAV-00625,Fines,잔골재,細骨材,细料
+PAV-00628,finishability,시공성,施工性,施工性
+PAV-00631,finishing,마무리,仕上げ,面层
+PAV-00634,flash point,인화점,引火点,闪点
+PAV-00637,flexible pavement,유연성 포장,柔性舗装,柔性路面
+PAV-00640,float,플로트,フロート,浮浆
+PAV-00643,"flush, flushing",플러싱,フラッシング,泛油
+PAV-00646,Flushing/Bleeding,블리딩(플러싱),フラッシング（ブリーディング）,泛油
+PAV-00649,Fly Ash,플라이애시,フライアッシュ,粉煤灰
+PAV-00652,fly ash cement,플라이 애시 시멘트,フライアッシュセメント,粉煤灰水泥
+PAV-00655,fog seal,포그실,フォグシール,雾封层
+PAV-00658,"forced circulating mixer, forced action mixer",강제 순환 믹서,強制循環ミキサー,强制循环搅拌机
+PAV-00661,form,거푸집,型枠,模板
+PAV-00664,formation level,성토면,路床,路床
+PAV-00667,freezing and thawing,동결융해,凍融,冻融
+PAV-00670,freezing and thawing test,동결융해시험,凍融試験,冻融试验
+PAV-00673,freezing damage,동해,凍害,冻害
+PAV-00676,freezing index,동결지수,凍結指数,冻结指数
+PAV-00679,frost action,동결작용,凍結作用,冻胀作用
+PAV-00682,frost penetration depth,동결심도,凍結深度,冻结深度
+PAV-00685,"frost, freezing",동결,凍結,冻结
+PAV-00688,gap grade,간격 입도,間粒度,间断级配
+PAV-00691,gap grade asphalt,간격 입도 아스팔트,間粒度アスファルト,间断级配沥青
+PAV-00694,Geogrid (GG),지오그리드(GG),ジオグリッド（GG）,土工格栅（GG）
+PAV-00697,Geosynthetic,지오신세틱스,ジオシンセティックス,土工合成材料
+PAV-00700,Geotextile (GT),지오텍스타일(GT),ジオテキスタイル（GT）,土工织物（GT）
+PAV-00703,gradation,입도 분포,粒度分布,级配
+PAV-00706,grain size distribution,입자 크기 분포,粒径分布,粒径分布
+PAV-00709,Gravel,자갈,礫,砾石
+PAV-00712,grooving,그루빙,グルービング,刻槽
+PAV-00715,guss asphalt,거스 아스팔트,ガスアスファルト,古斯沥青
+PAV-00718,heat curing,가열양생,加熱養生,加热养护
+PAV-00721,heat of hydration,수화열,水和熱,水化热
+PAV-00724,heating loss,가열 손실,加熱損失,加热损失
+PAV-00727,heavy weight concrete,중량 콘크리트,重量コンクリート,重混凝土
+PAV-00730,high early strength portland cement,조기 강도 포틀랜드 시멘트,早期強度ポルトランドセメント,早强硅酸盐水泥
+PAV-00733,high range water reducing agent,고성능 감수제,高性能減水剤,高效减水剂
+PAV-00736,high temperature grade,고온 등급,高温グレード,高温等级
+PAV-00739,high viscosity modified asphalt,고점도 개질 아스팔트,高粘度改質アスファルト,高粘度改性沥青
+PAV-00742,High-Performance Concrete (HPC),고성능 콘크리트(HPC),高性能コンクリート（HPC）,高性能混凝土（HPC）
+PAV-00745,highway pavement condition index,도로포장 상태지수,道路舗装状態指数,道路路面状况指数
+PAV-00748,Hot Mix Asphalt (HMA),가열 아스팔트 혼합물(HMA),加熱アスファルト混合物（HMA）,热拌沥青混合料（HMA）
+PAV-00751,hot mix asphalt mixture,핫 믹스 아스팔트 혼합물,ホットミックスアスファルト混合物,热拌沥青混合料
+PAV-00754,"hot screen, hot bin",핫 스크린,ホットスクリーン,热筛
+PAV-00757,hot storage silo,핫 저장 사일로,ホット貯蔵サイロ,热储存筒仓
+PAV-00760,hot weather concrete,고온콘크리트,高温コンクリート,高温混凝土
+PAV-00763,Hot-In-Place (HIP),현장가열 표층재생공법(HIP),路上表層再生工法（HIP）,就地热再生（HIP）
+PAV-00766,Hubbard-Field Stability Test,허버드-필드 안정도 시험,ハバード・フィールド安定度試験,哈伯德-菲尔德稳定度试验
+PAV-00769,hydration,수화,水和,水化
+PAV-00772,hydraulic conductivity,수리전도도,水理伝導度,水力传导率
+PAV-00775,hydraulic fill method,수력충전공법,水力充填工法,水力填筑法
+PAV-00778,"hydraulic fill, water binding",수력충전,水力充填,水力填筑
+PAV-00781,hydroplaning,수막현상,ハイドロプレーニング,水膜现象
+PAV-00784,impact load,충격하중,衝撃荷重,冲击荷载
+PAV-00787,"impermeable layer, impervious layer",불투수층,不透水層,防渗层
+PAV-00790,Independent Assurance (IA),독립보증(IA),独立保証（IA）,独立保证（IA）
+PAV-00793,indirect heating,간접 가열,間接加熱,间接加热
+PAV-00796,initial temperature,초기온도,初期温度,初始温度
+PAV-00799,In-Situ Testing,원위치시험,原位置試験,原位试验
+PAV-00802,"intermediate course, binder course","중간층, 결합층",中間層、結合層,中间层、粘结层
+PAV-00805,"IRI, international roughness index",국제평탄성지수,国際平坦性指数,国际平整度指数
+PAV-00808,isotropy,등방성,等方性,各向同性
+PAV-00811,job mix formula,배합설계,配合設計,配合设计
+PAV-00814,joint,조인트,ジョイント,接缝
+PAV-00817,joint board,조인트 보드,ジョイントボード,接缝板
+PAV-00820,joint closure,조인트 폐쇄,ジョイント閉鎖,接缝闭合
+PAV-00823,joint freezing,조인트 동결,ジョイント凍結,接缝冻结
+PAV-00826,joint opening,조인트 개구,ジョイント開口,接缝开口
+PAV-00829,joint rolling,조인트 다짐,ジョイント転圧,接缝碾压
+PAV-00832,joint sealing compound,조인트 실링 재료,ジョイントシーリング材,接缝密封材料
+PAV-00835,joint spacing,조인트 간격,ジョイント間隔,接缝间距
+PAV-00838,jointed plain concrete pavement,조인트콘크리트포장,ジョイント平面コンクリート舗装,接缝混凝土路面
+PAV-00841,Jointed Plain Concrete Pavement (JPCP),줄눈 무근 콘크리트 포장(JPCP),目地付き無筋コンクリート舗装（JPCP）,接缝式普通混凝土路面（JPCP）
+PAV-00844,Jointed Reinforced Concrete Pavement (JRCP),줄눈 철근 콘크리트 포장(JRCP),目地付き鉄筋コンクリート舗装（JRCP）,接缝式钢筋混凝土路面（JRCP）
+PAV-00847,Judgment Sampling,판단표본추출,有意抽出,判断抽样
+PAV-00850,kinematic viscosity,동점도,動粘度,运动粘度
+PAV-00853,LA abrasion test,LA 마모 시험,LA摩耗試験,LA磨耗试验
+PAV-00856,laboratory mix design,실내 혼합설계,室内混合設計,室内混合设计
+PAV-00859,laitance,라이턴스,レイタンス,乳化层
+PAV-00862,land settlement,지반 침하,地盤沈下,地基沉降
+PAV-00865,lap joint,겹침 이음,重ね目地,搭接接缝
+PAV-00868,lean concrete,저강도콘크리트,貧配合コンクリート,贫混凝土
+PAV-00871,leveling course,평탄층,レベリング層,找平层
+PAV-00874,life cycle cost,생애주기비용,ライフサイクルコスト,生命周期成本
+PAV-00877,life cycle cost analysis,생애주기비용분석,ライフサイクルコスト分析,生命周期成本分析
+PAV-00880,lightweight aggregate concrete,경량 골재 콘크리트,軽量骨材コンクリート,轻骨料混凝土
+PAV-00883,limited subgrade frost penetration method,제한된 노상 동결침투 방법,制限された路床凍結貫入法,限制路床冻融贯入法
+PAV-00886,Liquefaction,액상화,液状化,液化
+PAV-00889,Load Equivalency Factors (LEFs),하중환산계수(LEF),荷重換算係数（LEF）,轴载换算系数（LEF）
+PAV-00892,load strength,하중 강도,荷重強度,荷载强度
+PAV-00895,Load Transfer Efficiency (LTE),하중전달효율(LTE),荷重伝達効率（LTE）,荷载传递效率（LTE）
+PAV-00898,localized roughness,국소 평탄성,局所平坦性,局部平整度
+PAV-00901,Longitudinal Cracking,종방향 균열,縦ひび割れ,纵向裂缝
+PAV-00904,longitudinal joint,종방향 조인트,縦方向ジョイント,纵向接缝
+PAV-00907,loss on heating,가열 감량,加熱減量,加热损失
+PAV-00910,Lot,로트,ロット,批
+PAV-00913,low heat portland cement,저열 포틀랜드 시멘트,低熱ポルトランドセメント,低热硅酸盐水泥
+PAV-00916,low temperature cracking,저온 균열,低温ひび割れ,低温裂缝
+PAV-00919,Lower Specification Limit (LSL),하한 규격한계(LSL),下側規格限界（LSL）,规范下限（LSL）
+PAV-00922,macadam base course,매카담기층,マカダム基層,碎石基层
+PAV-00925,macadam roller,매카담롤러,マカダムローラー,碎石压路机
+PAV-00928,macro texture,거시텍스처,マクロテクスチャ,宏观纹理
+PAV-00931,marshall stability test,마샬안정도시험,マーシャル安定度試験,马歇尔稳定度试验
+PAV-00934,mass concrete,매스콘크리트,マスコンクリート,大体积混凝土
+PAV-00937,mastic asphalt mixture,매스틱아스팔트혼합물,マスティックアスファルト混合物,沥青胶浆混合料
+PAV-00940,material property,재료특성,材料特性,材料特性
+PAV-00943,maximum dry density,최대건조밀도,最大乾燥密度,最大干密度
+PAV-00946,maximum size of aggregate,최대 골재 크기,最大骨材寸法,最大骨料粒径
+PAV-00949,mean profile depth,평균 프로파일 깊이,平均プロファイル深さ,平均轮廓深度
+PAV-00952,mean roughness index,평균 거칠기 지수,平均粗さ指数,平均粗糙度指数
+PAV-00955,mean segment depth,평균 구간 깊이,平均区間深さ,平均路段深度
+PAV-00958,mean texture depth,평균 텍스처 깊이,平均テクスチャ深さ,平均纹理深度
+PAV-00961,mechanical analysis test,기계적 분석 시험,機械的分析試験,机械分析试验
+PAV-00964,Mechanistic-Empirical,역학-경험적,力学経験的,力学-经验法
+PAV-00967,Mechanistic-Empirical Pavement Design Guide (MEPDG),역학-경험적 포장설계 지침(MEPDG),力学経験的舗装設計ガイド（MEPDG）,力学-经验法路面设计指南（MEPDG）
+PAV-00970,membrane curing,막 양생,膜養生,膜养护
+PAV-00973,micro texture,미시텍스처,ミクロテクスチャ,微观纹理
+PAV-00976,mixing,혼합,混合,混合
+PAV-00979,mixing ratio,혼합비,混合比,混合比
+PAV-00982,mixing temperature,혼합 온도,混合温度,混合温度
+PAV-00985,moderate-heat portland cement,중열 포틀랜드 시멘트,中熱ポルトランドセメント,中热硅酸盐水泥
+PAV-00988,modification function,수정 함수,修正関数,修正函数
+PAV-00991,modified asphalt,개질 아스팔트,改質アスファルト,改性沥青
+PAV-00994,Modulus of Elasticity,탄성계수,弾性係数,弹性模量
+PAV-00997,modulus of subgrade reaction,노상 반력 계수,路床反力係数,路床反力系数
+PAV-01000,moisture curing,습윤양생,湿潤養生,湿润养护
+PAV-01003,mortar,모르타르,モルタル,砂浆
+PAV-01006,"MR, resilient modulus, modulus of rupture",탄성 계수,弾性係数,弹性模量
+PAV-01009,multi layer elastic theory,다층 탄성 이론,多層弾性理論,多层弹性理论
+PAV-01012,multi layer system,다층 시스템,多層システム,多层体系
+PAV-01015,Natural Aggregate,천연골재,天然骨材,天然集料
+PAV-01018,Natural Pozzolans,천연 포졸란,天然ポゾラン,天然火山灰质材料
+PAV-01021,new aggregate,신규 골재,新規骨材,新骨料
+PAV-01024,next generation concrete surface,차세대 콘크리트 포장,次世代コンクリート舗装,下一代混凝土路面
+PAV-01027,non destructive density gauge,비파괴 밀도계,非破壊密度計,非破坏密度仪
+PAV-01030,normal portland cement,보통 포틀랜드 시멘트,普通ポルトランドセメント,普通硅酸盐水泥
+PAV-01033,"OAC, optimum asphalt content",최적아스팔트함량,最適アスファルト含有量,最优沥青含量
+PAV-01036,on-site modulus of elasticity,현장 탄성 계수,現場弾性係数,现场弹性模量
+PAV-01039,open graded,개입 입도,開粒度,开级配
+PAV-01042,open graded asphalt concrete,개입 입도 아스팔트 콘크리트,開粒度アスファルトコンクリート,开级配沥青混凝土
+PAV-01045,Open-Graded Aggregate Base (OGAB),개립도 골재 기층(OGAB),開粒度骨材路盤（OGAB）,开级配集料基层（OGAB）
+PAV-01048,optimum moisture content,최적함수비,最適含水比,最优含水量
+PAV-01051,Outlier,이상치,外れ値,离群值
+PAV-01054,overlay,덧씌우기,オーバーレイ,加铺层
+PAV-01057,pavement,포장,舗装,路面
+PAV-01060,pavement classification number,포장 분류 번호,舗装分類番号,路面分类号
+PAV-01063,pavement condition number,포장 상태 지수,舗装状態指数,路面状况指数
+PAV-01066,pavement expansion,포장 팽창,舗装膨張,路面膨胀
+PAV-01069,penetration,침입도,貫入度,针入度
+PAV-01072,penetration amount,침입량,貫入量,贯入量
+PAV-01075,percent of rigden voids,리그덴 공극률,リグデン空隙率,理论最大密度空隙率
+PAV-01078,Percent Within Limits (PWL),규격 내 백분율(PWL),規格内百分率（PWL）,规范限值内百分率（PWL）
+PAV-01081,permanent deformation,영구 변형,永久変形,永久变形
+PAV-01084,Permeability,투수성,透水性,渗透性
+PAV-01087,Permeable Bases,투수성 기층,透水性路盤,透水基层
+PAV-01090,permeable layer,투수층,透水層,透水层
+PAV-01093,permeable pavement,투수포장,透水舗装,透水路面
+PAV-01096,Pervious Concrete,투수 콘크리트,ポーラスコンクリート,透水混凝土
+PAV-01099,"PG, performance grade",성능등급,性能グレード,性能等级
+PAV-01102,Pitch,피치,ピッチ,煤焦油沥青
+PAV-01105,plain concrete,무근콘크리트,無筋コンクリート,素混凝土
+PAV-01108,plant mix reclaimed asphalt mixture,플랜트 혼합 재생 아스팔트 혼합물,プラント混合再生アスファルト混合物,厂拌再生沥青混合料
+PAV-01111,plastic index,소성지수,塑性指数,塑性指数
+PAV-01114,plastic materials,소성재료,塑性材料,塑性材料
+PAV-01117,plasticity,소성,塑性,塑性
+PAV-01120,plasticizer,가소제,可塑剤,增塑剂
+PAV-01123,"PMS, pavement management system",포장관리시스템,舗装管理システム,路面管理系统
+PAV-01126,polymer concrete,폴리머 콘크리트,ポリマーコンクリート,聚合物混凝土
+PAV-01129,Pooled Variance,합동분산,プール分散,合并方差
+PAV-01132,popouts,팝아웃,ポップアウト,剥落
+PAV-01135,porous asphalt pavement,다공질 아스팔트 포장,多孔質アスファルト舗装,多孔沥青路面
+PAV-01138,portland cement,포틀랜드 시멘트,ポルトランドセメント,硅酸盐水泥
+PAV-01141,Portland Cement Concrete (PCC),포틀랜드 시멘트 콘크리트(PCC),ポルトランドセメントコンクリート（PCC）,硅酸盐水泥混凝土（PCC）
+PAV-01144,pot hole,포트홀,ポットホール,坑槽
+PAV-01147,Pozzolans,포졸란,ポゾラン,火山灰质材料
+PAV-01150,Precision,정밀도,精密さ,精密度
+PAV-01153,precooling,사전냉각,予冷却,预冷却
+PAV-01156,preformed joint sealant,기성접합부실란트,プレフォームドジョイントシーラント,预成型接缝密封胶
+PAV-01159,pressure relief joint,압력 해제 조인트,圧力解放ジョイント,压力释放接缝
+PAV-01162,prestressed concrete,프리스트레스 콘크리트,プレストレストコンクリート,预应力混凝土
+PAV-01165,primary dust collector,1차 집진기,一次集塵機,一次集尘器
+PAV-01168,prime coat,프라임 코트,プライムコート,透层
+PAV-01171,profile,종단면,縦断面,纵断面
+PAV-01174,"profiler, profilemeter",프로파일러,プロファイラー,路面仪
+PAV-01177,Pugmill,퍼그밀,パグミル,搅拌缸
+PAV-01180,pumping,펌핑,ポンピング,泵吸
+PAV-01183,Punchouts,펀치아웃,パンチアウト,冲断
+PAV-01186,Quality Assurance (QA),품질보증(QA),品質保証（QA）,质量保证（QA）
+PAV-01189,Quality Control (QC),품질관리(QC),品質管理（QC）,质量控制（QC）
+PAV-01192,Quality Control Plan,품질관리계획,品質管理計画,质量控制计划
+PAV-01195,Quality Management,품질경영,品質マネジメント,质量管理
+PAV-01198,Random Sampling,무작위 표본추출,無作為抽出,随机抽样
+PAV-01201,RAP asphalt,재생 아스팔트,再生アスファルト,再生沥青
+PAV-01204,Raveling,골재탈리,ラベリング（骨材飛散）,松散
+PAV-01207,"RCCP, roller compacted concrete pavement",롤러다짐콘크리트포장,ローラー転圧コンクリート舗装,碾压混凝土路面
+PAV-01210,reactive aggregate distress,반응성 골재 열화,反応性骨材劣化,反应性骨料病害
+PAV-01213,ready mixed concrete,레디믹스트콘크리트,レディーミクストコンクリート,预拌混凝土
+PAV-01216,Reclaimed Asphalt Pavement (RAP),재생 아스팔트 포장재(RAP),アスファルトコンクリート再生骨材（RAP）,回收沥青路面材料（RAP）
+PAV-01219,Recycled Aggregate,순환골재,再生骨材,再生集料
+PAV-01222,recycled asphalt mixture,재생 아스팔트 혼합물,再生アスファルト混合物,再生沥青混合料
+PAV-01225,Recycled Concrete Aggregate,순환 콘크리트 골재,再生コンクリート骨材,再生混凝土集料
+PAV-01228,recycled heating asphalt mixture,재생 가열 아스팔트 혼합물,再生加熱アスファルト混合物,再生加热沥青混合料
+PAV-01231,reduced subgrade strength method,노상 강도 감소 방법,路床強度低減法,路基强度降低法
+PAV-01234,reflection cracking,반사 균열,反射ひび割れ,反射裂缝
+PAV-01237,"regular test, routine test",정기 시험,定期試験,常规试验
+PAV-01240,reinforced concrete anchor slab,철근콘크리트앵커슬래브,鉄筋コンクリートアンカースラブ,钢筋混凝土锚定板
+PAV-01243,rejuvenizer,재생제,再生剤,再生剂
+PAV-01246,relative strength index,상대 강도 지수,相対強度指数,相对强度指数
+PAV-01249,release agent,이형제,離型剤,脱模剂
+PAV-01252,Reliability,신뢰도,信頼度,可靠度
+PAV-01255,remix method,재혼합공법,再混合工法,再拌合法
+PAV-01258,repavement method,재포장공법,再舗装工法,重铺法
+PAV-01261,resistance to freezing and thawing,동결융해 저항성,凍結融解抵抗性,抗冻融性
+PAV-01264,restraint stress,구속응력,拘束応力,约束应力
+PAV-01267,retained deformation strength,잔존 변형 강도,残存変形強度,残留变形强度
+PAV-01270,retained stability,잔존 안정성,残存安定性,残留稳定性
+PAV-01273,Rheology,레올로지,レオロジー,流变学
+PAV-01276,rigid pavement,강성 포장,剛性舗装,刚性路面
+PAV-01279,"road bed, filled up ground",도로상,路盤,路基
+PAV-01282,Roadbed,노체,路床,路基
+PAV-01285,rolling,다짐,転圧,碾压
+PAV-01288,rolling thin film oven test,회전 박막 오븐 시험,ローリング薄膜オーブン試験,旋转薄膜烘箱试验
+PAV-01291,rough finishing,거친 마무리,粗仕上げ,粗糙面层
+PAV-01294,roughness,거칠기,粗さ,粗糙度
+PAV-01297,rubber asphalt,고무 아스팔트,ゴムアスファルト,橡胶沥青
+PAV-01300,rubber balloon method,고무 풍선법,ゴム風船法,橡胶气囊法
+PAV-01303,Rutting,소성변형,わだち掘れ,车辙
+PAV-01306,Sample,시료,試料,样品
+PAV-01309,Sampling Plan,표본추출계획,抜取計画,抽样方案
+PAV-01312,sand blast abrasion test,모래 분사 마모 시험,サンドブラスト摩耗試験,喷砂磨耗试验
+PAV-01315,sand equivalent,모래당량,砂当量,砂当量
+PAV-01318,sand replacement method,모래치환법,砂置換法,砂替法
+PAV-01321,saturated surface-dry condition,포화 표면 건조 상태,飽和表面乾燥状態,饱和表面干燥状态
+PAV-01324,"scaling mao cracking, or crazing",박리균열,スケーリング,剥落裂纹
+PAV-01327,scaling resistance test,박리 저항성 시험,スケーリング抵抗試験,抗剥落性试验
+PAV-01330,scrap value,폐기물 가치,スクラップ価値,废料价值
+PAV-01333,screening,선별,スクリーニング,筛分
+PAV-01336,sealant,실링재,シーラント,密封材料
+PAV-01339,sealant condition number,실링재 상태 지수,シーラント状態指数,密封材料状态指数
+PAV-01342,secondary dust collector,2차 집진기,二次集塵機,二次集尘器
+PAV-01345,Seller's Risk (a),생산자 위험(α),生産者危険（α）,生产方风险（α）
+PAV-01348,semi blown asphalt,반산화아스팔트,半酸化アスファルト,半氧化沥青
+PAV-01351,Separation,아스팔트 성분분리,アスファルト成分分離,沥青组分分离
+PAV-01354,serviceability,주행성,走行性,行驶性
+PAV-01357,settlement,침하,沈下,沉降
+PAV-01360,Shear Susceptibility,전단율 감수성,せん断速度感受性,剪切速率敏感性
+PAV-01363,short blasting,단시간폭파,短時間爆破,短时爆破
+PAV-01366,short term aging,단기 노화,短期老化,短期老化
+PAV-01369,Shoving,밀림변형,押し出し変形,推移
+PAV-01372,shrinkage limit,수축한계,収縮限界,收缩极限
+PAV-01375,shrinkage ring test,수축링 시험,収縮リング試験,收缩环试验
+PAV-01378,side friction,측면 마찰,側面摩擦,侧面摩擦
+PAV-01381,Sieve,체,ふるい,筛
+PAV-01384,silica,규산,シリカ,硅酸
+PAV-01387,silica cement,규산염 시멘트,珪酸塩セメント,硅酸盐水泥
+PAV-01390,silo,사일로,サイロ,筒仓
+PAV-01393,single sized aggregate,균일입도골재,単粒度骨材,单粒径骨料
+PAV-01396,skid number,스키드 수,スキッド数,摩擦系数
+PAV-01399,skid resistance,미끄럼 저항성,スキッド抵抗,抗滑性
+PAV-01402,slab,슬래브,スラブ,板
+PAV-01405,Slag,슬래그,スラグ,矿渣
+PAV-01408,slippage cracking,미끄럼균열,すべり亀裂,滑动裂纹
+PAV-01411,slump,슬럼프,スランプ,坍落度
+PAV-01414,"SMA, stone mastic asphalt mixture",석재매스틱아스팔트혼합물,ストーンマスティックアスファルト混合物,石料马蹄脂沥青混合料
+PAV-01417,small impact load test,소형충격하중시험,小型衝撃荷重試験,小型冲击荷载试验
+PAV-01420,"smoothness, roughness, ride quality",평탄성,平坦性,平整度
+PAV-01423,softening point,연화점,軟化点,软化点
+PAV-01426,soil horizons,토양층,土壌層,土壤层
+PAV-01429,Soil Mechanics,토질역학,土質力学,土力学
+PAV-01432,soil suction,토양흡수,土壌吸収,土壤吸力
+PAV-01435,Soundness,안정성,安定性,坚固性
+PAV-01438,spacer,스페이서,スペーサー,垫块
+PAV-01441,spalling,박리,スポーリング,剥落
+PAV-01444,Specific Gravity,비중,比重,相对密度
+PAV-01447,specific surface area,비표면적,比表面積,比表面积
+PAV-01450,Specification Limits,규격한계,規格限界,规范限值
+PAV-01453,Specifications,시방서,仕様書,技术规范
+PAV-01456,specimen,공시체,供試体,试件
+PAV-01459,stability,안정성,安定性,稳定性
+PAV-01462,"stability, marshal's stability","안정성, 마샬 안정성",安定性、マーシャル安定性,稳定性、马歇尔稳定性
+PAV-01465,stabilization,안정화,安定化,稳定化
+PAV-01468,Standard Deviation (σ or s),표준편차(σ 또는 s),標準偏差（σまたはs）,标准差（σ或s）
+PAV-01471,standard gradation of aggregate,표준 골재 입도,標準骨材粒度分布,标准骨料级配
+PAV-01474,standard mortar,표준 모르타르,標準モルタル,标准砂浆
+PAV-01477,standard test,표준 시험,標準試験,标准试验
+PAV-01480,steel furnace slag,철강로 슬래그,製鋼炉スラグ,钢炉渣
+PAV-01483,"stiffness, rigidity",강성,剛性,刚性
+PAV-01486,Stratified Sampling,층화표본추출,層別抽出,分层抽样
+PAV-01489,strength,강도,強度,强度
+PAV-01492,stripping,박리,ストリッピング,剥落
+PAV-01495,Structural Number,구조지수(SN),構造指数（SN）,结构数（SN）
+PAV-01498,Subbase,보조기층,下層路盤,底基层
+PAV-01501,subbase course,보조기층,副基層,垫层
+PAV-01504,Subgrade,노상,路床面,路床
+PAV-01507,subgrade reaction,노상 반력,路床反力,路床反力
+PAV-01510,Sublots,서브로트,サブロット,子批
+PAV-01513,sulfate resisting portland cement,황산염 저항성 포틀랜드 시멘트,硫酸塩抵抗性ポルトランドセメント,抗硫酸盐波特兰水泥
+PAV-01516,surface,표층,表層,面层
+PAV-01519,Surface Course,표층,表層,面层
+PAV-01522,"surface course, surface layer",표층,表層,表面层
+PAV-01525,surface penetration agent,표면 침투제,表面浸透剤,表面渗透剂
+PAV-01528,surge bin,서지 빈,サージビン,缓冲料仓
+PAV-01531,swell,팽창,膨張,膨胀
+PAV-01534,Systematic Sampling,계통표본추출,系統抽出,系统抽样
+PAV-01537,tack coat,택코트,タックコート,粘层
+PAV-01540,tangent run out,접선 이탈,接線逸脱,切线偏离
+PAV-01543,Tar,타르,タール,焦油
+PAV-01546,tar macadam pavement,타르매카담포장,タールマカダム舗装,沥青碎石路面
+PAV-01549,target strength,목표 강도,目標強度,目标强度
+PAV-01552,Tensile Strength,인장강도,引張強度,抗拉强度
+PAV-01555,test mortar,시험모르타르,試験モルタル,试验砂浆
+PAV-01558,thermal curing,열 경화,熱硬化,热固化
+PAV-01561,thermal expansion coefficient,열팽창 계수,熱膨張係数,热膨胀系数
+PAV-01564,thickness of pavement,포장 두께,舗装厚,路面厚度
+PAV-01567,thin film heating,박막 가열,薄膜加熱,薄膜加热
+PAV-01570,tie bar,연결철근,連結鉄筋,拉杆
+PAV-01573,tilting mixer,경사식 믹서,傾斜式ミキサー,倾斜式搅拌机
+PAV-01576,"TMD, theoretical maximum density",이론 최대 밀도,理論最大密度,理论最大密度
+PAV-01579,Top-Down Transverse Cracking,상면기점 횡방향 균열,上面起点横ひび割れ,自上而下横向裂缝
+PAV-01582,transverse contraction joint,횡방향 수축 이음,横方向収縮目地,横向收缩接缝
+PAV-01585,Transverse Cracking,횡방향 균열,横ひび割れ,横向裂缝
+PAV-01588,transverse joint,횡방향 이음,横目地,横向接缝
+PAV-01591,triple wheel abrasion test,삼중 바퀴 마모 시험,三輪摩耗試験,三轮磨耗试验
+PAV-01594,truck cycle,트럭 주행 사이클,トラック走行サイクル,卡车行驶周期
+PAV-01597,turbo mixer,터보 믹서,ターボミキサー,涡轮搅拌机
+PAV-01600,ultra rapid hardening cement,초속경시멘트,超速硬化セメント,超快硬水泥
+PAV-01603,under water concrete,수중콘크리트,水中コンクリート,水下混凝土
+PAV-01606,unified soil classification system,통일토양분류법,統一土壌分類法,统一土壤分类法
+PAV-01609,Unified Soil Classification System (USCS),통일토질분류법(USCS),統一土質分類法（USCS）,统一土分类系统（USCS）
+PAV-01612,unit binder weight,단위 바인더 중량,単位バインダー重量,单位胶凝材料重量
+PAV-01615,unit quantity,단위량,単位量,单位用量
+PAV-01618,unit weight of cement,시멘트 단위중량,セメント単位重量,水泥单位重量
+PAV-01621,Upper Specification Limit (USL),상한 규격한계(USL),上側規格限界（USL）,规范上限（USL）
+PAV-01624,user charge,통행료,利用料金,通行费
+PAV-01627,Validation,타당성 확인,妥当性確認,有效性确认
+PAV-01630,Variable Sampling,계량형 표본검사,計量値抜取検査,计量抽样检验
+PAV-01633,Variance (σ2),분산(σ²),分散（σ²）,方差（σ²）
+PAV-01636,vee bee test,비 비 시험,VB試験,VB试验
+PAV-01639,Verification,검증,検証,验证
+PAV-01642,vibrator for concrete pavement,콘크리트포장용진동기,コンクリート舗装用振動機,混凝土路面振动器
+PAV-01645,Viscoelasticity,점탄성,粘弾性,黏弹性
+PAV-01648,Voids in Mineral Aggregate (VMA),골재간극률(VMA),骨材間隙率（VMA）,矿料间隙率（VMA）
+PAV-01651,voids in the mineral aggregate,광물질 골재 공극률,鉱物質骨材空隙率,矿物骨料空隙率
+PAV-01654,Voids in Total Mix (VTM),전혼합물 공극률(VTM),混合物空隙率（VTM）,混合料空隙率（VTM）
+PAV-01657,Volatilization,휘발,揮発,挥发
+PAV-01660,wandering,포장 편주행,舗装蛇行,路面蛇行
+PAV-01663,Warm Mix Asphalt (WMA),중온 아스팔트 혼합물(WMA),中温化アスファルト混合物（WMA）,温拌沥青混合料（WMA）
+PAV-01666,water cement ratio,물-시멘트비,水-セメント比,水灰比
+PAV-01669,water soaking stability,수침안정성,水浸安定性,水浸稳定性
+PAV-01672,water-binder ratio,물-결합재비,水-結合材比,水-胶比
+PAV-01675,waterproof membrane,방수막,防水膜,防水膜
+PAV-01678,WC-1 ~ WC-6,WC-1 ~ WC-6,WC-1～WC-6,WC-1～WC-6
+PAV-01681,wearing course,마모층,摩耗層,磨耗层
+PAV-01684,wet condition,습윤상태,湿潤状態,湿润状态
+PAV-01687,white base,백색 기층,白色基層,白色基层
+PAV-01690,white portland cement,백색 포틀랜드 시멘트,白色ポルトランドセメント,白色硅酸盐水泥
+PAV-01693,"WIM, weigh-in-motion",동적 계량,動的計量,动态称重
+PAV-01696,workability,시공성,施工性,施工性
+PAV-01699,Zero-Stress Temperature,무응력온도(ZST),ゼロ応力温度（ZST）,零应力温度（ZST）
