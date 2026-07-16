@@ -373,13 +373,11 @@
 
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 실시간 오인식 단어 수정 (전문 용어집)</label>
-                    <button class="btn-outline" style="padding: 4px 8px; font-size: 12px; min-height: 30px;" onclick="document.getElementById('glossaryFile').click()">📁 파일 불러오기</button>
-                    <input type="file" id="glossaryFile" accept=".txt,.csv" style="display: none;" onchange="loadGlossaryFile(event)">
+                    <label class="form-label" style="margin:0;">3. 전문 용어집 (GitHub 원격 동기화)</label>
+                    <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromGitHub()">🐙 최신 단어장 불러오기</button>
                 </div>
-                <textarea id="glossaryInput" class="styled-textarea" placeholder="여기에 오인식 단어를 입력하세요..." onchange="sendConfigUpdate()"></textarea>
+                <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 GitHub의 단어장이 동기화됩니다. (생방송 중 긴급 수동 입력도 가능)" onchange="sendConfigUpdate()"></textarea>
             </div>
-
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
                     <label class="form-label" style="margin:0;">4. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
