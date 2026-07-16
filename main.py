@@ -308,6 +308,9 @@ clean current sentence
             stream=True
         )
 
+        # 💡 [화이트리스트 필터링 1단계] 사전에 약속된 타겟 언어와 'original' 태그만 리스트에 등록
+        allowed_langs = [t.strip().lower() for t in targets.split(',')] + ['original']
+
         buffer = ""
         lang_text = {}
         
@@ -315,13 +318,17 @@ clean current sentence
             if event.type == "content_block_delta":
                 buffer += event.delta.text
                 
+                # 정규식으로 대괄호 [ ] 안에 있는 태그와 텍스트를 분리
                 matches = re.finditer(r'\[([a-zA-Z-]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
                 for match in matches:
                     lang = match.group(1).lower().strip()
                     text_so_far = match.group(2).strip()
-                    
+
+                    # 💡 [화이트리스트 필터링 2단계] 허가된 언어가 아니면(예: skip, cracking) 서버가 텍스트를 즉시 폐기                    
+                    if lang not in allowed_langs:
+                        continue
                     lang_text[lang] = text_so_far
-                    
+
                     if lang != 'original':
                         await manager.broadcast_json({
                             "type": "stream_update",
@@ -331,10 +338,10 @@ clean current sentence
                             "source_lang": source_lang,
                             "msg_id": msg_id
                         })
-        
+        # 💡 만약 번역된 결과물 중에 "[SKIP]"이라는 단어가 하나라도 들어있다면?
         original_text = lang_text.get('original', text)
         if any("[SKIP]" in t.upper() for t in lang_text.values()):
-            return
+            return # 아무것도 프론트엔드(화면)로 보내지 말고 여기서 즉시 번역을 종료(폐기)해라!
 
         recent_history.append(original_text)
         
