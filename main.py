@@ -289,6 +289,7 @@ CRITICAL INSTRUCTIONS (MUST OBEY):
 33. [LOCAL REGULATORY ISOLATION]: When country-specific standards (e.g., KS for Korea, JIS for Japan, GB for China) are mentioned, keep the original standard name. Do NOT arbitrarily convert them to the target language's local equivalent (like ASTM).
 34. [REDUNDANT VERBOSITY TRIMMING]: Drastically trim overly lengthy ceremonial greetings (e.g., "Thank you very much for taking time out of your busy schedules to attend...") down to the core meaning ("Thank you for attending") to save display space.
 35. [MODERATOR TRANSITION TAGGING]: Translate the moderator's procedural phrases indicating session transitions (e.g., "Let's welcome the next speaker", "We will now take questions") into the most clear, concise, and action-oriented sentences, preventing them from mixing with academic content.
+36. [GLOSSARY HIGHLIGHTING]: When you use any translated term from the [PAVEMENT ENGINEERING GLOSSARY], you MUST wrap that specific term in double asterisks. (e.g., **Flexible Pavement**, **소성변형**, **柔性舗装**)
 {lang_instruction}
 
 Respond EXACTLY in this tag format (DO NOT USE JSON):
