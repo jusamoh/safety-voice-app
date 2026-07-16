@@ -56,7 +56,6 @@
         .user-badge { background: #e8f0fe; color: var(--primary); font-size: 1rem; padding: 8px 16px; border-radius: 20px; font-weight: 700; }
         .nav-actions { display: flex; gap: 12px; align-items: center; }
         
-        /* ✅ 카드 레이아웃: 4열 배치를 위해 기본 minmax를 360px로 조정 */
         .dashboard-layout { max-width: 1800px; margin: 25px auto; padding: 0 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; }
         .card { background: var(--card-bg); border-radius: 16px; padding: 30px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         .card-header { font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 15px;}
@@ -77,8 +76,7 @@
         
         input[type=range] { width: 100%; cursor: pointer; accent-color: var(--primary); height: 8px; background: #ddd; border-radius: 4px; outline: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--primary); cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-        input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-
+        
         textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 1.1rem; outline: none; resize: vertical; min-height: 100px; background: #fafafa; font-weight: 500;}
         
         .btn-primary { background: var(--primary); color: white; border: none; padding: 16px 24px; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 1.1rem; min-height: 52px; }
@@ -132,23 +130,10 @@
         .original-text { font-size: 1.05rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; }
         .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; word-break: break-all; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #e8eaed; border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: var(--text-main); font-weight: 800; }
-        /* -------------------------------------------
-           미디어 쿼리 최적화: 울트라 와이드 및 모바일 
-           ------------------------------------------- */
-        /* ✅ [핵심 반영] 대형 모니터 1400px 이상일 때 무조건 4열(가로 1줄)로 강제 배치 */
-        @media (min-width: 1400px) {
-            .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 20px;}
-        }
-        @media (min-width: 1600px) {
-            html { font-size: 19px; } 
-            .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 25px;}
-            .window { height: 750px; } 
-        }
-
-        @media (max-width: 1100px) {
-            .dashboard-layout { grid-template-columns: repeat(2, 1fr); }
-        }
-
+        
+        @media (min-width: 1400px) { .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 20px;} }
+        @media (min-width: 1600px) { html { font-size: 19px; } .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 25px;} .window { height: 750px; } }
+        @media (max-width: 1100px) { .dashboard-layout { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) {
             html { font-size: 16px; }
             .dashboard-layout { grid-template-columns: 1fr; margin: 15px auto; padding: 0 15px; gap: 20px; }
@@ -219,10 +204,32 @@
         .qr-box { background: white; padding: 40px; border-radius: 24px; text-align: center; max-width: 90%; min-width: 320px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         #qrcode { margin: 30px auto; display: flex; justify-content: center; align-items: center; }
         #qrcode img, #qrcode canvas { max-width: 100%; height: auto !important; object-fit: contain; }
+
+        /* 💡 토글 스위치 및 워터마크 CSS 추가 */
+        .toggle-switch { position: relative; display: inline-block; width: 56px; height: 30px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider-round { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);}
+        .slider-round:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);}
+        .toggle-switch input:checked + .slider-round { background-color: #1e8e3e; }
+        .toggle-switch input:checked + .slider-round:before { transform: translateX(26px); }
+
+        #feedbackWatermark {
+            position: fixed; top: 30px; right: 30px;
+            background: rgba(0, 0, 0, 0.45); color: rgba(255, 255, 255, 0.95);
+            padding: 14px 28px; border-radius: 30px;
+            font-size: 1.5rem; font-weight: 800;
+            backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.2);
+            z-index: 10000; display: none; opacity: 0;
+            transition: opacity 0.5s ease; pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- 💡 발표자 화면에 띄워질 반투명 워터마크 아이콘 컨테이너 -->
+<div id="feedbackWatermark"></div>
 
 <div id="loginOverlay">
     <div class="login-box">
@@ -329,6 +336,15 @@
                 <div class="pipe-step"><span class="status-indicator status-gray" id="statusStt"></span> ✍️ STT 인식</div>
                 <div class="pipe-arrow">➔</div>
                 <div class="pipe-step"><span class="status-indicator status-gray" id="statusAi"></span> 🧠 AI 번역</div>
+            </div>
+
+            <!-- 💡 리허설 모드 ON/OFF 토글 추가 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #e8fafd; padding: 15px 20px; border-radius: 12px; border: 2px solid #a8e0ff;">
+                <div style="font-weight: 800; color: #0077b6; font-size: 1.05rem;">🎓 발표자 리허설(연습) 모드<br><span style="font-size: 0.85rem; color: #0096c7; font-weight: 600;">ON: 발표자 화면에 직접 피드백 / OFF: 사회자에게만 은밀히 전송</span></div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="rehearsalToggle" onchange="sendConfigUpdate()">
+                    <span class="slider-round"></span>
+                </label>
             </div>
 
             <label class="form-label" style="color:var(--text-main);">1. 현장 마이크 제어 (통역 엔진 가동)</label>
@@ -940,7 +956,16 @@
             const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
             if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
             const glossaryData = document.getElementById('glossaryInput').value;
-            ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(',') }));
+            
+            // 💡 리허설 모드 ON/OFF 값 같이 서버로 전송
+            const isRehearsal = document.getElementById('rehearsalToggle').checked;
+            
+            ws.send(JSON.stringify({ 
+                type: "config", 
+                glossary: glossaryData, 
+                targets: checkedLangs.join(','),
+                rehearsal_mode: isRehearsal
+            }));
             
             const newLangMode = document.getElementById('speakerLang').value;
             
@@ -1540,6 +1565,35 @@
                     else if (res.type === "speak_approved") { startDynamicSpeaking(); }
                     else if (res.type === "speak_revoked") { stopDynamicSpeaking(); showToast("🛑 사회자에 의해 발언권이 회수되었습니다.", true); }
                     else if (res.type === "alert") triggerAlert();
+                    
+                    // 💡 [핵심] 백엔드로부터 전송된 화자 행동 교정 피드백 수신 처리 로직
+                    else if (res.type === "speaker_feedback") {
+                        const isRehearsalOn = document.getElementById('rehearsalToggle') ? document.getElementById('rehearsalToggle').checked : false;
+                        
+                        if (isHost && !isRehearsalOn) {
+                            // [실전 모드] 사회자(Admin)에게만 은밀히 토스트 팝업으로 상태 경고 전달
+                            let reason = "";
+                            if (res.code === "speed") reason = "말하기 속도 초과 (오류 위험)";
+                            if (res.code === "pause") reason = "숨 고르기 필요 (번역 지연 위험)";
+                            if (res.code === "mic") reason = "마이크 음질/발음 저하";
+                            showToast(`⚠️ [${res.speaker_name}] ${reason}`, true);
+                        } else {
+                            // [리허설 모드] 화자(Speaker)의 화면에 반투명 워터마크 아이콘 송출 (방법 B)
+                            const wm = document.getElementById('feedbackWatermark');
+                            if (res.code === "speed") wm.innerHTML = "🐢 속도 조절";
+                            else if (res.code === "pause") wm.innerHTML = "⏸️ 숨 고르기";
+                            else if (res.code === "mic") wm.innerHTML = "🎙️ 마이크 확인";
+                            
+                            wm.style.display = 'block';
+                            setTimeout(() => wm.style.opacity = '1', 50);
+                            
+                            if (window.feedbackTimer) clearTimeout(window.feedbackTimer);
+                            window.feedbackTimer = setTimeout(() => {
+                                wm.style.opacity = '0';
+                                setTimeout(() => wm.style.display = 'none', 500);
+                            }, 3500);
+                        }
+                    }
                     else if (res.type === "interim") {
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
@@ -1596,45 +1650,42 @@
                             box.appendChild(div);
                         }
 
-const rawText = res.text || "";
-const cleanText = rawText.trim();
-const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        const rawText = res.text || "";
+                        const cleanText = rawText.trim();
+                        const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
-// 💡 단어장(Glossary) 단어를 파란색 형광펜 박스로 변환하는 정규식 코드
-const highlightDesign = '<span style="color: #1a73e8; font-weight: 900; background-color: #e8f0fe; padding: 2px 6px; border-radius: 6px; border: 1px solid #d2e3fc; margin: 0 2px;">$1</span>';
-const finalSafeText = safeText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
-const finalCleanText = cleanText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
+                        const highlightDesign = '<span style="color: #1a73e8; font-weight: 900; background-color: #e8f0fe; padding: 2px 6px; border-radius: 6px; border: 1px solid #d2e3fc; margin: 0 2px;">$1</span>';
+                        const finalSafeText = safeText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
+                        const finalCleanText = cleanText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
 
-const isSame = (res.source_lang === lang);
+                        const isSame = (res.source_lang === lang);
 
-const now = new Date();
-const timeStrUI = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}]`;
-const timeBadge = `<span style="font-size:0.9rem; color:#9aa0a6; font-weight:700; margin-right:8px;">${timeStrUI}</span>`;
+                        const now = new Date();
+                        const timeStrUI = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}]`;
+                        const timeBadge = `<span style="font-size:0.9rem; color:#9aa0a6; font-weight:700; margin-right:8px;">${timeStrUI}</span>`;
 
-if (res.type === "stream_update") {
-    // 💡 safeText 대신 finalSafeText 적용
-    if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalSafeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
-    else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
-} else {
-    // 💡 cleanText 대신 finalCleanText 적용 (음성 듣기 버튼에는 태그가 없는 safeText 유지)
-    const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
-    if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalCleanText}</span> ${ttsBtnHTML}`;
-    else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
-    
-    if (!currentTranscriptData[res.msg_id]) {
-        const timeLogStr = now.getHours().toString().padStart(2, '0') + ':' +
-                        now.getMinutes().toString().padStart(2, '0') + ':' +
-                        now.getSeconds().toString().padStart(2, '0');
-        currentTranscriptData[res.msg_id] = {
-            time: timeLogStr,
-            name: res.name || clientName,
-            role: res.role || 'speaker',
-            original: res.original_text,
-            translations: {}
-        };
-    }
-    currentTranscriptData[res.msg_id].translations[lang] = res.raw_text || cleanText;
-}
+                        if (res.type === "stream_update") {
+                            if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalSafeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
+                            else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
+                        } else {
+                            const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
+                            if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalCleanText}</span> ${ttsBtnHTML}`;
+                            else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
+                            
+                            if (!currentTranscriptData[res.msg_id]) {
+                                const timeLogStr = now.getHours().toString().padStart(2, '0') + ':' +
+                                                now.getMinutes().toString().padStart(2, '0') + ':' +
+                                                now.getSeconds().toString().padStart(2, '0');
+                                currentTranscriptData[res.msg_id] = {
+                                    time: timeLogStr,
+                                    name: res.name || clientName,
+                                    role: res.role || 'speaker',
+                                    original: res.original_text,
+                                    translations: {}
+                                };
+                            }
+                            currentTranscriptData[res.msg_id].translations[lang] = res.raw_text || cleanText;
+                        }
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
                     else if (res.type === "sentence_complete") {

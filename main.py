@@ -5,24 +5,20 @@ import sys
 import re  
 import secrets 
 import io
+import time # 💡 발화 시간 분석을 위한 모듈 추가
 from datetime import datetime
 import websockets
 
-# ✅ 점검 완료: 파일 업로드 및 FastAPI 필수 모듈 완비
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 
-# ✅ 점검 완료: 다국어 및 문서 파싱용 외부 라이브러리 완비
 import azure.cognitiveservices.speech as speechsdk
 import PyPDF2
 import docx
 
-# ==========================================
-# 💡 1. API 키 로드
-# ==========================================
 DEEPGRAM_API_KEY = os.environ.get("DEEPGRAM_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 AZURE_SPEECH_KEY = os.environ.get("AZURE_SPEECH_KEY", "")
@@ -39,9 +35,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==========================================
-# 💰 2. 인증 & 글로벌 룸 세팅 (Room State)
-# ==========================================
 USER_DB = {
     "admin": "1234",          
     "samsung": "sam1234",     
@@ -89,8 +82,11 @@ class ConnectionManager:
         self.is_admin_muted = False
         self.global_targets = "ko" 
         self.global_glossary = ""
-        self.global_document_context = "" # ✅ 점검 완료: 사전 학습 텍스트 저장용 변수
+        self.global_document_context = "" 
         self.speaking_allowed_clients = set()
+        
+        # 💡 리허설 모드 상태를 서버 메모리에 저장
+        self.is_rehearsal_mode = False 
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
         await websocket.accept()
@@ -153,6 +149,21 @@ class ConnectionManager:
             try: await connection.send_json(message)
             except: pass
             
+    # 💡 리허설 모드 유무에 따라 관리자와 화자에게 피드백을 선별 전송하는 기능
+    async def broadcast_feedback(self, message: dict, speaker_id: str):
+        for ws, info in self.clients.items():
+            is_target = False
+            # 사회자(Admin)는 무조건 수신 (모니터링 목적)
+            if info["role"] == "admin":
+                is_target = True
+            # 리허설 모드가 ON인 경우, 발언을 하고 있는 본인(Speaker)에게도 수신
+            elif self.is_rehearsal_mode and info["id"] == speaker_id:
+                is_target = True
+            
+            if is_target:
+                try: await ws.send_json(message)
+                except: pass
+
     def set_floor(self, client_id: str):
         self.floor_owner = client_id
         asyncio.create_task(self.broadcast_floor_state())
@@ -163,9 +174,6 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# ==========================================
-# 🌟 문서 업로드 파싱
-# ==========================================
 @app.post("/api/upload_context")
 async def upload_context(file: UploadFile = File(...)):
     content = await file.read()
@@ -212,7 +220,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
         response = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=200,
-            temperature=0.0,  # 💡 요약 과정에서의 소설 쓰기 방지
+            temperature=0.0, 
             messages=[{"role": "user", "content": prompt}]
         )
         summary_state["text"] = response.content[0].text.strip()
@@ -235,14 +243,13 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
         glossary_section = f"\n[CIVIL ENGINEERING GLOSSARY]\n{glossary_text}\n" if glossary_text.strip() else ""
         
-        # ✅ 점검 완료: 문서 내용을 프롬프트에 제공하여 학술용어 번역 정확도 향상
         doc_section = f"\n[REFERENCE DOCUMENT / PAPER CONTEXT]\n{manager.global_document_context}\n" if manager.global_document_context else ""
 
         if source_lang == "multi" or source_lang == "multi_azure":
             lang_instruction = "The STT engine detected the language automatically. However, cross-check the context."
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
-# 🌟 극강의 정확도를 위한 도로 및 공항포장 엔지니어링 특화 프롬프트 
+
         system_prompt = f"""You are an elite simultaneous interpreter for an international Highway Engineering expert symposium involving Korea, China, Japan, and the US.
 Domain focus: Highway engineering, specifically Road Pavement and Airport Pavement design, materials (asphalt and concrete), structural evaluation, and distress management technologies.
 [PAST CONTEXT SUMMARY]
@@ -302,13 +309,12 @@ clean current sentence
         stream = await claude_client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=700,
-            temperature=0.0,  # 💡 AI의 창의성을 0%로 억제 (여기에 반드시 추가)
+            temperature=0.0, 
             system=system_prompt, 
             messages=[{"role": "user", "content": text}],
             stream=True
         )
 
-        # 💡 [화이트리스트 필터링 1단계] 사전에 약속된 타겟 언어와 'original' 태그만 리스트에 등록
         allowed_langs = [t.strip().lower() for t in targets.split(',')] + ['original']
 
         buffer = ""
@@ -318,13 +324,11 @@ clean current sentence
             if event.type == "content_block_delta":
                 buffer += event.delta.text
                 
-                # 정규식으로 대괄호 [ ] 안에 있는 태그와 텍스트를 분리
                 matches = re.finditer(r'\[([a-zA-Z-]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
                 for match in matches:
                     lang = match.group(1).lower().strip()
                     text_so_far = match.group(2).strip()
-
-                    # 💡 [화이트리스트 필터링 2단계] 허가된 언어가 아니면(예: skip, cracking) 서버가 텍스트를 즉시 폐기                    
+                  
                     if lang not in allowed_langs:
                         continue
                     lang_text[lang] = text_so_far
@@ -338,10 +342,10 @@ clean current sentence
                             "source_lang": source_lang,
                             "msg_id": msg_id
                         })
-        # 💡 만약 번역된 결과물 중에 "[SKIP]"이라는 단어가 하나라도 들어있다면?
+        
         original_text = lang_text.get('original', text)
         if any("[SKIP]" in t.upper() for t in lang_text.values()):
-            return # 아무것도 프론트엔드(화면)로 보내지 말고 여기서 즉시 번역을 종료(폐기)해라!
+            return 
 
         recent_history.append(original_text)
         
@@ -424,13 +428,9 @@ async def websocket_endpoint(
                                     break 
                         except: pass
             else:
-                # ==================================================
-                # 🌟 하이브리드 엔진 분기점 (Azure vs Deepgram)
-                # ==================================================
                 engine_mode = "azure" if lang == "multi_azure" else "deepgram"
                 
                 if engine_mode == "azure":
-                    # --- [Azure Speech 가동: 4개국 토론 모드] ---
                     if not AZURE_SPEECH_KEY:
                         await websocket.send_json({"type": "status", "text": "❌ Azure API Key가 설정되지 않았습니다."})
                         raise Exception("Azure key missing")
@@ -533,6 +533,8 @@ async def websocket_endpoint(
                                                 if role == "admin":
                                                     if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                     if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
+                                                    # 💡 리허설 모드 설정 업데이트 저장
+                                                    if "rehearsal_mode" in msg: manager.is_rehearsal_mode = msg["rehearsal_mode"]
                                         except DowngradeException as de:
                                             raise de 
                                         except: pass
@@ -542,6 +544,8 @@ async def websocket_endpoint(
 
                     async def receiver():
                         current_msg_id = secrets.token_hex(4)
+                        sentence_start_time = time.time() # 💡 문장 시작 시간 추적용
+                        
                         try:
                             while True:
                                 msg = await azure_queue.get()
@@ -558,6 +562,12 @@ async def websocket_endpoint(
                                     tag = f"[{name}] "
                                     
                                     if msg["type"] == "interim":
+                                        elapsed_time = time.time() - sentence_start_time
+                                        # 💡 화자가 문장 중간에 너무 오래 쉬지 않고 말하는 경우 (8초 이상)
+                                        if elapsed_time > 8:
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
+                                            sentence_start_time = time.time() # 경고 후 스팸 방지를 위한 리셋
+                                            
                                         await manager.broadcast_json({
                                             "type": "interim", 
                                             "text": tag + text,
@@ -568,7 +578,9 @@ async def websocket_endpoint(
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         detected_lang = raw_lid[:2] if raw_lid != "unknown" else "multi_azure"
                                         asyncio.create_task(translate_and_send(text, detected_lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
+                                        
                                         current_msg_id = secrets.token_hex(4)
+                                        sentence_start_time = time.time() # 새 문장 시작 시간 갱신
                         except Exception as e: print(f"🚨 Azure Receiver 에러: {e}", flush=True)
 
                     try:
@@ -585,7 +597,6 @@ async def websocket_endpoint(
                         push_stream.close()
                         
                 else:
-                    # --- [Deepgram 가동: 단일 언어 발표 모드] ---
                     dg_lang = lang
                     keywords_param = ""
                     if glossary:
@@ -594,11 +605,9 @@ async def websocket_endpoint(
                         if clean_words:
                             keywords_param = "&" + "&".join([f"keywords={w}" for w in clean_words])
 
-                    # ✅ 점검 완료: STT 강제 치환 규칙 복구 
                     replace_rules = ["구독자:참석자", "payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
-                    # 💡 마크다운 URL 찌꺼기 제거 완료
                     dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
                     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
@@ -653,7 +662,7 @@ async def websocket_endpoint(
                                                         for ws_client, info in manager.clients.items():
                                                             if info["id"] == tid:
                                                                 try: await ws_client.send_json({"type": "speak_revoked"})
-                                                                except: pass
+                                                            except: pass
                                                     elif action == "revoke_all_viewers":
                                                         revoked_ids = list(manager.speaking_allowed_clients)
                                                         manager.speaking_allowed_clients.clear()
@@ -674,6 +683,8 @@ async def websocket_endpoint(
                                                     if role == "admin":
                                                         if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                         if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
+                                                        # 💡 리허설 모드 설정 업데이트 저장
+                                                        if "rehearsal_mode" in msg: manager.is_rehearsal_mode = msg["rehearsal_mode"]
                                             except DowngradeException as de:
                                                 raise de 
                                             except: pass
@@ -686,6 +697,8 @@ async def websocket_endpoint(
                             current_sentence = ""
                             last_translated_text = "" 
                             current_msg_id = secrets.token_hex(4)
+                            sentence_start_time = time.time() # 💡 문장 시작 시간 추적용
+                            
                             try:
                                 while True:
                                     dg_result = await dg_ws.recv()
@@ -694,7 +707,10 @@ async def websocket_endpoint(
                                     if dg_json.get("type") == "Results":
                                         is_final = dg_json.get("is_final", False)
                                         speech_final = dg_json.get("speech_final", False)
-                                        transcript = dg_json.get("channel", {}).get("alternatives", [{}])[0].get("transcript", "").strip()
+                                        
+                                        alternative = dg_json.get("channel", {}).get("alternatives", [{}])[0]
+                                        transcript = alternative.get("transcript", "").strip()
+                                        confidence = alternative.get("confidence", 1.0) # 💡 화자 신뢰도 데이터 수집
                                         
                                         if transcript:
                                             if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
@@ -708,6 +724,14 @@ async def websocket_endpoint(
                                             current_targets_list = manager.global_targets.split(',')
                                             tag = f"[{name}] "
                                             
+                                            elapsed_time = time.time() - sentence_start_time
+                                            # 💡 실시간 화자 행동 분석 피드백 발송 (마이크 불량 및 쉼표 부재 경고)
+                                            if confidence > 0 and confidence < 0.6:
+                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "mic", "speaker_name": name}, client_id)
+                                            elif elapsed_time > 8 and len(current_sentence) > 30:
+                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
+                                                sentence_start_time = time.time() # 스팸 방지 리셋
+                                                
                                             await manager.broadcast_json({
                                                 "type": "interim", 
                                                 "text": tag + display_text.strip(),
@@ -718,6 +742,11 @@ async def websocket_endpoint(
                                         if is_final and transcript:
                                             if current_sentence: current_sentence += " " + transcript
                                             else: current_sentence = transcript
+                                            
+                                            elapsed_time = time.time() - sentence_start_time
+                                            # 💡 화자가 문장 마감 시 너무 빨리 쏟아냈을 경우 속도(WPM) 조절 경고
+                                            if elapsed_time > 0 and (len(transcript) / elapsed_time) > 13: 
+                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "speed", "speaker_name": name}, client_id)
 
                                         is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
 
@@ -732,6 +761,7 @@ async def websocket_endpoint(
                                             
                                             current_sentence = ""
                                             current_msg_id = secrets.token_hex(4)
+                                            sentence_start_time = time.time() # 새 문장 시작 시간 갱신
                             except websockets.exceptions.ConnectionClosed: pass
                             except Exception as e: print(f"🚨 Deepgram Receiver 에러: {e}", flush=True)
 
@@ -752,7 +782,6 @@ if __name__ == "__main__":
     import multiprocessing
     import uvicorn
     multiprocessing.freeze_support()
-    # 💡 클라우드 환경변수(PORT)를 우선적으로 가져오고, 없으면 10000을 사용하도록 유연하게 변경
     port = int(os.environ.get("PORT", 10000)) 
     print(f"🚀 실시간 글로벌 통역 서버 (Hybrid 엔진)를 시작합니다... (Port: {port})")
     uvicorn.run(app, host="0.0.0.0", port=port)
