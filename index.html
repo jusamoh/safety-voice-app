@@ -1597,42 +1597,45 @@
                             box.appendChild(div);
                         }
 
-                        const rawText = res.text || "";
-                        const cleanText = rawText.trim();
-                        const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+const rawText = res.text || "";
+const cleanText = rawText.trim();
+const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
+// 💡 단어장(Glossary) 단어를 파란색 형광펜 박스로 변환하는 정규식 코드
+const highlightDesign = '<span style="color: #1a73e8; font-weight: 900; background-color: #e8f0fe; padding: 2px 6px; border-radius: 6px; border: 1px solid #d2e3fc; margin: 0 2px;">$1</span>';
+const finalSafeText = safeText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
+const finalCleanText = cleanText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
+
+const isSame = (res.source_lang === lang);
+
+const now = new Date();
+const timeStrUI = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}]`;
+const timeBadge = `<span style="font-size:0.9rem; color:#9aa0a6; font-weight:700; margin-right:8px;">${timeStrUI}</span>`;
+
+if (res.type === "stream_update") {
+    // 💡 safeText 대신 finalSafeText 적용
+    if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalSafeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
+    else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
+} else {
+    // 💡 cleanText 대신 finalCleanText 적용 (음성 듣기 버튼에는 태그가 없는 safeText 유지)
+    const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
+    if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalCleanText}</span> ${ttsBtnHTML}`;
+    else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
     
-                    // 💡 단어장(Glossary) 단어를 파란색 형광펜 박스로 변환하는 정규식 코드 추가
-                        const highlightDesign = '<span style="color: #1a73e8; font-weight: 900; background-color: #e8f0fe; padding: 2px 6px; border-radius: 6px; border: 1px solid #d2e3fc; margin: 0 2px;">$1</span>';
-                        const finalSafeText = safeText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
-                        const finalCleanText = cleanText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
-                        const isSame = (res.source_lang === lang);
-                        
-                        const now = new Date();
-                        const timeStrUI = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}]`;
-                        const timeBadge = `<span style="font-size:0.9rem; color:#9aa0a6; font-weight:700; margin-right:8px;">${timeStrUI}</span>`;
-                        
-                        if (res.type === "stream_update") {
-                            if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${safeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
-                            else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${safeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
-                        } else {
-                            const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
-                            if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${cleanText}</span> ${ttsBtnHTML}`;
-                            else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${cleanText}</span> ${ttsBtnHTML}`;
-                            
-                            if (!currentTranscriptData[res.msg_id]) {
-                                const timeLogStr = now.getHours().toString().padStart(2, '0') + ':' +
-                                                now.getMinutes().toString().padStart(2, '0') + ':' +
-                                                now.getSeconds().toString().padStart(2, '0');
-                                currentTranscriptData[res.msg_id] = {
-                                    time: timeLogStr,
-                                    name: res.name || clientName,
-                                    role: res.role || 'speaker',
-                                    original: res.original_text,
-                                    translations: {}
-                                };
-                            }
-                            currentTranscriptData[res.msg_id].translations[lang] = res.raw_text || cleanText;
-                        }
+    if (!currentTranscriptData[res.msg_id]) {
+        const timeLogStr = now.getHours().toString().padStart(2, '0') + ':' +
+                        now.getMinutes().toString().padStart(2, '0') + ':' +
+                        now.getSeconds().toString().padStart(2, '0');
+        currentTranscriptData[res.msg_id] = {
+            time: timeLogStr,
+            name: res.name || clientName,
+            role: res.role || 'speaker',
+            original: res.original_text,
+            translations: {}
+        };
+    }
+    currentTranscriptData[res.msg_id].translations[lang] = res.raw_text || cleanText;
+}
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
                     else if (res.type === "sentence_complete") {
