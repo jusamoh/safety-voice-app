@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글로벌 도로공학 전문가 통역 콘솔</title>
+    <title>글로벌 맞춤형 실시간 통역 지원 시스템</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
@@ -96,16 +96,14 @@
         .admin-mute-btn { opacity: 0.5; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(80%); }
         .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 900; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.2); filter: grayscale(0%); }
 
-        /* 💡 3단 분할 상태창 CSS 완벽 개편 */
+        /* 💡 3단 분할 상태창 CSS */
         .status-banner { max-width: 1800px; margin: 0 auto 25px; padding: 20px 30px; background: #282a2c; color: white; border-radius: 16px; display: flex; flex-direction: column; align-items: stretch; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); transition: all 0.3s; border: 1px solid #444;}
         
-        /* 1단 (상단): 계기판 제어부 */
         .status-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;}
         .status-text { font-weight: 700; font-size: 1.3rem; display: flex; align-items: center; gap: 15px; flex: 1; min-width: 300px; letter-spacing: -0.5px;}
         .status-dot { width: 16px; height: 16px; border-radius: 50%; background: #9aa0a6; display: inline-block; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: background 0.3s;}
         .status-dot.live { background: #34a853; animation: blink 1.5s infinite; box-shadow: 0 0 12px #34a853; }
         
-        /* 리허설 토글 버튼 CSS */
         .rehearsal-wrapper { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.3); padding: 8px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);}
         .rehearsal-label { font-size: 0.95rem; font-weight: 800; color: #a8e0ff; letter-spacing: -0.5px; }
         .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; margin: 0;}
@@ -115,11 +113,9 @@
         .toggle-switch input:checked + .slider-round { background-color: #1a73e8; }
         .toggle-switch input:checked + .slider-round:before { transform: translateX(24px); }
 
-        /* 2단 (중단): 4-Way 페이스메이커 뱃지 */
         .status-middle { display: flex; justify-content: center; gap: 15px; padding: 5px 0; flex-wrap: wrap;}
         .pacemaker-badge { background: #3c4043; color: #7f8489; padding: 10px 20px; border-radius: 20px; font-size: 1rem; font-weight: 800; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); border: 1px solid transparent;}
         
-        /* 뱃지 점멸 애니메이션 */
         .pacemaker-badge.active-warning { background: #f9ab00; color: #202124; border-color: #f9ab00; transform: scale(1.05); box-shadow: 0 0 15px rgba(249, 171, 0, 0.6); animation: pulseWarning 1s infinite; }
         .pacemaker-badge.active-danger { background: #d93025; color: #ffffff; border-color: #d93025; transform: scale(1.05); box-shadow: 0 0 15px rgba(217, 48, 37, 0.6); animation: pulseDanger 1s infinite; }
         
@@ -130,7 +126,6 @@
         
         .status-banner.critical-error { animation: criticalFlash 1.2s infinite; border: 2px solid #ff5252; }
 
-        /* 3단 (하단): 실시간 딕테이션 */
         .status-bottom { display: flex; width: 100%; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px;}
         .dictation-box { font-size: 1.3rem; color: #fbbc04; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; text-align: center; letter-spacing: -0.5px;}        
         
@@ -315,37 +310,7 @@
     
     <div id="speakerStatusBar" class="speaker-status-bar status-free" style="display: none;">🟢 마이크 개방됨</div>
 
-    <!-- 💡 3단 분할 대시보드 상태창 적용 위치 -->
-    <div class="status-banner" id="statusBanner">
-        <!-- 1단: 시스템 제어 및 통제 -->
-        <div class="status-top">
-            <div class="status-text">
-                <span id="statusIndicator" class="status-dot"></span>
-                <span id="statusMessage">[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.</span>
-            </div>
-            <div class="rehearsal-wrapper" title="ON: 뱃지 점멸로 발표자 페이스 조절 유도 / OFF: 사회자 팝업으로만 은밀히 전송">
-                <span class="rehearsal-label">🎓 발표자 리허설 모드</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="rehearsalToggle" onchange="sendConfigUpdate()">
-                    <span class="slider-round"></span>
-                </label>
-            </div>
-        </div>
-        
-        <!-- 2단: 4-Way 페이스메이커 (속도/휴지기/발음/문장길이) -->
-        <div class="status-middle">
-            <div id="badge-pause" class="pacemaker-badge">⏸️ 문장 간 숨 고르기</div>
-            <div id="badge-mic" class="pacemaker-badge">🎙️ 발음 명확히 (마이크)</div>
-            <div id="badge-speed" class="pacemaker-badge">🐢 말하는 속도 조절</div>
-            <div id="badge-length" class="pacemaker-badge">✂️ 한 문장 길이 단축</div>
-        </div>
-        
-        <!-- 3단: 실시간 딕테이션 뷰 -->
-        <div class="status-bottom">
-            <div id="liveDictation" class="dictation-box"></div>
-        </div>
-    </div>
-
+    <!-- 1. 제어 패널 블록 -->
     <div class="dashboard-layout" id="dashboardLayout">
         <div class="card">
             <div class="card-header">
@@ -456,8 +421,40 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> <!-- 제어 패널 종료 -->
 
+    <!-- 💡 2. 상태창(페이스메이커)을 제어 패널과 번역 창 사이에 위치시킴 -->
+    <div class="status-banner" id="statusBanner">
+        <!-- 1단: 시스템 제어 및 통제 -->
+        <div class="status-top">
+            <div class="status-text">
+                <span id="statusIndicator" class="status-dot"></span>
+                <span id="statusMessage">[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.</span>
+            </div>
+            <div class="rehearsal-wrapper" title="ON: 뱃지 점멸로 발표자 페이스 조절 유도 / OFF: 사회자 팝업으로만 은밀히 전송">
+                <span class="rehearsal-label">🎓 발표자 리허설 모드</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="rehearsalToggle" onchange="sendConfigUpdate()">
+                    <span class="slider-round"></span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- 2단: 4-Way 페이스메이커 (속도/휴지기/발음/문장길이) -->
+        <div class="status-middle">
+            <div id="badge-pause" class="pacemaker-badge">⏸️ 문장 간 숨 고르기</div>
+            <div id="badge-mic" class="pacemaker-badge">🎙️ 발음 명확히 (마이크)</div>
+            <div id="badge-speed" class="pacemaker-badge">🐢 말하는 속도 조절</div>
+            <div id="badge-length" class="pacemaker-badge">✂️ 한 문장 길이 단축</div>
+        </div>
+        
+        <!-- 3단: 실시간 딕테이션 뷰 -->
+        <div class="status-bottom">
+            <div id="liveDictation" class="dictation-box"></div>
+        </div>
+    </div> <!-- 상태창 종료 -->
+
+    <!-- 3. 실시간 다국어 번역 결과 출력 창 -->
     <div id="viewerPlaceholder" style="display: none; color: #fff; text-align: center; margin-top: 80px; font-size: 1.5rem; line-height: 1.6; font-weight: 700;">
         👆 상단의 <b>[🌐 언어 선택]</b> 메뉴를 눌러<br>자신의 모국어를 선택해주세요.<br><br>
         <span style="font-size: 1.1rem; color: #aaa; font-weight: 400;">Please select your language from the top menu.</span>
@@ -1606,11 +1603,9 @@
                     else if (res.type === "speak_revoked") { stopDynamicSpeaking(); showToast("🛑 사회자에 의해 발언권이 회수되었습니다.", true); }
                     else if (res.type === "alert") triggerAlert();
                     
-                    // 💡 [핵심] 대시보드 뱃지 점멸 애니메이션 연동 로직
                     else if (res.type === "speaker_feedback") {
                         const isRehearsalOn = document.getElementById('rehearsalToggle') ? document.getElementById('rehearsalToggle').checked : false;
                         
-                        // 관리자는 언제나 은밀한 팝업 토스트 수신
                         if (isHost && !isRehearsalOn) {
                             let reason = "";
                             if (res.code === "speed") reason = "말하기 속도 초과 (오류 위험)";
@@ -1620,14 +1615,11 @@
                             showToast(`⚠️ [${res.speaker_name}] ${reason}`, true);
                         } 
                         
-                        // 상단 대시보드의 특정 뱃지에 불을 켬 (발표자 본인이거나 리허설 모드 확인용)
                         const badge = document.getElementById(`badge-${res.code}`);
                         if (badge) {
-                            // 마이크 경고는 더 치명적이므로 빨간색(active-danger), 나머지는 주황색(active-warning)
                             const activeClass = (res.code === "mic") ? 'active-danger' : 'active-warning';
                             badge.classList.add(activeClass);
                             
-                            // 3.5초 뒤에 불빛을 서서히 끔
                             if (window[`timer_${res.code}`]) clearTimeout(window[`timer_${res.code}`]);
                             window[`timer_${res.code}`] = setTimeout(() => {
                                 badge.classList.remove(activeClass);
