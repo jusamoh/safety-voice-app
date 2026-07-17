@@ -154,8 +154,10 @@ class ConnectionManager:
     async def broadcast_feedback(self, message: dict, speaker_id: str):
         for ws, info in self.clients.items():
             is_target = False
-            if info["role"] == "admin":
+            # 💡 [핵심] 관리자와 단상 프롬프터는 리허설 유무와 상관없이 무조건 피드백 수신
+            if info["role"] in ["admin", "prompter"]:
                 is_target = True
+            # 발표자의 스마트폰은 리허설 모드일 때만 피드백 수신
             elif self.is_rehearsal_mode and info["id"] == speaker_id:
                 is_target = True
             
@@ -409,6 +411,7 @@ async def websocket_endpoint(
 
     try:
         while True:
+            # 💡 prompter는 화자가 아니므로 수동으로 데이터만 수신합니다.
             is_speaker = role in ["admin", "speaker"] or client_id in manager.speaking_allowed_clients
             
             if not is_speaker:
