@@ -5,7 +5,7 @@ import sys
 import re  
 import secrets 
 import io
-import time # 💡 발화 시간 분석을 위한 모듈 추가
+import time
 from datetime import datetime
 import websockets
 
@@ -84,8 +84,6 @@ class ConnectionManager:
         self.global_glossary = ""
         self.global_document_context = "" 
         self.speaking_allowed_clients = set()
-        
-        # 💡 리허설 모드 상태를 서버 메모리에 저장
         self.is_rehearsal_mode = False 
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
@@ -128,10 +126,8 @@ class ConnectionManager:
         msg = {"type": "user_list", "users": users}
         for ws, info in self.clients.items():
             if info["role"] == "admin":
-                try:
-                    await ws.send_json(msg)
-                except:
-                    pass
+                try: await ws.send_json(msg)
+                except: pass
 
     async def broadcast_admin_state(self):
         state = {"type": "admin_state", "requests": self.requests}
@@ -149,7 +145,6 @@ class ConnectionManager:
             try: await connection.send_json(message)
             except: pass
             
-    # 💡 리허설 모드 유무에 따라 관리자와 화자에게 피드백을 선별 전송하는 기능
     async def broadcast_feedback(self, message: dict, speaker_id: str):
         for ws, info in self.clients.items():
             is_target = False
@@ -189,7 +184,7 @@ async def upload_context(file: UploadFile = File(...)):
             doc = docx.Document(io.BytesIO(content))
             extracted_text = "\n".join([para.text for para in doc.paragraphs])
         else:
-            return JSONResponse({"success": False, "message": "지원하지 않는 파일 형식입니다. (pdf, docx, txt 가능)"})
+            return JSONResponse({"success": False, "message": "지원하지 않는 파일 형식입니다."})
         
         extracted_text = extracted_text[:50000]
         manager.global_document_context = extracted_text
@@ -201,10 +196,11 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     current_summary = summary_state.get("text", "")
     new_text = "\n".join(new_sentences)
     
+    # 💡 요약 봇 프롬프트 교정 완료 (포장 공학 중심)
     prompt = f"""You are a context summarizer for a multinational civil engineering expert seminar.
     Update the existing summary with the new sentences.
     Keep it EXTREMELY concise (1-2 sentences maximum).
-    Focus ONLY on factual context regarding 3D mapping of small underground pipelines, GPR, or specific engineering parameters.
+    Focus ONLY on factual context regarding highway and airport pavement engineering, materials, or specific engineering parameters.
     
     [Existing Summary]
     {current_summary if current_summary else "None"}
@@ -240,7 +236,6 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
 
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
         glossary_section = f"\n[CIVIL ENGINEERING GLOSSARY]\n{glossary_text}\n" if glossary_text.strip() else ""
-        
         doc_section = f"\n[REFERENCE DOCUMENT / PAPER CONTEXT]\n{manager.global_document_context}\n" if manager.global_document_context else ""
 
         if source_lang == "multi" or source_lang == "multi_azure":
@@ -376,7 +371,6 @@ clean current sentence
         manager.release_floor()
         await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
 
-
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket, 
@@ -388,11 +382,10 @@ async def websocket_endpoint(
     name: str = Query(None),
     ui_lang: str = Query("ko"), 
     endpointing: int = Query(500), 
-    max_chars: int = Query(35),
+    max_chars: int = Query(30), # 💡 기본 max_chars를 30으로 설정하여 문장 길이 측정에 활용
     glossary: str = Query("") 
 ):
     if token not in ACTIVE_TOKENS:
-        print(f"❌ [보안 차단] 유효하지 않은 토큰. (IP: {websocket.client})", flush=True)
         await websocket.close(code=1008, reason="Unauthorized")
         return
 
@@ -532,7 +525,6 @@ async def websocket_endpoint(
                                                     if "glossary" in msg: manager.global_glossary = msg.get("glossary", "")
                                                     if "targets" in msg: manager.global_targets = msg.get("targets", manager.global_targets)
                                                     if "rehearsal_mode" in msg: manager.is_rehearsal_mode = msg["rehearsal_mode"]
-                                        # 💡 SyntaxError의 원인이 되었던 들여쓰기 교정 완료 지점 (try 위치와 완벽히 정렬됨)
                                         except DowngradeException as de:
                                             raise de 
                                         except: pass
@@ -561,9 +553,12 @@ async def websocket_endpoint(
                                     
                                     if msg["type"] == "interim":
                                         elapsed_time = time.time() - sentence_start_time
+                                        # 💡 Azure 모드: 휴지기 및 문장 길이 초과 경고 전송
                                         if elapsed_time > 8:
                                             await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
                                             sentence_start_time = time.time() 
+                                        if len(text) > max_chars:
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name}, client_id)
                                             
                                         await manager.broadcast_json({
                                             "type": "interim", 
@@ -659,7 +654,7 @@ async def websocket_endpoint(
                                                         for ws_client, info in manager.clients.items():
                                                             if info["id"] == tid:
                                                                 try: await ws_client.send_json({"type": "speak_revoked"})
-                                                                except: pass
+                                                            except: pass
                                                     elif action == "revoke_all_viewers":
                                                         revoked_ids = list(manager.speaking_allowed_clients)
                                                         manager.speaking_allowed_clients.clear()
@@ -721,11 +716,15 @@ async def websocket_endpoint(
                                             tag = f"[{name}] "
                                             
                                             elapsed_time = time.time() - sentence_start_time
+                                            
+                                            # 💡 Deepgram 모드: 신규 추가된 '문장 길이 단축(Length)' 분석 로직 탑재
                                             if confidence > 0 and confidence < 0.6:
                                                 await manager.broadcast_feedback({"type": "speaker_feedback", "code": "mic", "speaker_name": name}, client_id)
-                                            elif elapsed_time > 8 and len(current_sentence) > 30:
+                                            elif elapsed_time > 8 and len(current_sentence) > 20:
                                                 await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
                                                 sentence_start_time = time.time() 
+                                            elif len(display_text) > max_chars:
+                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name}, client_id)
                                                 
                                             await manager.broadcast_json({
                                                 "type": "interim", 
