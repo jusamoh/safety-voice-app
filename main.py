@@ -551,12 +551,18 @@ async def websocket_endpoint(
                                             raise de 
                                         except Exception:
                                             pass
-                        except websockets.exceptions.ConnectionClosed:
-                            pass
+                        except (websockets.exceptions.ConnectionClosed, WebSocketDisconnect):
+                            pass  # 💡 클라이언트 정상 종료 무시
                         except DowngradeException as de:
                             raise de
+                        except RuntimeError as e:
+                            # 💡 Starlette 특유의 종료 런타임 에러 우아하게(Graceful) 무시
+                            if "disconnect message has been received" in str(e):
+                                pass
+                            else:
+                                print(f"🚨 Azure Sender 런타임 에러: {e}", flush=True)
                         except Exception as e:
-                            print(f"🚨 Azure Sender 에러: {e}", flush=True)
+                            print(f"🚨 Azure Sender 예외 에러: {e}", flush=True)
 
                     async def receiver():
                         current_msg_id = secrets.token_hex(4)
@@ -718,12 +724,18 @@ async def websocket_endpoint(
                                                 raise de 
                                             except Exception:
                                                 pass
-                            except websockets.exceptions.ConnectionClosed:
-                                pass
+                            except (websockets.exceptions.ConnectionClosed, WebSocketDisconnect):
+                                pass  # 💡 클라이언트 정상 종료 무시
                             except DowngradeException as de:
                                 raise de
+                            except RuntimeError as e:
+                                # 💡 Starlette 특유의 종료 런타임 에러 우아하게(Graceful) 무시
+                                if "disconnect message has been received" in str(e):
+                                    pass
+                                else:
+                                    print(f"🚨 Deepgram Sender 런타임 에러: {e}", flush=True)
                             except Exception as e:
-                                print(f"🚨 Deepgram Sender 에러: {e}", flush=True)
+                                print(f"🚨 Deepgram Sender 예외 에러: {e}", flush=True)
 
                         async def receiver():
                             current_sentence = ""
@@ -811,8 +823,13 @@ async def websocket_endpoint(
                             await manager.broadcast_user_list()
                             continue 
                 break 
-    except websockets.exceptions.ConnectionClosed:
-        pass
+    except (websockets.exceptions.ConnectionClosed, WebSocketDisconnect):
+        pass  # 💡 가장 바깥쪽 메인 루프에서도 정상 연결 해제 무시
+    except RuntimeError as e:
+        if "disconnect message has been received" in str(e):
+            pass
+        else:
+            print(f"🚨 전체 웹소켓 런타임 에러: {e}", flush=True)
     except Exception as e:
         print(f"🚨 전체 웹소켓 연결 에러: {e}", flush=True)
     finally:

@@ -96,7 +96,6 @@
         .admin-mute-btn { opacity: 0.5; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(80%); }
         .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 900; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.2); filter: grayscale(0%); }
 
-        /* 💡 3단 분할 상태창 CSS */
         .status-banner { max-width: 1800px; margin: 0 auto 25px; padding: 20px 30px; background: #282a2c; color: white; border-radius: 16px; display: flex; flex-direction: column; align-items: stretch; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); transition: all 0.3s; border: 1px solid #444;}
         
         .status-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;}
@@ -193,6 +192,23 @@
         body.projector-mode .tts-btn { display: none; }
         body.projector-mode .sentence { border-bottom: 2px dashed #333; padding-bottom: 2.5vh; margin-bottom: 2.5vh;}
 
+        body.prompter-mode { background-color: #050505 !important; overflow: hidden; margin:0; padding:0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        body.prompter-mode > *:not(#prompterView, #toast, #qrModal) { display: none !important; }
+        
+        #prompterView { display: none; flex-direction: column; width: 95vw; height: 95vh; justify-content: space-between; gap: 3vh; }
+        body.prompter-mode #prompterView { display: flex; }
+        
+        .p-badge-container { display: flex; justify-content: center; gap: 2vw; flex-wrap: wrap; height: 25vh; align-items: center;}
+        .p-badge { background: #1a1a1a; color: #444; padding: 3vh 3vw; border-radius: 4vh; font-size: 3.5vh; font-weight: 900; transition: all 0.2s; border: 3px solid #333; text-align: center; flex: 1; min-width: 20%; display: flex; justify-content: center; align-items: center;}
+        
+        .p-badge.active-warning { background: #f9ab00; color: #000; box-shadow: 0 0 50px rgba(249,171,0,0.8); border-color: #f9ab00; transform: scale(1.05); animation: pPulseWarn 1s infinite; }
+        .p-badge.active-danger { background: #d93025; color: #fff; box-shadow: 0 0 50px rgba(217,48,37,0.8); border-color: #d93025; transform: scale(1.05); animation: pPulseDanger 1s infinite; }
+        
+        @keyframes pPulseWarn { 0% { box-shadow: 0 0 0 0 rgba(249,171,0,0.7); } 70% { box-shadow: 0 0 0 20px rgba(249,171,0,0); } 100% { box-shadow: 0 0 0 0 rgba(249,171,0,0); } }
+        @keyframes pPulseDanger { 0% { box-shadow: 0 0 0 0 rgba(217,48,37,0.7); } 70% { box-shadow: 0 0 0 20px rgba(217,48,37,0); } 100% { box-shadow: 0 0 0 0 rgba(217,48,37,0); } }
+        
+        .p-dictation { flex: 1; background: #111; border: 4px solid #333; border-radius: 3vh; padding: 4vh; font-size: 6vh; color: #fbbc04; font-weight: 900; overflow: hidden; line-height: 1.6; display: flex; align-items: center; justify-content: center; text-align: center; word-break: keep-all; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+
         #exitProjectorBtn { display: none; position: fixed; top: 1vw; right: 1vw; background: rgba(255,255,255,0.15); color: white; border: 2px solid rgba(255,255,255,0.4); padding: 1.5vh 2.5vw; border-radius: 3vw; z-index: 10000; font-size: 2.2vh; font-weight: 800; cursor: pointer; backdrop-filter: blur(10px); transition: background 0.3s;}
         #exitProjectorBtn:hover { background: rgba(217, 48, 37, 0.9); border-color: transparent;}
         body.projector-mode #exitProjectorBtn { display: block; }
@@ -232,6 +248,17 @@
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- 💡 단상 전용 프롬프터 UI (평상시 숨김) -->
+<div id="prompterView">
+    <div class="p-badge-container">
+        <div id="prompter-badge-pause" class="p-badge">⏸️ 숨 고르기</div>
+        <div id="prompter-badge-mic" class="p-badge">🎙️ 마이크 확인</div>
+        <div id="prompter-badge-speed" class="p-badge">🐢 속도 조절</div>
+        <div id="prompter-badge-length" class="p-badge">✂️ 문장 단축</div>
+    </div>
+    <div id="prompterDictation" class="p-dictation">대기 중...</div>
+</div>
 
 <div id="loginOverlay">
     <div class="login-box">
@@ -278,7 +305,7 @@
             <option value="" disabled selected>언어를 선택하세요</option>
         </select>
         <div id="joinNameSection" style="display: none;">
-            <label>2. 모국어 이름</label>
+            <label>2. 이름/역할</label>
             <input type="text" id="joinNativeNameInput" class="login-input" placeholder="홍길동">
             <label>3. 영문 발음</label>
             <input type="text" id="joinEnglishNameInput" class="login-input" placeholder="Hong" onkeyup="if(event.key==='Enter') joinMeeting()">
@@ -310,7 +337,6 @@
     
     <div id="speakerStatusBar" class="speaker-status-bar status-free" style="display: none;">🟢 마이크 개방됨</div>
 
-    <!-- 1. 제어 패널 블록 -->
     <div class="dashboard-layout" id="dashboardLayout">
         <div class="card">
             <div class="card-header">
@@ -370,10 +396,10 @@
 
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 전문 용어집 (GitHub 원격 동기화)</label>
-                    <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromGitHub()">🐙 최신 단어장 불러오기</button>
+                    <label class="form-label" style="margin:0;">3. 전문 용어집 (클라우드 원격 동기화)</label>
+                    <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromCloud()">☁️ 최신 단어장 불러오기</button>
                 </div>
-                <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 GitHub의 단어장이 동기화됩니다. (생방송 중 긴급 수동 입력도 가능)" onchange="sendConfigUpdate()"></textarea>
+                <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 클라우드의 최신 단어장이 동기화됩니다. (생방송 중 긴급 수동 입력도 가능)" onchange="sendConfigUpdate()"></textarea>
             </div>
 
             <div style="margin-top: 20px;">
@@ -415,17 +441,16 @@
             
             <div style="margin-top: auto; border-top: 2px dashed var(--border); padding-top: 20px;">
                 <label class="form-label" style="font-size: 1rem; color: var(--text-muted); margin-bottom: 10px;">📱 스마트폰 간편 접속 및 권한 부여</label>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-primary btn-full" style="background:#1557b0;" onclick="showQRCode('viewer')">👀 청중(뷰어) QR</button>
-                    <button class="btn-primary btn-full" style="background:#e65100; color:#ffffff;" onclick="showQRCode('speaker')">🎙️ 토론자(패널) QR</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button class="btn-primary btn-full" style="background:#1557b0;" onclick="showQRCode('viewer')">👀 청중(뷰어)</button>
+                    <button class="btn-primary btn-full" style="background:#e65100; color:#ffffff;" onclick="showQRCode('speaker')">🎙️ 토론자(패널)</button>
                 </div>
+                <button class="btn-primary btn-full" style="background:#000000; color:#fbbc04; border: 1px solid #fbbc04; min-height: 40px; padding: 10px;" onclick="showQRCode('prompter')">📺 단상용 프롬프터 뷰 (태블릿 전용)</button>
             </div>
         </div>
-    </div> <!-- 제어 패널 종료 -->
+    </div>
 
-    <!-- 💡 2. 상태창(페이스메이커)을 제어 패널과 번역 창 사이에 위치시킴 -->
     <div class="status-banner" id="statusBanner">
-        <!-- 1단: 시스템 제어 및 통제 -->
         <div class="status-top">
             <div class="status-text">
                 <span id="statusIndicator" class="status-dot"></span>
@@ -440,7 +465,6 @@
             </div>
         </div>
         
-        <!-- 2단: 4-Way 페이스메이커 (속도/휴지기/발음/문장길이) -->
         <div class="status-middle">
             <div id="badge-pause" class="pacemaker-badge">⏸️ 문장 간 숨 고르기</div>
             <div id="badge-mic" class="pacemaker-badge">🎙️ 발음 명확히 (마이크)</div>
@@ -448,13 +472,11 @@
             <div id="badge-length" class="pacemaker-badge">✂️ 한 문장 길이 단축</div>
         </div>
         
-        <!-- 3단: 실시간 딕테이션 뷰 -->
         <div class="status-bottom">
             <div id="liveDictation" class="dictation-box"></div>
         </div>
-    </div> <!-- 상태창 종료 -->
+    </div>
 
-    <!-- 3. 실시간 다국어 번역 결과 출력 창 -->
     <div id="viewerPlaceholder" style="display: none; color: #fff; text-align: center; margin-top: 80px; font-size: 1.5rem; line-height: 1.6; font-weight: 700;">
         👆 상단의 <b>[🌐 언어 선택]</b> 메뉴를 눌러<br>자신의 모국어를 선택해주세요.<br><br>
         <span style="font-size: 1.1rem; color: #aaa; font-weight: 400;">Please select your language from the top menu.</span>
@@ -538,19 +560,19 @@
         }
     }
 
-    async function fetchGlossaryFromGitHub() {
-        const githubRawUrl = "https://raw.githubusercontent.com/jusamoh/safety-voice-app/refs/heads/main/pavement_term_2026_7_16_.final.csv";
+    async function fetchGlossaryFromCloud() {
+        const cloudRawUrl = "https://raw.githubusercontent.com/jusamoh/safety-voice-app/refs/heads/main/pavement_term_2026_7_16_.final.csv";
         try {
-            showToast("⏳ GitHub에서 단어장을 불러오는 중...");
-            const response = await fetch(githubRawUrl);
+            showToast("⏳ 클라우드 서버에서 단어장을 불러오는 중...");
+            const response = await fetch(cloudRawUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const textData = await response.text();
             document.getElementById('glossaryInput').value = textData;
-            showToast("✅ GitHub 단어장이 성공적으로 동기화되었습니다.");
+            showToast("✅ 클라우드 최신 단어장이 성공적으로 동기화되었습니다.");
             sendConfigUpdate(); 
         } catch (error) {
-            console.error("GitHub Fetch 에러:", error);
-            showToast("❌ GitHub 단어장 동기화에 실패했습니다. 관리자에게 문의하세요.", true);
+            console.error("Cloud Fetch 에러:", error);
+            showToast("❌ 클라우드 단어장 동기화에 실패했습니다. 관리자에게 서버 공개 여부를 확인하세요.", true);
         }
     }
 
@@ -734,6 +756,8 @@
         document.getElementById('joinOverlay').style.display = 'flex';
         if (urlRole === 'speaker') {
             document.getElementById('joinTitle').innerText = "🎙️ 토론자로 입장";
+        } else if (urlRole === 'prompter') {
+            document.getElementById('joinTitle').innerText = "📺 프롬프터 모드 시작";
         } else {
             document.getElementById('joinTitle').innerText = "👀 청중으로 입장";
         }
@@ -843,6 +867,13 @@
         document.getElementById('viewerLangSelect').value = lang;
         
         document.getElementById('joinOverlay').style.display = 'none';
+        
+        if (urlRole === 'prompter') {
+            document.body.classList.add('prompter-mode');
+            setTimeout(() => toggleConnection('prompter'), 500);
+            return;
+        }
+        
         document.getElementById('appContainer').style.display = 'block';
         
         if (urlRole === 'viewer' || !urlRole) {
@@ -1094,6 +1125,9 @@
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드";
             document.getElementById('qrDesc').innerText = "스캔 즉시 상시 마이크 권한을 획득합니다.";
+        } else if (roleType === 'prompter') {
+            document.getElementById('qrTitle').innerText = "📺 단상용 프롬프터 QR코드";
+            document.getElementById('qrDesc').innerText = "스캔 즉시 블랙 배경의 거대 뱃지와 자막 화면이 열립니다.";
         } else {
             document.getElementById('qrTitle').innerText = "👀 청중(뷰어)용 QR코드";
             document.getElementById('qrDesc').innerText = "스캔 후 자신의 모국어를 1번만 선택하세요.";
@@ -1456,12 +1490,16 @@
         
         if (isRecording) {
             dot.classList.add('live');
-            banner.style.borderColor = "#b71c1c";
-            banner.style.boxShadow = "0 8px 24px rgba(183, 28, 28, 0.4)";
+            if (banner) {
+                banner.style.borderColor = "#b71c1c";
+                banner.style.boxShadow = "0 8px 24px rgba(183, 28, 28, 0.4)";
+            }
         } else {
             dot.classList.remove('live');
-            banner.style.borderColor = "#444";
-            banner.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)";
+            if (banner) {
+                banner.style.borderColor = "#444";
+                banner.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)";
+            }
         }
     }
 
@@ -1569,6 +1607,8 @@
                         mediaRecorder.start(100); 
                     } else if (role === 'viewer') {
                         updateStatus("👀 청중(뷰어) 모드 수신 중");
+                    } else if (role === 'prompter') {
+                        updateStatus("📺 단상용 프롬프터 수신 대기 중");
                     }
                 };
 
@@ -1606,6 +1646,7 @@
                     else if (res.type === "speaker_feedback") {
                         const isRehearsalOn = document.getElementById('rehearsalToggle') ? document.getElementById('rehearsalToggle').checked : false;
                         
+                        // 1. 관리자 토스트 알림 처리
                         if (isHost && !isRehearsalOn) {
                             let reason = "";
                             if (res.code === "speed") reason = "말하기 속도 초과 (오류 위험)";
@@ -1615,6 +1656,7 @@
                             showToast(`⚠️ [${res.speaker_name}] ${reason}`, true);
                         } 
                         
+                        // 2. 관리자 화면의 일반 뱃지 점멸 처리
                         const badge = document.getElementById(`badge-${res.code}`);
                         if (badge) {
                             const activeClass = (res.code === "mic") ? 'active-danger' : 'active-warning';
@@ -1625,9 +1667,29 @@
                                 badge.classList.remove(activeClass);
                             }, 3500);
                         }
+                        
+                        // 3. 💡 단상용 프롬프터(Prompter Mode) 화면의 거대 뱃지 점멸 처리
+                        const pBadge = document.getElementById(`prompter-badge-${res.code}`);
+                        if (pBadge && document.body.classList.contains('prompter-mode')) {
+                            const activeClass = (res.code === "mic") ? 'active-danger' : 'active-warning';
+                            pBadge.classList.add(activeClass);
+                            
+                            if (window[`p_timer_${res.code}`]) clearTimeout(window[`p_timer_${res.code}`]);
+                            window[`p_timer_${res.code}`] = setTimeout(() => {
+                                pBadge.classList.remove(activeClass);
+                            }, 3500);
+                        }
                     }
                     else if (res.type === "interim") {
-                        document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
+                        const liveDictation = document.getElementById('liveDictation');
+                        if (liveDictation) liveDictation.innerText = "🗣️ " + res.text;
+                        
+                        // 💡 단상용 프롬프터 자막 화면 업데이트
+                        const prompterText = document.getElementById('prompterDictation');
+                        if (prompterText && document.body.classList.contains('prompter-mode')) {
+                            prompterText.innerText = res.text.replace(/\[.*?\] /, ''); 
+                        }
+
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
                         
                         if(isHost) {
@@ -1748,7 +1810,13 @@
                         checkAndTriggerAutoDownload();
 
                         currentSentenceId = null;
-                        document.getElementById('liveDictation').innerText = "";
+                        const liveDictation = document.getElementById('liveDictation');
+                        if (liveDictation) liveDictation.innerText = "";
+                        
+                        // 💡 단상용 프롬프터 자막 화면 대기 상태로 초기화
+                        const prompterText = document.getElementById('prompterDictation');
+                        if (prompterText) prompterText.innerText = "대기 중..."; 
+
                         const mobBox = document.getElementById('mobileDictationBox');
                         const mobText = document.getElementById('mobileDictationText');
                         if (mobBox && mobText) { mobText.innerText = "대기 중..."; mobBox.style.display = 'none'; }
@@ -1787,6 +1855,7 @@
         if (isHost) {
             document.body.classList.remove('viewer-mode');
             document.body.classList.remove('speaker-mode');
+            document.body.classList.remove('prompter-mode');
             const placeholder = document.getElementById('viewerPlaceholder');
             if (placeholder) placeholder.style.display = 'none';
             document.getElementById('statusMic').className = 'status-indicator status-gray';
