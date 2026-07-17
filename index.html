@@ -624,8 +624,7 @@
         "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
         "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
         "ms": "🇲🇾 말레이어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 크메르어", "ne": "🇳🇵 네팔어",
-        "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ur": "🇵🇰 우르두어", "si": "🇱🇰 싱할라어",
-        "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", "ru": "🇷🇺 러시아어",
+        "hi": "🇮🇳 힌디어", "mn": "🇲🇳 몽골어", "uz": "🇺🇿 우즈베크어", "kk": "🇰🇿 카자흐어", "ru": "🇷🇺 러시아어",
         "ar": "🇸🇦 아랍어", "tr": "🇹🇷 튀르키예어", "es": "🇪🇸 스페인어", "pt": "🇵🇹 포르투갈어",
         "fr": "🇫🇷 프랑스어", "de": "🇩🇪 독일어", "it": "🇮🇹 이탈리아어", "pl": "🇵🇱 폴란드어",
         "uk": "🇺🇦 우크라이나어", "ro": "🇷🇴 루마니아어", "bg": "🇧🇬 불가리아어", "sk": "🇸🇰 슬로바키아어", 
@@ -795,7 +794,7 @@
         
         if (!lang) return showToast("언어를 먼저 선택해주세요.", true);
         if (!nativeName) return showToast("모국어 이름(Native Name)을 입력해주세요.", true); 
-        if (!englishName) return showToast("영문 발음(English Name)을 입력해주세요.", true); 
+        if (!englishName) return showToast("영문 이름(English Name)을 입력해주세요.", true); 
         
         clientName = `${nativeName} (${englishName})`; 
         document.getElementById('viewerLangSelect').value = lang;
@@ -979,7 +978,31 @@
             } catch(e) { console.error("URL 파싱 오류", e); }
         }
     }
+async function fetchGlossaryFromGitHub() {
+        // 💡 주의: 반드시 'Raw' 버튼을 눌렀을 때 나오는 순수 텍스트 주소를 입력해야 합니다.
+        const githubRawUrl = "https://raw.githubusercontent.com/사용자명/저장소명/main/pavement_term_2026.csv";
 
+        try {
+            showToast("⏳ GitHub에서 단어장을 불러오는 중...");
+            
+            const response = await fetch(githubRawUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const textData = await response.text();
+            
+            // 화면의 텍스트 에어리어에 내용 덮어쓰기
+            document.getElementById('glossaryInput').value = textData;
+            showToast("✅ GitHub 단어장이 성공적으로 동기화되었습니다.");
+            
+            // 백엔드 엔진에 새로운 단어장 적용 명령 즉시 하달
+            sendConfigUpdate(); 
+            
+        } catch (error) {
+            console.error("GitHub Fetch 에러:", error);
+            showToast("❌ GitHub 단어장 동기화에 실패했습니다. 관리자에게 문의하세요.", true);
+        }
+    }
+    
     function updateWindows() {
         if (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) {
             if (!isHost) { filterViewerWindows(); return; }
