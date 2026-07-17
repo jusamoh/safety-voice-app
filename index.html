@@ -192,7 +192,6 @@
         body.projector-mode .tts-btn { display: none; }
         body.projector-mode .sentence { border-bottom: 2px dashed #333; padding-bottom: 2.5vh; margin-bottom: 2.5vh;}
 
-        /* 💡 신규: 단상 전용 프롬프터 뷰 (Prompter Mode) CSS */
         body.prompter-mode { background-color: #050505 !important; overflow: hidden; margin:0; padding:0; display: flex; align-items: center; justify-content: center; height: 100vh; }
         body.prompter-mode > *:not(#prompterView, #toast, #qrModal) { display: none !important; }
         
@@ -395,12 +394,13 @@
                 </div>
             </div>
 
+            <!-- 💡 GitHub 문구가 '클라우드'로 일괄 수정된 영역 -->
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 전문 용어집 (GitHub 원격 동기화)</label>
-                    <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromGitHub()">🐙 최신 단어장 불러오기</button>
+                    <label class="form-label" style="margin:0;">3. 전문 용어집 (클라우드 원격 동기화)</label>
+                    <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromCloud()">☁️ 최신 단어장 불러오기</button>
                 </div>
-                <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 GitHub의 단어장이 동기화됩니다. (생방송 중 긴급 수동 입력도 가능)" onchange="sendConfigUpdate()"></textarea>
+                <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 클라우드의 최신 단어장이 동기화됩니다. (생방송 중 긴급 수동 입력도 가능)" onchange="sendConfigUpdate()"></textarea>
             </div>
 
             <div style="margin-top: 20px;">
@@ -446,7 +446,6 @@
                     <button class="btn-primary btn-full" style="background:#1557b0;" onclick="showQRCode('viewer')">👀 청중(뷰어)</button>
                     <button class="btn-primary btn-full" style="background:#e65100; color:#ffffff;" onclick="showQRCode('speaker')">🎙️ 토론자(패널)</button>
                 </div>
-                <!-- 💡 단상용 프롬프터 뷰 접속 버튼 신규 추가 -->
                 <button class="btn-primary btn-full" style="background:#000000; color:#fbbc04; border: 1px solid #fbbc04; min-height: 40px; padding: 10px;" onclick="showQRCode('prompter')">📺 단상용 프롬프터 뷰 (태블릿 전용)</button>
             </div>
         </div>
@@ -562,19 +561,20 @@
         }
     }
 
-    async function fetchGlossaryFromGitHub() {
-        const githubRawUrl = "https://raw.githubusercontent.com/jusamoh/safety-voice-app/refs/heads/main/pavement_term_2026_7_16_.final.csv";
+    // 💡 클라우드 원격 서버 동기화 명칭 변경 (기존 GitHub)
+    async function fetchGlossaryFromCloud() {
+        const cloudRawUrl = "https://raw.githubusercontent.com/jusamoh/safety-voice-app/refs/heads/main/pavement_term_2026_7_16_.final.csv";
         try {
-            showToast("⏳ GitHub에서 단어장을 불러오는 중...");
-            const response = await fetch(githubRawUrl);
+            showToast("⏳ 클라우드 서버에서 단어장을 불러오는 중...");
+            const response = await fetch(cloudRawUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const textData = await response.text();
             document.getElementById('glossaryInput').value = textData;
-            showToast("✅ GitHub 단어장이 성공적으로 동기화되었습니다.");
+            showToast("✅ 클라우드 최신 단어장이 성공적으로 동기화되었습니다.");
             sendConfigUpdate(); 
         } catch (error) {
-            console.error("GitHub Fetch 에러:", error);
-            showToast("❌ GitHub 단어장 동기화에 실패했습니다. 저장소 공개 여부를 확인하세요.", true);
+            console.error("Cloud Fetch 에러:", error);
+            showToast("❌ 클라우드 단어장 동기화에 실패했습니다. 관리자에게 서버 공개 여부를 확인하세요.", true);
         }
     }
 
@@ -870,7 +870,6 @@
         
         document.getElementById('joinOverlay').style.display = 'none';
         
-        // 💡 단상 프롬프터 모드일 경우 특수 클래스 부여 및 연결 처리
         if (urlRole === 'prompter') {
             document.body.classList.add('prompter-mode');
             setTimeout(() => toggleConnection('prompter'), 500);
