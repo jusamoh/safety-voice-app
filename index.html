@@ -247,6 +247,10 @@
     <div class="login-box">
         <h2 style="color: var(--primary);">⚙️ 회의 기본 설정</h2>
         <p class="subtitle">시스템 최적화를 위해 정보를 입력해주세요.</p>
+
+        <!-- 💡 새로 추가된 분야(Domain) 입력칸 -->
+        <label>1. 회의 전문 분야 (Domain)</label>
+        <input type="text" id="adminDomainInput" class="login-input" placeholder="ex) Highway Engineering">
         
         <label>1. 방장 언어 선택 (Admin Lang)</label>
         <select id="adminLangSelect" class="login-input">
@@ -284,7 +288,8 @@
 
 <div id="appContainer">
     <nav class="navbar">
-        <div class="nav-brand">🌍 글로벌 도로공학 전문가 학술대회 통역 콘솔</div>
+        <!-- 💡 영문 타이틀로 변경 및 id 추가 -->
+        <div id="mainNavTitle" class="nav-brand">🌍 Global Customized Real-time Interpretation Support System</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
             <button id="projectorBtn" class="btn-outline" onclick="toggleProjectorMode()">📽️ 빔 프로젝터 뷰</button>
@@ -726,6 +731,7 @@
     }
 
     function startAdminMeeting() {
+        const domain = document.getElementById('adminDomainInput').value.trim() || 'General';
         const adminLang = document.getElementById('adminLangSelect').value;
         const title = document.getElementById('adminMeetingTitleInput').value.trim();
         const nativeName = document.getElementById('adminNativeNameInput').value.trim();
@@ -742,6 +748,10 @@
         clientName = `${nativeName} (${englishName})`;
 
         localStorage.setItem("savedMeetingTitle", meetingTitle);
+        // 💡 브라우저 새로고침을 대비해 분야(Domain) 저장
+        localStorage.setItem("savedMeetingDomain", domain);
+       // 💡 상단 타이틀 영문 합성 (ex: ... System for Highway Engineering)
+       document.getElementById('mainNavTitle').innerText = `🌍 Global Customized Real-time Interpretation Support System for ${domain}`;
         
         const dateStr = new Date().toISOString().slice(0, 10);
         transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
