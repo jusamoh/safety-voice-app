@@ -153,6 +153,13 @@
         .original-text { font-size: 1.05rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; }
         .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; word-break: break-all; }
         .tts-btn { position: absolute; right: 0; top: 0; background: #e8eaed; border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: var(--text-main); font-weight: 800; }
+        body.tts-disabled .tts-btn { display: none !important; }
+        body.tts-disabled .sentence { padding-right: 0; }
+        .tts-control-row { margin-top: 16px; padding: 14px 16px; border: 2px solid #d2e3fc; border-radius: 12px; background: #f8fafd; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        .tts-control-copy { display: flex; flex-direction: column; gap: 4px; }
+        .tts-control-title { color: var(--text-main); font-weight: 900; font-size: 1rem; }
+        .tts-control-help { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+        .tts-toggle-status { min-width: 42px; color: var(--primary); font-size: 0.95rem; font-weight: 900; text-align: center; }
         
         @media (min-width: 1400px) { .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 20px;} }
         @media (min-width: 1600px) { html { font-size: 19px; } .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 25px;} .window { height: 750px; } }
@@ -402,6 +409,17 @@
             <div style="display:flex; gap: 10px;">
                 <button id="btnMuteAll" class="btn-danger btn-full btn-icon admin-mute-btn" onclick="adminMuteAll()">🛑 전체 음소거</button>
                 <button id="btnUnmuteAll" class="btn-primary btn-full btn-icon admin-mute-btn selected" style="background:#1e8e3e;" onclick="adminUnmuteAll()">✔️ 🟢 음소거 해제</button>
+            </div>
+            <div class="tts-control-row" title="모든 참가자의 번역창에서 번역 음성 듣기 버튼을 표시하거나 숨깁니다.">
+                <div class="tts-control-copy">
+                    <span class="tts-control-title">🔊 번역 음성 듣기</span>
+                    <span class="tts-control-help">참가자 번역창의 음성 버튼 표시</span>
+                </div>
+                <span id="ttsToggleStatus" class="tts-toggle-status">ON</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="ttsEnabledToggle" checked onchange="handleTtsToggleChange()">
+                    <span class="slider-round"></span>
+                </label>
             </div>
         </div>
 
@@ -679,6 +697,7 @@
     let isAdminMuted = false;
     let isRequested = false;
     let isDynamicSpeaker = false;
+    let isTtsEnabled = true;
 
     let meetingTitle = localStorage.getItem("savedMeetingTitle") || "실시간 현장 회의";
     let transcriptLog = localStorage.getItem("savedTranscript") || "";
@@ -1006,12 +1025,15 @@
             const glossaryData = document.getElementById('glossaryInput').value;
             
             const isRehearsal = document.getElementById('rehearsalToggle').checked;
+            const ttsEnabledToggle = document.getElementById('ttsEnabledToggle');
+            const ttsEnabled = ttsEnabledToggle ? ttsEnabledToggle.checked : true;
             
             ws.send(JSON.stringify({ 
                 type: "config", 
                 glossary: glossaryData, 
                 targets: checkedLangs.join(','),
-                rehearsal_mode: isRehearsal
+                rehearsal_mode: isRehearsal,
+                tts_enabled: ttsEnabled
             }));
             
             const newLangMode = document.getElementById('speakerLang').value;
@@ -1416,7 +1438,30 @@
         showToast(`${langNames[langCode]} 채널이 추가되었습니다.`);
     }
 
+    function applyTtsVisibility(enabled) {
+        isTtsEnabled = enabled !== false;
+        document.body.classList.toggle('tts-disabled', !isTtsEnabled);
+
+        const toggle = document.getElementById('ttsEnabledToggle');
+        if (toggle && toggle.checked !== isTtsEnabled) toggle.checked = isTtsEnabled;
+
+        const status = document.getElementById('ttsToggleStatus');
+        if (status) {
+            status.innerText = isTtsEnabled ? 'ON' : 'OFF';
+            status.style.color = isTtsEnabled ? 'var(--primary)' : 'var(--danger)';
+        }
+
+        if (!isTtsEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+
+    function handleTtsToggleChange() {
+        const toggle = document.getElementById('ttsEnabledToggle');
+        applyTtsVisibility(toggle ? toggle.checked : true);
+        sendConfigUpdate();
+    }
+
     function speakTargetText(text, lang) {
+        if (!isTtsEnabled) { showToast("사회자가 번역 음성 듣기를 껐습니다.", true); return; }
         if (!window.speechSynthesis) { showToast("이 기기는 음성 합성을 지원하지 않습니다.", true); return; }
         window.speechSynthesis.cancel(); 
         const msg = new SpeechSynthesisUtterance(text);
@@ -1595,6 +1640,9 @@
                             ).join('');
                         }
                     }
+                    else if (res.type === "display_settings") {
+                        applyTtsVisibility(res.tts_enabled);
+                    }
                     else if (res.type === "user_list" && isHost) { renderUserList(res.users); }
                     else if (res.type === "floor_state") {
                         const prevMuted = isAdminMuted; 
@@ -1708,7 +1756,7 @@
                             if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalSafeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
                             else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
                         } else {
-                            const ttsBtnHTML = `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>`;
+                            const ttsBtnHTML = isTtsEnabled ? `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>` : '';
                             if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalCleanText}</span> ${ttsBtnHTML}`;
                             else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
                             
