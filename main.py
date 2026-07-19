@@ -85,7 +85,7 @@ class ConnectionManager:
         self.global_document_context = "" 
         self.speaking_allowed_clients = set()
         self.is_rehearsal_mode = False 
-        self.is_tts_enabled = True
+        self.is_tts_enabled = False
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
         await websocket.accept()
