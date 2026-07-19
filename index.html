@@ -237,7 +237,7 @@
         #qrcode img, #qrcode canvas { max-width: 100%; height: auto !important; object-fit: contain; }
     </style>
 </head>
-<body>
+<body class="tts-disabled">
 <div id="toast"></div>
 
 <div id="loginOverlay">
@@ -340,7 +340,7 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-header-title"><span>🎛️</span> AI 번역 엔진 & 오디오 제어</div>
-                <button class="btn-outline" style="padding: 6px 12px; font-size: 0.9rem; min-height: 30px; border-color: var(--danger); color: var(--danger);" onclick="testSystemError()">🚨 장애 테스트</button>
+                <button id="liveDiagnosticBtn" class="btn-outline" style="padding: 6px 12px; font-size: 0.9rem; min-height: 30px; border-color: var(--primary); color: var(--primary);" onclick="runLiveDiagnostic()">🩺 실시간 진단</button>
             </div>
             
             <div class="pipeline-status" id="pipelineStatus">
@@ -354,7 +354,7 @@
             <label class="form-label" style="color:var(--text-main);">1. 현장 마이크 제어 (통역 엔진 가동)</label>
             <div style="display: flex; gap: 10px; align-items: stretch; margin-bottom: 20px;">
                 <select id="audioInputSelect" class="styled-select" style="flex: 1;" title="오디오 인터페이스 채널 지정">
-                    <option value="default">기본 마이크</option>
+                    <option value="">마이크를 선택하세요</option>
                 </select>
                 <button id="speakerBtn" class="btn-primary" style="white-space: nowrap; font-size: 1.1rem; padding: 0 24px; font-weight: 800; border-radius: 8px; margin: 0; min-height: 52px; background: var(--primary);" onclick="toggleConnection('admin')">▶️ 현장 마이크 켜기</button>
             </div>
@@ -415,9 +415,9 @@
                     <span class="tts-control-title">🔊 번역 음성 듣기</span>
                     <span class="tts-control-help">참가자 번역창의 음성 버튼 표시</span>
                 </div>
-                <span id="ttsToggleStatus" class="tts-toggle-status">ON</span>
+                <span id="ttsToggleStatus" class="tts-toggle-status" style="color:var(--danger);">OFF</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="ttsEnabledToggle" checked onchange="handleTtsToggleChange()">
+                    <input type="checkbox" id="ttsEnabledToggle" onchange="handleTtsToggleChange()">
                     <span class="slider-round"></span>
                 </label>
             </div>
@@ -521,39 +521,156 @@
     });
 
     let isErrorState = false;
-    function testSystemError() {
-        isErrorState = !isErrorState;
-        const banner = document.getElementById('statusBanner');
-        const msg = document.getElementById('statusMessage');
-        const windows = document.querySelectorAll('.window');
-        
-        const sttPipe = document.getElementById('statusStt');
-        const aiPipe = document.getElementById('statusAi');
+    const LIVE_DIAGNOSTIC_TIMEOUT_MS = 25000;
+    let liveDiagnosticTimer = null;
+    let liveDiagnostic = {
+        active: false,
+        captureStarted: false,
+        audioDetected: false,
+        sttReceived: false,
+        translationReceived: false,
+        startedConnection: false
+    };
 
-        if (isErrorState) {
-            banner.classList.add('critical-error');
-            msg.innerHTML = "[ 🚨 통신 장애 발생 ] AI 번역 서버 응답 없음!";
-            windows.forEach(w => w.classList.add('error-glow'));
-            sttPipe.className = 'status-indicator status-green';
-            aiPipe.className = 'status-indicator status-red'; 
-            
-            document.querySelectorAll('.draft-text').forEach(t => {
-                t.innerHTML = t.innerHTML.replace('...', ' ⏸️');
-            });
-            showToast("시스템 장애 경고 체계가 발동되었습니다.", true);
-            
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        } else {
-            banner.classList.remove('critical-error');
-            msg.innerHTML = isConnected ? "[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중..." : "[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.";
-            windows.forEach(w => w.classList.remove('error-glow'));
-            aiPipe.className = 'status-indicator status-green';
-            
-            document.querySelectorAll('.draft-text').forEach(t => {
-                t.innerHTML = t.innerHTML.replace(' ⏸️', '...');
-            });
-            showToast("시스템이 정상적으로 복구되었습니다.");
+    function setDiagnosticIndicator(id, state) {
+        const indicator = document.getElementById(id);
+        if (indicator) indicator.className = `status-indicator status-${state}`;
+    }
+
+    function beginLiveDiagnosticCapture() {
+        if (!liveDiagnostic.active || liveDiagnostic.captureStarted) return;
+        liveDiagnostic.captureStarted = true;
+        updateStatus("[ 🩺 실시간 진단 ] 선택한 마이크에 ‘마이크 시험입니다. 번역 기능을 확인합니다.’라고 말해주세요.", true);
+        showToast("25초 안에 테스트 문장을 또렷하게 말해주세요.");
+        clearTimeout(liveDiagnosticTimer);
+        liveDiagnosticTimer = setTimeout(() => {
+            if (!liveDiagnostic.audioDetected) {
+                finishLiveDiagnostic(false, "선택한 마이크에서 음성 신호가 감지되지 않았습니다.", "statusMic");
+            } else if (!liveDiagnostic.sttReceived) {
+                finishLiveDiagnostic(false, "마이크 신호는 감지됐지만 STT 결과가 도착하지 않았습니다.", "statusStt");
+            } else {
+                finishLiveDiagnostic(false, "STT는 정상이나 다국어 번역 결과가 도착하지 않았습니다.", "statusAi");
+            }
+        }, LIVE_DIAGNOSTIC_TIMEOUT_MS);
+    }
+
+    function recordLiveDiagnosticStt(text) {
+        if (!liveDiagnostic.active || !text) return;
+        liveDiagnostic.sttReceived = true;
+        setDiagnosticIndicator("statusStt", "green");
+        updateStatus("[ 🩺 실시간 진단 ] STT 통과 — 실제 번역 응답을 기다리는 중...", true);
+    }
+
+    function recordLiveDiagnosticTranslation(res) {
+        if (!liveDiagnostic.active || res.type !== "stream_end" || !res.text) return;
+        if (res.original_text) recordLiveDiagnosticStt(res.original_text);
+        const sourceLang = (res.source_lang || "").toLowerCase();
+        const targetLang = (res.lang || "").toLowerCase();
+        const isCrossLingual = sourceLang.startsWith("multi") || (targetLang && targetLang !== sourceLang);
+        if (!isCrossLingual) return;
+        liveDiagnostic.translationReceived = true;
+        setDiagnosticIndicator("statusAi", "green");
+        finishLiveDiagnostic(true, `실제 마이크 음성이 STT와 ${langNames[targetLang] || targetLang} 번역까지 정상 처리되었습니다.`);
+    }
+
+    function stopDiagnosticConnection() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
+        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
+        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
+        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) ws.close(1000, "진단 완료");
+        isConnected = false;
+        resetUI();
+    }
+
+    function finishLiveDiagnostic(success, message, failedIndicator = null) {
+        if (!liveDiagnostic.active) return;
+        const startedConnection = liveDiagnostic.startedConnection;
+        liveDiagnostic.active = false;
+        clearTimeout(liveDiagnosticTimer);
+        liveDiagnosticTimer = null;
+
+        const btn = document.getElementById("liveDiagnosticBtn");
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "🩺 실시간 진단";
         }
+
+        if (success) {
+            setDiagnosticIndicator("statusMic", "green");
+            setDiagnosticIndicator("statusStt", "green");
+            setDiagnosticIndicator("statusAi", "green");
+            updateStatus(`[ ✅ 실시간 진단 통과 ] ${message}`, false);
+            showToast("✅ 마이크 → STT → 다국어 번역 실시간 진단을 통과했습니다.");
+        } else {
+            if (failedIndicator) setDiagnosticIndicator(failedIndicator, "red");
+            updateStatus(`[ ❌ 실시간 진단 실패 ] ${message}`, false);
+            showToast(message, true);
+        }
+
+        setTimeout(() => {
+            if (startedConnection) stopDiagnosticConnection();
+            else updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
+        }, 4000);
+    }
+
+    async function runLiveDiagnostic() {
+        if (liveDiagnostic.active) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast("이 브라우저는 마이크 진단을 지원하지 않습니다.", true);
+            return;
+        }
+
+        const audioSelect = document.getElementById("audioInputSelect");
+        if (!audioSelect || !audioSelect.value) {
+            showToast("먼저 사용할 마이크를 선택해주세요.", true);
+            if (audioSelect) audioSelect.focus();
+            return;
+        }
+
+        const sourceLang = document.getElementById("speakerLang")?.value || "ko";
+        const targets = Array.from(document.querySelectorAll("#targetCheckboxes input:checked")).map(cb => cb.value);
+        const hasForeignTarget = sourceLang === "multi_azure"
+            ? new Set(targets).size >= 2
+            : targets.some(lang => lang !== sourceLang);
+        if (!hasForeignTarget) {
+            showToast("실제 번역 시험을 위해 원문 언어와 다른 통역 채널을 하나 이상 추가해주세요.", true);
+            return;
+        }
+
+        if (isConnected && (!mediaRecorder || mediaRecorder.state !== "recording")) {
+            showToast("현재 마이크 연결 상태가 올바르지 않습니다. 마이크를 껐다가 다시 시도해주세요.", true);
+            return;
+        }
+
+        liveDiagnostic = {
+            active: true,
+            captureStarted: false,
+            audioDetected: false,
+            sttReceived: false,
+            translationReceived: false,
+            startedConnection: !isConnected
+        };
+
+        const btn = document.getElementById("liveDiagnosticBtn");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = "⏳ 진단 중";
+        }
+        setDiagnosticIndicator("statusMic", "gray");
+        setDiagnosticIndicator("statusStt", "gray");
+        setDiagnosticIndicator("statusAi", "gray");
+
+        clearTimeout(liveDiagnosticTimer);
+        liveDiagnosticTimer = setTimeout(() => {
+            if (liveDiagnostic.active && !liveDiagnostic.captureStarted) {
+                finishLiveDiagnostic(false, "마이크 또는 통역 서버 연결을 시작하지 못했습니다.", "statusMic");
+            }
+        }, 10000);
+
+        if (isConnected) beginLiveDiagnosticCapture();
+        else await toggleConnection("admin");
     }
 
     async function fetchGlossaryFromGitHub() {
@@ -651,11 +768,12 @@
     });
 
     async function getMicrophones() {
+        let permissionStream = null;
         try {
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioSelect = document.getElementById('audioInputSelect');
-            audioSelect.innerHTML = '<option value="default">기본 마이크</option>';
+            audioSelect.innerHTML = '<option value="">마이크를 선택하세요</option>';
             devices.forEach(device => {
                 if (device.kind === 'audioinput') {
                     const option = document.createElement('option');
@@ -664,7 +782,12 @@
                     audioSelect.appendChild(option);
                 }
             });
-        } catch (err) { console.warn("마이크 목록 로드 실패", err); }
+        } catch (err) {
+            console.warn("마이크 목록 로드 실패", err);
+            showToast("마이크 사용 권한을 허용한 뒤 다시 시도해주세요.", true);
+        } finally {
+            if (permissionStream) permissionStream.getTracks().forEach(track => track.stop());
+        }
     }
 
     function showToast(message, isError = false) {
@@ -697,7 +820,7 @@
     let isAdminMuted = false;
     let isRequested = false;
     let isDynamicSpeaker = false;
-    let isTtsEnabled = true;
+    let isTtsEnabled = false;
 
     let meetingTitle = localStorage.getItem("savedMeetingTitle") || "실시간 현장 회의";
     let transcriptLog = localStorage.getItem("savedTranscript") || "";
@@ -1026,7 +1149,7 @@
             
             const isRehearsal = document.getElementById('rehearsalToggle').checked;
             const ttsEnabledToggle = document.getElementById('ttsEnabledToggle');
-            const ttsEnabled = ttsEnabledToggle ? ttsEnabledToggle.checked : true;
+            const ttsEnabled = ttsEnabledToggle ? ttsEnabledToggle.checked : false;
             
             ws.send(JSON.stringify({ 
                 type: "config", 
@@ -1218,6 +1341,11 @@
                     sum += val * val;
                 }
                 let rms = Math.sqrt(sum / bufferLength);
+
+                if (liveDiagnostic.active && liveDiagnostic.captureStarted && rms > Math.max(rmsThreshold, 0.005)) {
+                    liveDiagnostic.audioDetected = true;
+                    setDiagnosticIndicator("statusMic", "green");
+                }
 
                 if (rms > rmsThreshold) {
                     if (!gateOpen) {
@@ -1439,7 +1567,7 @@
     }
 
     function applyTtsVisibility(enabled) {
-        isTtsEnabled = enabled !== false;
+        isTtsEnabled = enabled === true;
         document.body.classList.toggle('tts-disabled', !isTtsEnabled);
 
         const toggle = document.getElementById('ttsEnabledToggle');
@@ -1556,6 +1684,15 @@
 
         if (!isConnected) {
             try {
+                if (role === 'admin' && isHost) {
+                    const selectedMic = document.getElementById('audioInputSelect');
+                    if (!selectedMic || !selectedMic.value) {
+                        showToast("먼저 사용할 마이크를 선택해주세요.", true);
+                        if (selectedMic) selectedMic.focus();
+                        if (liveDiagnostic.active) finishLiveDiagnostic(false, "마이크가 선택되지 않았습니다.", "statusMic");
+                        return;
+                    }
+                }
                 if (role === 'viewer') {
                     document.body.classList.add('viewer-mode');
                     filterViewerWindows(); 
@@ -1603,7 +1740,16 @@
                             audioConstraints.deviceId = { exact: deviceId };
                         }
                         
-                        rawStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                        try {
+                            rawStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                        } catch (micError) {
+                            console.error("선택한 마이크 연결 실패:", micError);
+                            if (liveDiagnostic.active) finishLiveDiagnostic(false, "선택한 마이크를 열 수 없습니다. 장치 연결과 브라우저 권한을 확인해주세요.", "statusMic");
+                            else showToast("선택한 마이크를 열 수 없습니다.", true);
+                            if (ws && ws.readyState === WebSocket.OPEN) ws.close(1011, "마이크 연결 실패");
+                            isConnected = false;
+                            return;
+                        }
                         gatedStream = await applyNoiseGate(rawStream); 
                         
                         updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
@@ -1620,6 +1766,7 @@
                             }
                         };
                         mediaRecorder.start(100); 
+                        if (liveDiagnostic.active) beginLiveDiagnosticCapture();
                     } else if (role === 'viewer') {
                         updateStatus("👀 청중(뷰어) 모드 수신 중");
                     }
@@ -1683,6 +1830,7 @@
                         }
                     }
                     else if (res.type === "interim") {
+                        recordLiveDiagnosticStt(res.text);
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
                         
@@ -1723,6 +1871,8 @@
                         updateStatus(res.text, res.text.includes("방송") || res.text.includes("가동 중"));
                     } 
                     else if (res.type === "stream_update" || res.type === "stream_end") {
+                        if (res.original_text) recordLiveDiagnosticStt(res.original_text);
+                        recordLiveDiagnosticTranslation(res);
                         const lang = res.lang;
                         const box = ensureWindowExists(lang);
                         let div = document.getElementById(`${res.msg_id}_${lang}`);
