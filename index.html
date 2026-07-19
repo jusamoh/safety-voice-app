@@ -340,7 +340,6 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-header-title"><span>🎛️</span> AI 번역 엔진 & 오디오 제어</div>
-                <button id="liveDiagnosticBtn" class="btn-outline" style="padding: 6px 12px; font-size: 0.9rem; min-height: 30px; border-color: var(--primary); color: var(--primary);" onclick="runLiveDiagnostic()">🩺 실시간 진단</button>
             </div>
             
             <div class="pipeline-status" id="pipelineStatus">
@@ -351,15 +350,18 @@
                 <div class="pipe-step"><span class="status-indicator status-gray" id="statusAi"></span> 🧠 AI 번역</div>
             </div>
 
-            <label class="form-label" style="color:var(--text-main);">1. 현장 마이크 제어 (통역 엔진 가동)</label>
+            <label class="form-label" style="color:var(--text-main);">1. 현장 마이크 선택 및 연결</label>
             <div style="display: flex; gap: 10px; align-items: stretch; margin-bottom: 20px;">
                 <select id="audioInputSelect" class="styled-select" style="flex: 1;" title="오디오 인터페이스 채널 지정">
                     <option value="">마이크를 선택하세요</option>
                 </select>
                 <button id="speakerBtn" class="btn-primary" style="white-space: nowrap; font-size: 1.1rem; padding: 0 24px; font-weight: 800; border-radius: 8px; margin: 0; min-height: 52px; background: var(--primary);" onclick="toggleConnection('admin')">▶️ 현장 마이크 켜기</button>
             </div>
+
+            <label class="form-label" style="margin-top: 4px;">2. 선택한 마이크 실시간 시험</label>
+            <button id="liveDiagnosticBtn" class="btn-outline btn-full" style="margin-bottom: 20px; border-color: var(--primary); color: var(--primary); background:#f8fafd;" onclick="runLiveDiagnostic()">🩺 마이크 → STT → 번역 시험</button>
             
-            <label class="form-label">2. 통역 엔진 & 마이크 최적화</label>
+            <label class="form-label">3. 통역 엔진 & 마이크 최적화</label>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <div class="slider-wrapper" style="flex:1; min-width: 100px;">
                     <div class="slider-header"><span>침묵 감지</span><span id="endpointVal" class="slider-val">0.5초</span></div>
@@ -377,7 +379,7 @@
 
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 전문 용어집 (GitHub 원격 동기화)</label>
+                    <label class="form-label" style="margin:0;">4. 전문 용어집</label>
                     <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromGitHub()">🐙 최신 단어장 불러오기</button>
                 </div>
                 <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 GitHub의 단어장이 동기화됩니다. (생방송 중 긴급 수동 입력도 가능)" onchange="sendConfigUpdate()"></textarea>
@@ -385,7 +387,7 @@
 
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">4. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
+                    <label class="form-label" style="margin:0;">5. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
                     <button class="btn-outline" style="padding: 4px 8px; font-size: 12px; border-color: var(--primary); color: var(--primary); min-height: 30px;" onclick="document.getElementById('contextFile').click()">📄 문서 업로드</button>
                     <input type="file" id="contextFile" accept=".txt,.pdf,.docx" style="display: none;" onchange="uploadContextFile(event)">
                 </div>
@@ -528,8 +530,7 @@
         captureStarted: false,
         audioDetected: false,
         sttReceived: false,
-        translationReceived: false,
-        startedConnection: false
+        translationReceived: false
     };
 
     function setDiagnosticIndicator(id, state) {
@@ -573,20 +574,8 @@
         finishLiveDiagnostic(true, `실제 마이크 음성이 STT와 ${langNames[targetLang] || targetLang} 번역까지 정상 처리되었습니다.`);
     }
 
-    function stopDiagnosticConnection() {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
-        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
-        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
-        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
-        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) ws.close(1000, "진단 완료");
-        isConnected = false;
-        resetUI();
-    }
-
     function finishLiveDiagnostic(success, message, failedIndicator = null) {
         if (!liveDiagnostic.active) return;
-        const startedConnection = liveDiagnostic.startedConnection;
         liveDiagnostic.active = false;
         clearTimeout(liveDiagnosticTimer);
         liveDiagnosticTimer = null;
@@ -594,7 +583,7 @@
         const btn = document.getElementById("liveDiagnosticBtn");
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = "🩺 실시간 진단";
+            btn.innerHTML = "🩺 마이크 → STT → 번역 시험";
         }
 
         if (success) {
@@ -610,8 +599,13 @@
         }
 
         setTimeout(() => {
-            if (startedConnection) stopDiagnosticConnection();
-            else updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
+            const micStillRunning = isConnected && mediaRecorder && mediaRecorder.state === "recording";
+            if (micStillRunning) {
+                updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
+                showToast("진단 후에도 선택한 마이크가 계속 켜져 있습니다. 필요할 때 ‘마이크 끄기’를 눌러 종료하세요.");
+            } else {
+                updateStatus("[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.", false);
+            }
         }, 4000);
     }
 
@@ -649,8 +643,7 @@
             captureStarted: false,
             audioDetected: false,
             sttReceived: false,
-            translationReceived: false,
-            startedConnection: !isConnected
+            translationReceived: false
         };
 
         const btn = document.getElementById("liveDiagnosticBtn");
