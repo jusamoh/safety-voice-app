@@ -85,6 +85,7 @@ class ConnectionManager:
         self.global_document_context = "" 
         self.speaking_allowed_clients = set()
         self.is_rehearsal_mode = False 
+        self.is_tts_enabled = False
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
         await websocket.accept()
@@ -98,6 +99,10 @@ class ConnectionManager:
             "type": "floor_state",
             "floor_owner": self.floor_owner,
             "is_admin_muted": self.is_admin_muted
+        })
+        await websocket.send_json({
+            "type": "display_settings",
+            "tts_enabled": self.is_tts_enabled
         })
 
     def disconnect(self, websocket: WebSocket):
@@ -140,6 +145,12 @@ class ConnectionManager:
                 except Exception:
                     pass
                 
+    async def broadcast_display_settings(self):
+        await self.broadcast_json({
+            "type": "display_settings",
+            "tts_enabled": self.is_tts_enabled
+        })
+
     async def broadcast_floor_state(self):
         msg = {"type": "floor_state", "floor_owner": self.floor_owner, "is_admin_muted": self.is_admin_muted}
         await self.broadcast_json(msg)
@@ -546,6 +557,9 @@ async def websocket_endpoint(
                                                         manager.global_targets = msg.get("targets", manager.global_targets)
                                                     if "rehearsal_mode" in msg:
                                                         manager.is_rehearsal_mode = msg["rehearsal_mode"]
+                                                    if "tts_enabled" in msg:
+                                                        manager.is_tts_enabled = bool(msg["tts_enabled"])
+                                                        await manager.broadcast_display_settings()
                                         
                                         except DowngradeException as de:
                                             raise de 
@@ -719,6 +733,9 @@ async def websocket_endpoint(
                                                             manager.global_targets = msg.get("targets", manager.global_targets)
                                                         if "rehearsal_mode" in msg:
                                                             manager.is_rehearsal_mode = msg["rehearsal_mode"]
+                                                        if "tts_enabled" in msg:
+                                                            manager.is_tts_enabled = bool(msg["tts_enabled"])
+                                                            await manager.broadcast_display_settings()
                                             
                                             except DowngradeException as de:
                                                 raise de 
