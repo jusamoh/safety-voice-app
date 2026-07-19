@@ -186,13 +186,9 @@
 
         body.projector-mode { background-color: #000; padding: 0; margin: 0; width: 100vw; height: 100vh; overflow: hidden; }
         body.projector-mode .navbar, body.projector-mode .dashboard-layout, body.projector-mode .status-banner, body.projector-mode #viewerTopBar, body.projector-mode #mobileDictationBox, body.projector-mode #requestSpeakBtn, body.projector-mode #mobileMuteBtn { display: none !important; }
-        body.projector-mode .window-container { display: grid; width: 100vw; height: 100vh; padding: 1.5vw; gap: 1.5vw; max-width: 100%; box-sizing: border-box; }
-        body.projector-mode .window-container[data-window-count="1"] { grid-template-columns: 1fr; grid-template-rows: 1fr; }
-        body.projector-mode .window-container[data-window-count="2"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
-        body.projector-mode .window-container[data-window-count="3"] { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr; }
-        body.projector-mode .window-container[data-window-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        body.projector-mode .window-container { display: grid; width: 100vw; height: 100vh; padding: 1.5vw; gap: 1.5vw; max-width: 100%; box-sizing: border-box; grid-template-columns: repeat(var(--projector-columns, 1), minmax(0, 1fr)); grid-template-rows: repeat(var(--projector-rows, 1), minmax(0, 1fr)); }
         
-        body.projector-mode .window { border: 3px solid #444; border-radius: 1vw; background: #0f0f0f; height: 100%; margin: 0; transition: all 0.5s ease;}
+        body.projector-mode .window { border: 3px solid #444; border-radius: 1vw; background: #0f0f0f; height: 100%; min-width: 0; min-height: 0; margin: 0; transition: all 0.5s ease; overflow: hidden;}
         body.projector-mode .window-header { background: #1a1a1a; color: #fff; border-bottom: 3px solid #555; font-size: 3.5vh; padding: 2vh; border-radius: 0.8vw 0.8vw 0 0; }
         body.projector-mode .content-box { background: #0f0f0f; color: #fff; padding: 4vh; font-size: 3.5vh; border-radius: 0 0 0.8vw 0.8vw; height: 100%;}
         body.projector-mode .latest-text, body.projector-mode .same-lang-text { color: #fff; font-size: 6vh; line-height: 1.5; font-weight: 900;}
@@ -1051,6 +1047,23 @@
         if (placeholder) placeholder.style.display = hasVisibleWindow ? 'none' : 'block';
     }
 
+    function syncWindowLayout() {
+        const container = document.getElementById('windowContainer');
+        if (!container) return;
+
+        const visibleWindows = Array.from(container.querySelectorAll('.window'))
+            .filter(windowDiv => windowDiv.style.display !== 'none');
+        const windowCount = visibleWindows.length;
+        let rows = Math.max(1, Math.floor(Math.sqrt(windowCount)));
+
+        while (rows > 1 && windowCount % rows !== 0) rows--;
+
+        const columns = windowCount > 0 ? windowCount / rows : 1;
+        container.setAttribute('data-window-count', windowCount);
+        container.style.setProperty('--projector-columns', columns);
+        container.style.setProperty('--projector-rows', rows);
+    }
+
     window.removeLanguage = function(lang) {
         const checkbox = document.querySelector(`#targetCheckboxes input[value="${lang}"]`);
         const mainLang = document.getElementById('viewerLangSelect').value || 'ko';
@@ -1110,6 +1123,7 @@
                 filterViewerWindows(); 
             }
         }
+        syncWindowLayout();
         return box;
     }
 
@@ -1184,14 +1198,12 @@
 
         checkedLangs.forEach(lang => { ensureWindowExists(lang); });
         
-        let visibleCount = 0;
         Array.from(container.children).forEach(windowDiv => {
             const lang = windowDiv.id.replace('win_', '');
             if (!checkedLangs.includes(lang)) {
                 windowDiv.style.display = 'none';
             } else {
                 windowDiv.style.display = 'flex';
-                visibleCount++;
             }
         });
 
@@ -1201,7 +1213,7 @@
             container.prepend(mainWin);
         }
         
-        container.setAttribute('data-window-count', visibleCount);
+        syncWindowLayout();
 
         if (isHost) {
             const speakerLangSelect = document.getElementById('speakerLang');
