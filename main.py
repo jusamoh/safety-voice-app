@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import json
 import os
 import sys
@@ -35,12 +36,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-USER_DB = {
-    "admin": "1234",          
-    "samsung": "sam1234",     
-    "hyundai": "hdec1234",
-    "speaker": "speaker1234"     
-}
+def load_user_db() -> dict[str, str]:
+    raw_users = os.environ.get("APP_USERS_JSON", "").strip()
+    if not raw_users:
+        print("⚠️ APP_USERS_JSON 환경변수가 설정되지 않아 로그인이 비활성화됩니다.", flush=True)
+        return {}
+
+    try:
+        parsed = json.loads(raw_users)
+    except json.JSONDecodeError as error:
+        print(f"❌ APP_USERS_JSON 형식 오류: {error}", flush=True)
+        return {}
+
+    if not isinstance(parsed, dict):
+        print("❌ APP_USERS_JSON은 사용자명과 비밀번호의 JSON 객체여야 합니다.", flush=True)
+        return {}
+
+    return {
+        str(username).strip(): str(password)
+        for username, password in parsed.items()
+        if str(username).strip() and isinstance(password, str) and password
+    }
+
+USER_DB = load_user_db()
 
 ACTIVE_TOKENS = set()
 
@@ -54,7 +72,14 @@ async def login(request: Request):
         user_id = str(data.get("username", data.get("id", ""))).strip()
         password = str(data.get("password", "")).strip()
         
-        if user_id in USER_DB and USER_DB[user_id] == password:
+        if not USER_DB:
+            return JSONResponse(
+                content={"success": False, "message": "서버 로그인 환경변수가 설정되지 않았습니다."},
+                status_code=503
+            )
+
+        expected_password = USER_DB.get(user_id)
+        if expected_password and hmac.compare_digest(expected_password, password):
             token = secrets.token_hex(16)
             ACTIVE_TOKENS.add(token)
             print(f"🔐 [인증 성공] 사용자 '{user_id}' 로그인 (토큰 발급됨)", flush=True)
@@ -185,6 +210,34 @@ class ConnectionManager:
         asyncio.create_task(self.broadcast_floor_state())
 
 manager = ConnectionManager()
+translation_semaphore = asyncio.Semaphore(2)
+
+FILLER_ONLY_PHRASES = {
+    "아", "어", "음", "흠", "uh", "um", "hmm"
+}
+
+def normalize_targets(targets: str) -> list[str]:
+    result = []
+    for target in targets.split(','):
+        lang = target.strip().lower()
+        if lang and re.fullmatch(r'[a-z-]+', lang) and lang not in result:
+            result.append(lang)
+    return result
+
+def is_filler_only(text: str) -> bool:
+    normalized = re.sub(r'[^0-9a-zA-Z가-힣]+', '', text).lower()
+    return normalized in FILLER_ONLY_PHRASES
+
+async def run_until_first_complete(*coroutines):
+    tasks = [asyncio.create_task(coroutine) for coroutine in coroutines]
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
+    for task in done:
+        exception = task.exception()
+        if exception:
+            raise exception
 
 @app.post("/api/upload_context")
 async def upload_context(file: UploadFile = File(...)):
@@ -241,16 +294,11 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
         print(f"Summary Error: {e}", flush=True)
 
 async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
+    had_error = False
     try:
-        text_lower = text.lower().strip()
-        ignore_exact_phrases = [
-            "that's the one", "yeah right there", "that's quite a lot", "good thinking",
-            "that's the one yeah right there", "yeah that one right there", "that's quite remarkable",
-            "hmm", "uh", "well", "so", "okay", "아", "음", "hola", "어", "yeah", "right",
-            "네", "아니요", "예", "아니"
-        ]
-
-        clean_text = re.sub(r'[^a-z가-힣\s]', '', text_lower).strip()
+        target_list = normalize_targets(targets)
+        if not target_list or is_filler_only(text):
+            return
 
         history_str = "\n".join([f"- {past}" for past in recent_history]) if recent_history else "없음 (No recent context)"
         glossary_section = f"\n[CIVIL ENGINEERING GLOSSARY]\n{glossary_text}\n" if glossary_text.strip() else ""
@@ -280,12 +328,12 @@ CRITICAL INSTRUCTIONS (MUST OBEY):
 6. [ACADEMIC FORMALITY]: Maintain a highly formal, objective, and professional academic tone. Use formal polite forms in Korean (e.g., ~입니다/합니다) and Japanese (e.g., です/ます), and formal written style in Chinese.
 7. [OMITTED SUBJECT INFERENCE]: Korean and Japanese speakers often omit subjects. You MUST accurately infer the omitted subject (e.g., "I", "We", "This study", "The pipeline") based on the recent engineering context before translating to English or Chinese.
 8. [ACRONYM & ABBREVIATION RETENTION]: Internationally recognized civil engineering acronyms (e.g., GPR, IMU) MUST be kept in English capital letters across all language outputs unless a strict local academic equivalent exists.
-9. [CHITCHAT & NOISE REJECTION]: If the STT captures meaningless filler words, coughs, or irrelevant background chitchat (e.g., "아", "음", "마이크 테스트"), DO NOT translate. Output exactly [SKIP].
+9. [NO SILENT OMISSION]: Pure standalone filler has already been filtered by the server. NEVER output [SKIP]. Translate every sentence supplied here, including microphone tests and operational phrases.
 10. [CROSS-LINGUAL CONSISTENCY]: Ensure the core engineering concept remains identical across KR, EN, CN, and JP translations. Use the English standard as the semantic anchor.
 11. [GLOSSARY OVERRIDE]: If a [REFERENCE DOCUMENT / GLOSSARY] is provided, its terminology and context ABSOLUTELY OVERRIDE your pre-trained knowledge.
 12. [STRICT NO CONVERSING - ZERO CHATBOT BEHAVIOR]: You are a passive, mechanical translation pipeline. NEVER act like an AI assistant. NEVER apologize (e.g., "I'm sorry", "죄송하지만"). NEVER ask the speaker to provide specific topics. If you violate this and output conversational metadata, the system will fail.
-13. [GENERIC MEETING PHRASE TOLERANCE]: Even if the input lacks pavement engineering keywords (e.g., "말해주세요", "시작하겠습니다", "다음 슬라이드"), DO NOT reject it. You MUST translate these functional meeting phrases literally into the target languages.
-14. [SILENT FAILURE ONLY]: If an input is purely meaningless noise and lacks any translatable verb or noun, DO NOT explain why you cannot translate it. Output EXACTLY the word [SKIP] and nothing else.
+13. [GENERIC MEETING PHRASE REQUIREMENT]: Even if the input lacks pavement engineering keywords (e.g., "마이크 테스트합니다", "말해주세요", "시작하겠습니다", "다음 슬라이드"), you MUST translate it literally into every requested target language.
+14. [COMPLETE TARGET COVERAGE]: Every requested language tag MUST contain a non-empty translation. Never omit a tag and never leave its content blank.
 15. [SPEAKER PERSPECTIVE ALIGNMENT]: Maintain the speaker's first-person perspective as the researcher/engineer. Do not translate as a third-party observer.
 16. [EQUIPMENT LOCALIZATION]: Translate construction machinery names into industry-standard terms avoiding literal or generic translations.
 17. [METHODOLOGY & PROCESS PRESERVATION]: When translating construction methods or experimental procedures, preserve the chronological sequence and causal relationships exactly as spoken.
@@ -314,81 +362,143 @@ Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
 clean current sentence
 """
-        for t in targets.split(','):
-            system_prompt += f"[{t.strip()}]\nresult\n"
+        translations = {}
+        original_text = text
+        last_failure_detail = ""
+        max_tokens = min(4096, max(1200, 300 + len(text) * 5 + len(target_list) * 350))
 
-        stream = await claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=700,
-            temperature=0.0, 
-            system=system_prompt, 
-            messages=[{"role": "user", "content": text}],
-            stream=True
-        )
+        for attempt in range(3):
+            missing_targets = [target for target in target_list if target not in translations]
+            if not missing_targets:
+                break
 
-        allowed_langs = [t.strip().lower() for t in targets.split(',')] + ['original']
+            attempt_prompt = system_prompt
+            for target in missing_targets:
+                attempt_prompt += f"[{target}]\ntranslated text\n"
+            allowed_tag_pattern = '|'.join(re.escape(tag) for tag in ['original', *missing_targets])
+            response_pattern = re.compile(
+                rf'\[({allowed_tag_pattern})\]\s*(.*?)(?=\[(?:{allowed_tag_pattern})\]|$)',
+                re.DOTALL | re.IGNORECASE
+            )
 
-        buffer = ""
-        lang_text = {}
-        
-        async for event in stream:
-            if event.type == "content_block_delta":
-                buffer += event.delta.text
-                
-                matches = re.finditer(r'\[([a-zA-Z-]+)\]\s*(.*?)(?=\[|$)', buffer, re.DOTALL)
-                for match in matches:
-                    lang = match.group(1).lower().strip()
-                    text_so_far = match.group(2).strip()
-                  
-                    if lang not in allowed_langs:
-                        continue
-                    
-                    lang_text[lang] = text_so_far
+            buffer = ""
+            stop_reason = None
+            try:
+                async with translation_semaphore:
+                    stream = await claude_client.messages.create(
+                        model="claude-haiku-4-5-20251001",
+                        max_tokens=max_tokens,
+                        temperature=0.0,
+                        system=attempt_prompt,
+                        messages=[{"role": "user", "content": text}],
+                        stream=True
+                    )
 
-                    if lang != 'original':
-                        await manager.broadcast_json({
-                            "type": "stream_update",
-                            "lang": lang,
-                            "text": text_so_far,
-                            "original_text": lang_text.get('original', ''),
-                            "source_lang": source_lang,
-                            "msg_id": msg_id
-                        })
-        
-        original_text = lang_text.get('original', text)
-        if any("[SKIP]" in t.upper() for t in lang_text.values()):
-            return 
+                    async for event in stream:
+                        if event.type == "content_block_delta" and getattr(event.delta, "text", None):
+                            buffer += event.delta.text
+                            matches = response_pattern.finditer(buffer)
+                            for match in matches:
+                                lang = match.group(1).lower().strip()
+                                text_so_far = match.group(2).strip()
+                                if lang in missing_targets and text_so_far and "[SKIP]" not in text_so_far.upper():
+                                    await manager.broadcast_json({
+                                        "type": "stream_update",
+                                        "lang": lang,
+                                        "text": text_so_far,
+                                        "original_text": original_text,
+                                        "source_lang": source_lang,
+                                        "msg_id": msg_id
+                                    })
+                        elif event.type == "message_delta":
+                            stop_reason = getattr(event.delta, "stop_reason", None)
 
-        recent_history.append(original_text)
-        
-        if len(recent_history) >= 5:
-            sentences_to_summarize = recent_history[:3]
-            del recent_history[:3] 
-            asyncio.create_task(update_sliding_summary(summary_state, sentences_to_summarize))
-        
-        for lang, final_text in lang_text.items():
-            if lang != 'original':
-                display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
-                await manager.broadcast_json({
-                    "type": "stream_end",
-                    "lang": lang,
-                    "text": display_final,
-                    "raw_text": final_text,
-                    "original_text": lang_text.get('original', ''),
-                    "source_lang": source_lang,
-                    "msg_id": msg_id,
-                    "role": role,
-                    "name": '사회자' if role == 'admin' else name
-                })
+                parsed = {}
+                for match in response_pattern.finditer(buffer):
+                    parsed[match.group(1).lower().strip()] = match.group(2).strip()
+
+                if parsed.get('original'):
+                    original_text = parsed['original']
+
+                for target in missing_targets:
+                    translated = parsed.get(target, '').strip()
+                    if translated and "[SKIP]" not in translated.upper():
+                        translations[target] = translated
+
+                still_missing = [target for target in target_list if target not in translations]
+                if not still_missing:
+                    break
+
+                last_failure_detail = f"누락 언어: {', '.join(still_missing)}"
+                if stop_reason == "max_tokens":
+                    last_failure_detail += f" / 출력 한도 도달({max_tokens} tokens)"
+                    max_tokens = min(4096, max_tokens * 2)
+            except Exception as attempt_error:
+                status_code = getattr(attempt_error, 'status_code', None)
+                last_failure_detail = type(attempt_error).__name__
+                if status_code:
+                    last_failure_detail += f" / HTTP {status_code}"
+                print(f"❌ [번역 시도 {attempt + 1}/3 실패]: {attempt_error}", flush=True)
+
+            if attempt < 2:
+                await asyncio.sleep(2 ** attempt)
+
+        missing_targets = [target for target in target_list if target not in translations]
+        if missing_targets:
+            had_error = True
+            await manager.broadcast_json({
+                "type": "system_issue",
+                "key": "translation",
+                "code": "번역 결과 누락",
+                "message": f"{', '.join(missing_targets)} 번역을 3회 시도했지만 완료하지 못했습니다.",
+                "detail": last_failure_detail or "AI 응답이 비어 있습니다.",
+                "msg_id": msg_id,
+                "targets": missing_targets
+            })
+        else:
+            await manager.broadcast_json({"type": "system_recovered", "key": "translation"})
+
+        if translations:
+            recent_history.append(original_text)
+            if len(recent_history) >= 5:
+                sentences_to_summarize = recent_history[:3]
+                del recent_history[:3]
+                asyncio.create_task(update_sliding_summary(summary_state, sentences_to_summarize))
+
+        for lang in target_list:
+            final_text = translations.get(lang)
+            if not final_text:
+                continue
+            display_final = f"[{'사회자' if role == 'admin' else name}] {final_text}"
+            await manager.broadcast_json({
+                "type": "stream_end",
+                "lang": lang,
+                "text": display_final,
+                "raw_text": final_text,
+                "original_text": original_text,
+                "source_lang": source_lang,
+                "msg_id": msg_id,
+                "role": role,
+                "name": '사회자' if role == 'admin' else name
+            })
                 
     except Exception as e:
+        had_error = True
         print(f"❌ [번역 에러 발생]: {e}", flush=True)
-        await manager.broadcast_json({"type": "status", "text": "❌ 번역 실패 (재시도 중)"})
+        await manager.broadcast_json({
+            "type": "system_issue",
+            "key": "translation",
+            "code": "번역 처리 실패",
+            "message": "번역 처리 중 복구할 수 없는 오류가 발생했습니다.",
+            "detail": type(e).__name__,
+            "msg_id": msg_id
+        })
     
     finally:
         await manager.broadcast_json({"type": "sentence_complete"})
         manager.release_floor()
-        await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
+        if not had_error:
+            await manager.broadcast_json({"type": "status", "text": "✅ 대기 중..."})
 
 @app.websocket("/ws")
 async def websocket_endpoint(
@@ -622,7 +732,7 @@ async def websocket_endpoint(
                             print(f"🚨 Azure Receiver 에러: {e}", flush=True)
 
                     try:
-                        await asyncio.gather(sender(), receiver())
+                        await run_until_first_complete(sender(), receiver())
                     except DowngradeException:
                         recognizer.stop_continuous_recognition_async()
                         push_stream.close()
@@ -647,7 +757,7 @@ async def websocket_endpoint(
                     replace_rules = ["구독자:참석자", "payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
-                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&keepalive=true{keywords_param}{replace_param}"
+                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&utterance_end_ms=1200&vad_events=true{keywords_param}{replace_param}"
                     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
                     ws_kwargs = {}
@@ -754,85 +864,120 @@ async def websocket_endpoint(
                             except Exception as e:
                                 print(f"🚨 Deepgram Sender 예외 에러: {e}", flush=True)
 
-                        async def receiver():
-                            current_sentence = ""
-                            last_translated_text = "" 
-                            current_msg_id = secrets.token_hex(4)
-                            sentence_start_time = time.time() 
-                            
+                        async def keep_alive():
                             try:
                                 while True:
-                                    dg_result = await dg_ws.recv()
+                                    await asyncio.sleep(4)
+                                    await dg_ws.send(json.dumps({"type": "KeepAlive"}))
+                            except (websockets.exceptions.ConnectionClosed, asyncio.CancelledError):
+                                return
+
+                        async def receiver():
+                            current_sentence = ""
+                            last_translated_text = ""
+                            last_translated_at = 0.0
+                            current_msg_id = secrets.token_hex(4)
+                            sentence_start_time = time.time()
+
+                            async def submit_current_sentence():
+                                nonlocal current_sentence, last_translated_text, last_translated_at, current_msg_id, sentence_start_time
+                                final_text = current_sentence.strip()
+                                if not final_text:
+                                    return
+
+                                now = time.time()
+                                is_immediate_duplicate = final_text == last_translated_text and now - last_translated_at < 2.0
+                                if not is_immediate_duplicate:
+                                    last_translated_text = final_text
+                                    last_translated_at = now
+                                    await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
+                                    asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
+
+                                current_sentence = ""
+                                current_msg_id = secrets.token_hex(4)
+                                sentence_start_time = now
+
+                            try:
+                                while True:
+                                    try:
+                                        dg_result = await asyncio.wait_for(dg_ws.recv(), timeout=1.5)
+                                    except asyncio.TimeoutError:
+                                        await submit_current_sentence()
+                                        continue
+
                                     dg_json = json.loads(dg_result)
-                                    
-                                    if dg_json.get("type") == "Results":
-                                        is_final = dg_json.get("is_final", False)
-                                        speech_final = dg_json.get("speech_final", False)
-                                        
-                                        alternative = dg_json.get("channel", {}).get("alternatives", [{}])[0]
-                                        transcript = alternative.get("transcript", "").strip()
-                                        confidence = alternative.get("confidence", 1.0) 
-                                        
-                                        if transcript:
-                                            if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
-                                                manager.set_floor(client_id)
-                                            if role != "admin" and manager.floor_owner != client_id:
-                                                continue
+                                    event_type = dg_json.get("type")
 
-                                        if transcript or current_sentence:
-                                            display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
-                                            
-                                            current_targets_list = manager.global_targets.split(',')
-                                            tag = f"[{name}] "
-                                            
-                                            elapsed_time = time.time() - sentence_start_time
-                                            
-                                            if confidence > 0 and confidence < 0.6:
-                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "mic", "speaker_name": name}, client_id)
-                                            elif elapsed_time > 8 and len(current_sentence) > 20:
-                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
-                                                sentence_start_time = time.time() 
-                                            elif len(display_text) > max_chars:
-                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name}, client_id)
-                                                
-                                            await manager.broadcast_json({
-                                                "type": "interim", 
-                                                "text": tag + display_text.strip(),
-                                                "targets": current_targets_list,
-                                                "msg_id": current_msg_id
-                                            })
+                                    if event_type == "UtteranceEnd":
+                                        await submit_current_sentence()
+                                        continue
+                                    if event_type == "Error":
+                                        detail = f"{dg_json.get('err_code', 'Deepgram error')}: {dg_json.get('description', '')}".strip()
+                                        await manager.broadcast_json({
+                                            "type": "system_issue",
+                                            "key": "stt",
+                                            "code": "STT 연결 오류",
+                                            "message": "음성 인식 서버 연결이 종료되어 브라우저가 자동 재연결합니다.",
+                                            "detail": detail
+                                        })
+                                        raise RuntimeError(detail)
+                                    if event_type != "Results":
+                                        continue
 
-                                        if is_final and transcript:
-                                            if current_sentence:
-                                                current_sentence += " " + transcript
-                                            else:
-                                                current_sentence = transcript
-                                            
-                                            elapsed_time = time.time() - sentence_start_time
-                                            if elapsed_time > 0 and (len(transcript) / elapsed_time) > 13: 
-                                                await manager.broadcast_feedback({"type": "speaker_feedback", "code": "speed", "speaker_name": name}, client_id)
+                                    is_final = dg_json.get("is_final", False)
+                                    speech_final = dg_json.get("speech_final", False)
+                                    alternative = dg_json.get("channel", {}).get("alternatives", [{}])[0]
+                                    transcript = alternative.get("transcript", "").strip()
+                                    confidence = alternative.get("confidence", 1.0)
 
-                                        is_semantic_end = current_sentence.strip().endswith(('.', '?', '!'))
+                                    if transcript:
+                                        if manager.floor_owner is None and not manager.is_admin_muted and role != "admin":
+                                            manager.set_floor(client_id)
+                                        if role != "admin" and manager.floor_owner != client_id:
+                                            continue
 
-                                        if (speech_final or len(current_sentence) > max_chars or is_semantic_end) and current_sentence.strip():
-                                            final_text = current_sentence.strip()
-                                            
-                                            if final_text != last_translated_text:
-                                                last_translated_text = final_text
-                                                await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                                
-                                                asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
-                                            
-                                            current_sentence = ""
-                                            current_msg_id = secrets.token_hex(4)
-                                            sentence_start_time = time.time() 
-                            except websockets.exceptions.ConnectionClosed:
-                                pass
-                            except Exception as e:
-                                print(f"🚨 Deepgram Receiver 에러: {e}", flush=True)
+                                    if transcript or current_sentence:
+                                        display_text = current_sentence + " " + transcript if current_sentence and transcript else current_sentence or transcript
+                                        current_targets_list = manager.global_targets.split(',')
+                                        tag = f"[{name}] "
+                                        elapsed_time = time.time() - sentence_start_time
+
+                                        if confidence > 0 and confidence < 0.6:
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "mic", "speaker_name": name}, client_id)
+                                        elif elapsed_time > 8 and len(current_sentence) > 20:
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
+                                            sentence_start_time = time.time()
+                                        elif len(display_text) > max_chars:
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name}, client_id)
+
+                                        await manager.broadcast_json({
+                                            "type": "interim",
+                                            "text": tag + display_text.strip(),
+                                            "targets": current_targets_list,
+                                            "msg_id": current_msg_id
+                                        })
+
+                                    if is_final and transcript:
+                                        current_sentence = f"{current_sentence} {transcript}".strip()
+                                        elapsed_time = time.time() - sentence_start_time
+                                        if elapsed_time > 0 and (len(transcript) / elapsed_time) > 13:
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "speed", "speaker_name": name}, client_id)
+
+                                    is_semantic_end = current_sentence.endswith(('.', '?', '!'))
+                                    if speech_final or len(current_sentence) > max_chars or is_semantic_end:
+                                        await submit_current_sentence()
+                            except websockets.exceptions.ConnectionClosed as e:
+                                await manager.broadcast_json({
+                                    "type": "system_issue",
+                                    "key": "stt",
+                                    "code": "STT 연결 종료",
+                                    "message": "음성 인식 연결이 종료되어 자동 복구를 시작합니다.",
+                                    "detail": f"Deepgram code={e.code} reason={e.reason}"
+                                })
+                                raise
 
                         try:
-                            await asyncio.gather(sender(), receiver())
+                            await run_until_first_complete(sender(), receiver(), keep_alive())
                         except DowngradeException:
                             manager.speaking_allowed_clients.discard(client_id)
                             if manager.floor_owner == client_id:
