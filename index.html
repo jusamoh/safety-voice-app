@@ -128,6 +128,12 @@
 
         .status-bottom { display: flex; width: 100%; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px;}
         .dictation-box { font-size: 1.3rem; color: #fbbc04; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; text-align: center; letter-spacing: -0.5px;}        
+        .system-issue { display: none; background: #4a1010; border: 2px solid #ff8a80; border-radius: 12px; padding: 14px 18px; color: #fff; line-height: 1.5; }
+        .system-issue.visible { display: block; }
+        .system-issue-title { color: #ffb4ab; font-size: 1.05rem; font-weight: 900; }
+        .system-issue-message { margin-top: 4px; font-size: 0.95rem; font-weight: 700; }
+        .system-issue details { margin-top: 8px; color: #ffd9d5; font-size: 0.85rem; }
+        .system-issue summary { cursor: pointer; font-weight: 800; }
         
         .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; }
         .req-item { display: flex; justify-content: space-between; align-items: center; background: #fdfdfd; padding: 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 1.1rem; font-weight: 700; }
@@ -453,6 +459,15 @@
                 </label>
             </div>
         </div>
+
+        <div id="systemIssue" class="system-issue" role="alert" aria-live="assertive">
+            <div id="systemIssueTitle" class="system-issue-title"></div>
+            <div id="systemIssueMessage" class="system-issue-message"></div>
+            <details>
+                <summary>상세 원인 보기</summary>
+                <div id="systemIssueDetail"></div>
+            </details>
+        </div>
         
         <!-- 2단: 4-Way 페이스메이커 (속도/휴지기/발음/문장길이) -->
         <div class="status-middle">
@@ -524,9 +539,36 @@
         captureStarted: false,
         audioDetected: false,
         sttReceived: false,
-        translationReceived: false,
-        startedConnection: false
+        translationReceived: false
     };
+    const systemIssues = new Map();
+
+    function renderSystemIssue() {
+        const panel = document.getElementById('systemIssue');
+        if (!panel) return;
+        const issue = Array.from(systemIssues.values()).at(-1);
+
+        if (!issue) {
+            panel.classList.remove('visible');
+            return;
+        }
+
+        document.getElementById('systemIssueTitle').innerText = `⚠️ ${issue.code}`;
+        document.getElementById('systemIssueMessage').innerText = issue.message;
+        document.getElementById('systemIssueDetail').innerText = issue.detail || '추가 상세 정보가 없습니다.';
+        panel.classList.add('visible');
+    }
+
+    function setSystemIssue(key, code, message, detail = '') {
+        systemIssues.delete(key);
+        systemIssues.set(key, { code, message, detail });
+        renderSystemIssue();
+    }
+
+    function clearSystemIssue(key) {
+        systemIssues.delete(key);
+        renderSystemIssue();
+    }
 
     function setDiagnosticIndicator(id, state) {
         const indicator = document.getElementById(id);
@@ -569,20 +611,8 @@
         finishLiveDiagnostic(true, `실제 마이크 음성이 STT와 ${langNames[targetLang] || targetLang} 번역까지 정상 처리되었습니다.`);
     }
 
-    function stopDiagnosticConnection() {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
-        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
-        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
-        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
-        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) ws.close(1000, "진단 완료");
-        isConnected = false;
-        resetUI();
-    }
-
     function finishLiveDiagnostic(success, message, failedIndicator = null) {
         if (!liveDiagnostic.active) return;
-        const startedConnection = liveDiagnostic.startedConnection;
         liveDiagnostic.active = false;
         clearTimeout(liveDiagnosticTimer);
         liveDiagnosticTimer = null;
@@ -594,20 +624,23 @@
         }
 
         if (success) {
+            clearSystemIssue('diagnostic');
             setDiagnosticIndicator("statusMic", "green");
             setDiagnosticIndicator("statusStt", "green");
             setDiagnosticIndicator("statusAi", "green");
             updateStatus(`[ ✅ 실시간 진단 통과 ] ${message}`, false);
             showToast("✅ 마이크 → STT → 다국어 번역 실시간 진단을 통과했습니다.");
         } else {
+            setSystemIssue('diagnostic', '실시간 진단 실패', message, failedIndicator || '진단 단계 확인 필요');
             if (failedIndicator) setDiagnosticIndicator(failedIndicator, "red");
             updateStatus(`[ ❌ 실시간 진단 실패 ] ${message}`, false);
             showToast(message, true);
         }
 
         setTimeout(() => {
-            if (startedConnection) stopDiagnosticConnection();
-            else updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
+            if (isConnected && mediaRecorder && mediaRecorder.state === "recording") {
+                updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
+            }
         }, 4000);
     }
 
@@ -645,8 +678,7 @@
             captureStarted: false,
             audioDetected: false,
             sttReceived: false,
-            translationReceived: false,
-            startedConnection: !isConnected
+            translationReceived: false
         };
 
         const btn = document.getElementById("liveDiagnosticBtn");
@@ -863,6 +895,10 @@
     let authToken = ""; 
     let currentSentenceId = null;
     let isFirstFloorState = true; 
+    let desiredConnectionRole = null;
+    let intentionalDisconnect = false;
+    let reconnectAttempts = 0;
+    let reconnectTimer = null;
 
     let audioCtx = null;
     let gateInterval = null;
@@ -1181,8 +1217,10 @@
                 
                 if (currentLang && currentLang !== newLangMode) {
                     showToast("통역 엔진 언어 변경 중... (자동 재연결)");
-                    resetUI();
-                    setTimeout(() => toggleConnection('admin'), 800);
+                    desiredConnectionRole = 'admin';
+                    intentionalDisconnect = false;
+                    setSystemIssue('connection', '통역 엔진 전환', '선택한 발표 언어로 통역 엔진을 다시 연결합니다.', `${currentLang} → ${newLangMode}`);
+                    ws.close(1012, '발표 언어 변경');
                 }
             } catch(e) { console.error("URL 파싱 오류", e); }
         }
@@ -1379,6 +1417,12 @@
         }
     }
 
+    function createSupportedMediaRecorder(stream) {
+        const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+        const mimeType = preferredTypes.find(type => !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(type));
+        return mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    }
+
     async function startDynamicSpeaking() {
         if (!isHost) {
             const viewerSelect = document.getElementById('viewerLangSelect');
@@ -1392,7 +1436,7 @@
             rawStream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
             gatedStream = await applyNoiseGate(rawStream); 
             
-            mediaRecorder = new MediaRecorder(gatedStream, { mimeType: 'audio/webm' });
+            mediaRecorder = createSupportedMediaRecorder(gatedStream);
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0 && ws && ws.readyState === 1 && isDynamicSpeaker && !isAdminMuted) { ws.send(e.data); }
             };
@@ -1689,13 +1733,69 @@
         container.innerHTML = html;
     }
 
-    async function toggleConnection(role) {
+    function stopLocalMedia() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+        mediaRecorder = null;
+        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
+        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
+        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
+        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
+    }
+
+    function describeCloseEvent(event) {
+        const reason = event.reason ? ` / ${event.reason}` : '';
+        const descriptions = {
+            1000: '정상 종료',
+            1006: '네트워크 또는 서버의 비정상 종료',
+            1008: '인증 만료 또는 접근 거부',
+            1011: '서버 또는 마이크 처리 오류',
+            1012: '서버 재시작'
+        };
+        return `${descriptions[event.code] || '알 수 없는 연결 종료'} (코드 ${event.code}${reason})`;
+    }
+
+    function scheduleReconnect(role, closeDetail) {
+        if (!desiredConnectionRole || intentionalDisconnect || reconnectTimer) return;
+        const delay = Math.min(1000 * (2 ** reconnectAttempts), 10000);
+        reconnectAttempts++;
+        setSystemIssue('connection', '통역 연결 복구 중', `${delay / 1000}초 후 선택한 마이크로 자동 재연결합니다.`, closeDetail);
+
+        const speakerBtn = document.getElementById('speakerBtn');
+        if (speakerBtn && isHost) {
+            speakerBtn.innerHTML = `⏳ 자동 재연결 (${delay / 1000}초)`;
+            speakerBtn.style.background = 'var(--warning)';
+        }
+
+        reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            toggleConnection(role, { reconnecting: true });
+        }, delay);
+    }
+
+    function handleLocalMicFailure(role, code, message, detail) {
+        if (intentionalDisconnect || desiredConnectionRole !== role) return;
+        setSystemIssue('microphone', code, message, detail);
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+            ws.close(1011, code);
+        } else {
+            scheduleReconnect(role, detail);
+        }
+    }
+
+    async function toggleConnection(role, options = {}) {
+        const reconnecting = options.reconnecting === true;
         const speakerBtn = document.getElementById('speakerBtn');
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!targetLangs.includes('ko')) targetLangs.unshift('ko');
 
         if (!isConnected) {
             try {
+                if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+                if (!reconnecting) {
+                    desiredConnectionRole = role;
+                    reconnectAttempts = 0;
+                }
+                intentionalDisconnect = false;
                 if (role === 'admin' && isHost) {
                     const selectedMic = document.getElementById('audioInputSelect');
                     if (!selectedMic || !selectedMic.value) {
@@ -1732,10 +1832,15 @@
 
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 
-                ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&candidates=${targetLangs.join(',')}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&client_id=${clientId}&name=${encodeURIComponent(clientName)}&ui_lang=${uiLang}`);
+                const socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&candidates=${targetLangs.join(',')}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&client_id=${clientId}&name=${encodeURIComponent(clientName)}&ui_lang=${uiLang}`);
+                ws = socket;
                 
-                ws.onopen = async () => {
+                socket.onopen = async () => {
+                    if (ws !== socket) return;
                     isConnected = true;
+                    reconnectAttempts = 0;
+                    clearSystemIssue('connection');
+                    clearSystemIssue('microphone');
                     if (role === 'speaker' || role === 'admin') {
                         if (role === 'admin') {
                             if (isHost) sendConfigUpdate();
@@ -1758,22 +1863,35 @@
                             console.error("선택한 마이크 연결 실패:", micError);
                             if (liveDiagnostic.active) finishLiveDiagnostic(false, "선택한 마이크를 열 수 없습니다. 장치 연결과 브라우저 권한을 확인해주세요.", "statusMic");
                             else showToast("선택한 마이크를 열 수 없습니다.", true);
-                            if (ws && ws.readyState === WebSocket.OPEN) ws.close(1011, "마이크 연결 실패");
+                            if (socket.readyState === WebSocket.OPEN) socket.close(1011, "마이크 연결 실패");
                             isConnected = false;
                             return;
                         }
+                        rawStream.getAudioTracks().forEach(track => {
+                            track.addEventListener('ended', () => {
+                                handleLocalMicFailure(role, '마이크 장치 종료', '선택한 마이크 장치가 운영체제 또는 브라우저에서 종료되었습니다.', `장치: ${track.label || '이름 없음'}`);
+                            });
+                        });
                         gatedStream = await applyNoiseGate(rawStream); 
                         
                         updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
                         playReadyBeep();
                         
-                        mediaRecorder = new MediaRecorder(gatedStream, { mimeType: 'audio/webm' });
+                        try {
+                            mediaRecorder = createSupportedMediaRecorder(gatedStream);
+                        } catch (recorderError) {
+                            handleLocalMicFailure(role, '녹음기 시작 실패', '선택한 마이크의 오디오 형식을 브라우저가 지원하지 않습니다.', recorderError.message || String(recorderError));
+                            return;
+                        }
+                        mediaRecorder.onerror = (event) => {
+                            handleLocalMicFailure(role, '녹음기 오류', '브라우저 녹음기가 중단되어 자동 복구를 시작합니다.', event.error?.message || 'MediaRecorder 오류');
+                        };
                         mediaRecorder.ondataavailable = (e) => { 
-                            if (e.data.size > 0 && ws.readyState === 1) {
+                            if (e.data.size > 0 && socket.readyState === 1) {
                                 if (role === 'admin') {
-                                    ws.send(e.data); 
+                                    socket.send(e.data);
                                 } else if (!isAdminMuted && (currentFloor === null || currentFloor === clientId)) {
-                                    if (!isMobileMuted) ws.send(e.data); 
+                                    if (!isMobileMuted) socket.send(e.data);
                                 }
                             }
                         };
@@ -1784,7 +1902,8 @@
                     }
                 };
 
-                ws.onmessage = (event) => {
+                socket.onmessage = (event) => {
+                    if (ws !== socket) return;
                     const res = JSON.parse(event.data);
                     
                     if (res.type === "admin_state" && isHost) {
@@ -1801,6 +1920,18 @@
                     }
                     else if (res.type === "display_settings") {
                         applyTtsVisibility(res.tts_enabled);
+                    }
+                    else if (res.type === "system_issue") {
+                        setSystemIssue(res.key || 'server', res.code || '시스템 오류', res.message || '처리 중 오류가 발생했습니다.', res.detail || '');
+                        if (res.key === 'translation' && res.msg_id && Array.isArray(res.targets)) {
+                            res.targets.forEach(lang => {
+                                const div = document.getElementById(`${res.msg_id}_${lang}`);
+                                if (div) div.innerHTML = `<span class="original-text">번역 실패: 자동 재시도 3회 완료</span><span class="draft-text">${langNames[lang] || lang} 결과를 받지 못했습니다.</span>`;
+                            });
+                        }
+                    }
+                    else if (res.type === "system_recovered") {
+                        clearSystemIssue(res.key || 'server');
                     }
                     else if (res.type === "user_list" && isHost) { renderUserList(res.users); }
                     else if (res.type === "floor_state") {
@@ -1842,6 +1973,7 @@
                         }
                     }
                     else if (res.type === "interim") {
+                        clearSystemIssue('stt');
                         recordLiveDiagnosticStt(res.text);
                         document.getElementById('liveDictation').innerText = "🗣️ " + res.text;
                         if (!currentSentenceId) currentSentenceId = res.msg_id || "msg_" + Date.now();
@@ -1978,25 +2110,48 @@
                     }
                 };
                 
-                ws.onclose = (e) => {
+                socket.onerror = () => {
+                    if (ws !== socket || intentionalDisconnect) return;
+                    setSystemIssue('connection', '통역 연결 오류', '서버 연결 오류가 감지되었습니다. 연결 종료 후 자동 복구합니다.', '브라우저 WebSocket 오류');
+                };
+
+                socket.onclose = (e) => {
+                    if (ws !== socket) return;
+                    ws = null;
+                    isConnected = false;
+                    stopLocalMedia();
+                    const closeDetail = describeCloseEvent(e);
                     if(e.code === 1008) {
+                        desiredConnectionRole = null;
+                        setSystemIssue('connection', '인증 만료', '서버가 재시작되었거나 로그인 인증이 만료되었습니다. 다시 로그인해주세요.', closeDetail);
                         showToast("인증이 만료되었습니다. 다시 로그인해주세요.", true);
-                        setTimeout(logout, 2000);
+                        resetUI({ preserveIssue: true });
+                    } else if (intentionalDisconnect || !desiredConnectionRole) {
+                        resetUI();
                     } else {
-                        if (isHost) resetUI(); 
-                        else showToast("연결이 끊어졌습니다. 다시 연결을 시도하세요."); 
+                        resetUI({ preserveIssue: true, reconnecting: true });
+                        scheduleReconnect(role, closeDetail);
                     }
                 };
-            } catch (err) { showToast("연결 오류가 발생했습니다.", true); }
-        } else { resetUI(); }
+            } catch (err) {
+                isConnected = false;
+                setSystemIssue('connection', '연결 시작 실패', '통역 서버 연결을 시작하지 못했습니다.', err.message || String(err));
+                if (desiredConnectionRole && !intentionalDisconnect) scheduleReconnect(role, err.message || String(err));
+            }
+        } else if (!reconnecting) {
+            desiredConnectionRole = null;
+            intentionalDisconnect = true;
+            reconnectAttempts = 0;
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                ws.close(1000, '사용자가 마이크를 끔');
+            }
+            resetUI();
+        }
     }
 
-    function resetUI() {
-        if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-        if (rawStream) { rawStream.getTracks().forEach(track => track.stop()); rawStream = null; }
-        if (gatedStream) { gatedStream.getTracks().forEach(track => track.stop()); gatedStream = null; }
-        if (gateInterval) { clearInterval(gateInterval); gateInterval = null; }
-        if (gateHoldTimer) { clearTimeout(gateHoldTimer); gateHoldTimer = null; }
+    function resetUI(options = {}) {
+        stopLocalMedia();
         
         isConnected = false;
         isFirstFloorState = true; 
@@ -2018,11 +2173,12 @@
         
         const speakerBtn = document.getElementById('speakerBtn');
         if (speakerBtn) { 
-            speakerBtn.innerHTML = "▶️ 현장 마이크 켜기"; 
-            speakerBtn.style.background = "var(--primary)";
+            speakerBtn.innerHTML = options.reconnecting ? "⏳ 자동 재연결 대기 중" : "▶️ 현장 마이크 켜기";
+            speakerBtn.style.background = options.reconnecting ? "var(--warning)" : "var(--primary)";
             speakerBtn.classList.remove('active'); 
         }
-        updateStatus("[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.", false);
+        if (!options.preserveIssue) clearSystemIssue('connection');
+        if (!options.reconnecting) updateStatus("[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.", false);
     }
 
     window.addEventListener('beforeunload', (e) => {
