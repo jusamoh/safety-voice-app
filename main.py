@@ -40,7 +40,6 @@ app.add_middleware(
 # 🛡️ [백신 모듈] 동음이의어 예외 사전 로드 및 주입
 # ==========================================
 def load_homophone_exceptions(filepath="homophone_exceptions.json") -> dict:
-    """서버 구동 시 단 한 번만 JSON 백신 파일을 메모리에 로드합니다."""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             print("🛡️ [백신 로드 성공] 동음이의어 방어 사전(homophone_exceptions.json)이 적용되었습니다.", flush=True)
@@ -52,7 +51,6 @@ def load_homophone_exceptions(filepath="homophone_exceptions.json") -> dict:
 EXCEPTIONS_DICT = load_homophone_exceptions()
 
 def inject_exception_prompts(transcript: str, exceptions: dict) -> str:
-    """STT 텍스트에 위험 단어가 있을 때만 방어용 프롬프트를 동적으로 조립합니다."""
     injected_rules = []
     for risk_word, rule in exceptions.items():
         if risk_word in transcript:
@@ -338,6 +336,7 @@ async def translate_and_send(text: str, source_lang: str, targets: str, recent_h
         else:
             lang_instruction = f"The spoken language is strictly '{source_lang}'."
 
+        # 💡 [핵심 업데이트]: AI가 분석 과정을 화면에 뱉지 않도록 13번 규칙과 33번 규칙, 그리고 출력 포맷 지시를 매우 강력하게 수정했습니다.
         system_prompt = f"""You are an elite simultaneous interpreter for an international Highway Engineering expert symposium involving Korea, China, Japan, and the US.
 Domain focus: Highway engineering, specifically Road Pavement and Airport Pavement design, materials (asphalt and concrete), structural evaluation, and distress management technologies.
 [PAST CONTEXT SUMMARY]
@@ -361,7 +360,7 @@ CRITICAL INSTRUCTIONS (MUST OBEY):
 10. [OPERATIONAL PHRASE TRANSLATION & TRIMMING]: NEVER output [SKIP]. You must translate functional meeting phrases (e.g., "마이크 테스트", "다음 슬라이드") without omission. However, drastically trim overly lengthy ceremonial greetings down to their core meaning (e.g., "Thank you for attending") to save display space.
 11. [CROSS-LINGUAL CONSISTENCY]: Ensure the core engineering concept remains identical across KR, EN, CN, and JP translations. Use the English standard as the semantic anchor.
 12. [GLOSSARY OVERRIDE & HIGHLIGHTING]: If a [REFERENCE DOCUMENT / GLOSSARY] is provided, its terminology ABSOLUTELY OVERRIDES your pre-trained knowledge. Whenever you use a translated term from this glossary, you MUST wrap it in double asterisks (e.g., Flexible Pavement, 소성변형).
-13. [STRICT NO CONVERSING - ZERO CHATBOT BEHAVIOR]: You are a passive, mechanical translation pipeline. NEVER act like an AI assistant. NEVER apologize (e.g., "I'm sorry", "죄송하지만"). NEVER ask the speaker to provide specific topics. If you violate this and output conversational metadata, the system will fail.
+13. [STRICT NO CONVERSING - ZERO CHATBOT BEHAVIOR]: You are a passive, mechanical translation pipeline. NEVER act like an AI assistant. NEVER output your reasoning, "CRITICAL CONTEXT ANALYSIS", or any explanations. Output ONLY the pure translated sentence.
 14. [COMPLETE TARGET COVERAGE]: Every requested language tag MUST contain a non-empty translation. Never omit a tag and never leave its content blank.
 15. [SPEAKER PERSPECTIVE ALIGNMENT]: Maintain the speaker's first-person perspective as the researcher/engineer. Do not translate as a third-party observer.
 16. [EQUIPMENT LOCALIZATION]: Translate construction machinery names into industry-standard terms avoiding literal or generic translations.
@@ -381,14 +380,15 @@ CRITICAL INSTRUCTIONS (MUST OBEY):
 30. [Q&A EMOTIONAL NEUTRALIZATION]: Even if the STT captures aggressive, emotional, or argumentative vocabulary during debates, absolutely neutralize the tone and translate it into the most dry, objective, and polite academic text.
 31. [EQUATION DICTATION FORMATTING]: If the speaker dictates an equation verbally (e.g., "A equals B divided by C squared"), format it into actual mathematical symbols ("A = B / C^2") rather than spelling it out in words.
 32. [MODERATOR TRANSITION TAGGING]: Translate the moderator's procedural phrases indicating session transitions (e.g., "Let's welcome the next speaker", "We will now take questions") into the most clear, concise, and action-oriented sentences, preventing them from mixing with academic content.
+33. [ZERO META-TALK]: ABSOLUTELY NEVER output your internal reasoning, "CRITICAL CONTEXT ANALYSIS", warnings, or explanations. Any extra words besides the pure translation will critically break the UI system.
 {lang_instruction}
 
-Respond EXACTLY in this tag format (DO NOT USE JSON):
+Respond EXACTLY in this tag format (DO NOT USE JSON).
+ABSOLUTELY NO METADATA, NO REASONING, NO ANALYSIS. JUST THE FINAL TEXT.
 [original]
-clean current sentence
+(original text here)
 """
 
-        # 🚨 [백신 주입] 현재 텍스트(문장)에 위험 단어가 있으면, 예외 프롬프트를 동적으로 추가합니다.
         dynamic_exceptions = inject_exception_prompts(text, EXCEPTIONS_DICT)
         if dynamic_exceptions:
             system_prompt += f"\n\n🚨 IMPORTANT TRANSLATION RULES FOR THIS TURN:\n{dynamic_exceptions}\n"
@@ -405,7 +405,8 @@ clean current sentence
 
             attempt_prompt = system_prompt
             for target in missing_targets:
-                attempt_prompt += f"[{target}]\ntranslated text\n"
+                attempt_prompt += f"[{target}]\n"
+            
             allowed_tag_pattern = '|'.join(re.escape(tag) for tag in ['original', *missing_targets])
             response_pattern = re.compile(
                 rf'\[({allowed_tag_pattern})\]\s*(.*?)(?=\[(?:{allowed_tag_pattern})\]|$)',
@@ -707,11 +708,10 @@ async def websocket_endpoint(
                                         except Exception:
                                             pass
                         except (websockets.exceptions.ConnectionClosed, WebSocketDisconnect):
-                            pass  # 💡 클라이언트 정상 종료 무시
+                            pass  
                         except DowngradeException as de:
                             raise de
                         except RuntimeError as e:
-                            # 💡 Starlette 특유의 종료 런타임 에러 우아하게(Graceful) 무시
                             if "disconnect message has been received" in str(e):
                                 pass
                             else:
@@ -883,11 +883,10 @@ async def websocket_endpoint(
                                             except Exception:
                                                 pass
                             except (websockets.exceptions.ConnectionClosed, WebSocketDisconnect):
-                                pass  # 💡 클라이언트 정상 종료 무시
+                                pass 
                             except DowngradeException as de:
                                 raise de
                             except RuntimeError as e:
-                                # 💡 Starlette 특유의 종료 런타임 에러 우아하게(Graceful) 무시
                                 if "disconnect message has been received" in str(e):
                                     pass
                                 else:
@@ -1017,7 +1016,7 @@ async def websocket_endpoint(
                             continue 
                 break 
     except (websockets.exceptions.ConnectionClosed, WebSocketDisconnect):
-        pass  # 💡 가장 바깥쪽 메인 루프에서도 정상 연결 해제 무시
+        pass 
     except RuntimeError as e:
         if "disconnect message has been received" in str(e):
             pass
