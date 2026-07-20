@@ -161,9 +161,34 @@
             line-break: strict;
         }
 
+        /* 🌟 [핵심 업데이트] 3+1 와이드 레이아웃 (영어 하단 100% 배치) 🌟 */
+        @media (min-width: 1100px) {
+            .window-container[data-window-count="4"] {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+            .window-container[data-window-count="4"] .window {
+                height: 550px; 
+            }
+            .window-container[data-window-count="4"] #win_en {
+                height: 380px !important; 
+            }
+        }
+
+        /* 프로젝터 모드일 때 세로 6:4 비율 적용 */
+        body.projector-mode .window-container[data-window-count="4"] {
+            grid-template-columns: repeat(3, 1fr) !important;
+            grid-template-rows: 6fr 4fr !important;
+        }
+
+        /* 4개 창일 때 영어를 무조건 맨 아래, 100% 와이드로 고정 */
+        .window-container[data-window-count="4"] #win_en {
+            order: 99 !important;
+            grid-column: 1 / -1 !important;
+        }
+        /* 🌟 ========================================== 🌟 */
+
         .sentence { margin-bottom: 25px; padding-bottom: 25px; padding-right: 85px; border-bottom: 1px dashed var(--border); position: relative; word-wrap: break-word; overflow-wrap: break-word;}
         .draft-text { color: #777; font-style: italic; font-weight: 500;}
-        /* 💡 기존의 잘못된 word-break: break-all 속성을 제거하여 부모(content-box)의 규칙을 따르게 함 */
         .latest-text { font-size: 1.6rem; font-weight: 800; color: var(--text-main); display: block; margin-top: 8px; }
         .original-text { font-size: 1.05rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; }
         .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; }
@@ -177,16 +202,17 @@
         .tts-control-help { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
         .tts-toggle-status { min-width: 42px; color: var(--primary); font-size: 0.95rem; font-weight: 900; text-align: center; }
         
-        @media (min-width: 1400px) { .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 20px;} }
-        @media (min-width: 1600px) { html { font-size: 19px; } .dashboard-layout { grid-template-columns: repeat(4, 1fr); gap: 25px;} .window { height: 750px; } }
-        @media (max-width: 1100px) { .dashboard-layout { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 1100px) { 
+            .dashboard-layout { grid-template-columns: repeat(2, 1fr); } 
+            /* 모바일/태블릿에서는 기본 1단 레이아웃을 사용하도록 제어 */
+        }
         @media (max-width: 768px) {
             html { font-size: 16px; }
             .dashboard-layout { grid-template-columns: 1fr; margin: 15px auto; padding: 0 15px; gap: 20px; }
             .status-top { flex-direction: column; gap: 15px; text-align: center; }
             .status-middle { flex-direction: column; align-items: stretch; }
             .dictation-box { max-width: 100%; white-space: normal; }
-            .window-container { grid-template-columns: 1fr; padding: 0 15px; gap: 20px; }
+            .window-container { grid-template-columns: 1fr !important; padding: 0 15px; gap: 20px; }
             .window { height: 500px; }
         }
 
@@ -1131,7 +1157,7 @@
             const win = document.createElement('div');
             win.className = 'window';
             win.id = `win_${lang}`;
-            win.setAttribute('lang', lang); /* 💡 다국어 줄바꿈 CSS 처리를 위한 언어 태그 추가 */
+            win.setAttribute('lang', lang); 
             win.draggable = true;
             
             win.innerHTML = `
