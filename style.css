@@ -240,8 +240,8 @@ body.projector-mode .window {
     border-radius: 1vw; 
     background: #0f0f0f; 
     margin: 0; 
-    overflow: hidden; /* 크기 조절을 위해 필수 */
-    resize: both; /* 💡 브라우저 네이티브 모서리 드래그 크기 조절 활성화 */
+    overflow: hidden; 
+    resize: both; 
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     transition: box-shadow 0.2s;
 }
@@ -257,22 +257,48 @@ body.projector-mode .window.maximized {
     left: 1vw !important;
     width: 98vw !important;
     height: 98vh !important;
-    resize: none !important; /* 최대화 상태에선 수동 조절 금지 */
+    resize: none !important; 
     z-index: 9999 !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 🌟 프로젝터 모드: 헤더 자동 숨김 (공간 100% 활용) 🌟 */
 body.projector-mode .window-header { 
-    background: #1a1a1a; 
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(26, 26, 26, 0.95);
     color: #fff; 
     border-bottom: 3px solid #555; 
     font-size: 3.5vh; 
     padding: 2vh; 
     border-radius: 0.8vw 0.8vw 0 0; 
-    cursor: move; /* 헤더 드래그 가능 아이콘 */
+    cursor: move; 
+    z-index: 100;
+    /* 숨김 애니메이션 추가 */
+    opacity: 0;
+    transform: translateY(-100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(5px);
 }
 
-body.projector-mode .content-box { background: #0f0f0f; color: #fff; padding: 4vh; font-size: 3.5vh; border-radius: 0 0 0.8vw 0.8vw; height: calc(100% - 8vh);} /* 헤더 높이만큼 뺌 */
+/* 마우스가 창 안에 들어오면 헤더가 스르륵 내려옴 */
+body.projector-mode .window:hover .window-header {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 콘텐츠 박스가 잃어버렸던 8vh 공간까지 100% 꽉 채움 */
+body.projector-mode .content-box { 
+    background: #0f0f0f; 
+    color: #fff; 
+    padding: 4vh; 
+    font-size: 3.5vh; 
+    border-radius: 0.8vw; 
+    height: 100% !important; 
+}
+
 body.projector-mode .latest-text, body.projector-mode .same-lang-text { color: #fff; font-size: 6vh; line-height: 1.5; font-weight: 900;}
 body.projector-mode .original-text { color: #aaa; font-size: 2.8vh; margin-bottom: 1.5vh; font-weight: 600;}
 body.projector-mode .tts-btn { display: none; }
