@@ -10,23 +10,24 @@
 <body class="tts-disabled">
 <div id="toast"></div>
 
-<div id="loginOverlay">
-    <div class="login-box">
-        <h2>🚀 AI 통역 콘솔</h2>
-        <p class="subtitle">안전 관제 시스템 v4.0</p>
-        <label>관리자 아이디</label>
-        <input type="text" id="username" class="login-input" placeholder="admin">
-        <label>비밀번호</label>
-        <input type="password" id="password" class="login-input" placeholder="비밀번호 입력" onkeyup="if(event.key==='Enter') attemptLogin()">
-        <button class="login-btn" onclick="attemptLogin()">시스템 접속</button>
-    </div>
-</div>
-
-<div id="adminSetupOverlay" style="display: none;">
-    <div class="login-box">
-        <h2 style="color: var(--primary);">⚙️ 회의 기본 설정</h2>
-        <p class="subtitle">시스템 최적화를 위해 정보를 입력해주세요.</p>
+<!-- 🌟 변경된 통합 설정/로그인 오버레이 🌟 -->
+<div id="adminSetupOverlay">
+    <div class="login-box" style="max-width: 500px;">
+        <h2 style="color: var(--primary); margin-bottom: 10px;">⚙️ 시스템 접속 및 회의 설정</h2>
+        <p class="subtitle" style="margin-bottom: 25px;">보안 인증 및 시스템 최적화를 위해 정보를 입력해주세요.</p>
         
+        <!-- 관리자 계정 통합 영역 -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div style="flex: 1;">
+                <label>관리자 ID</label>
+                <input type="text" id="username" class="login-input" style="margin-bottom:0; padding: 14px;" placeholder="admin">
+            </div>
+            <div style="flex: 1;">
+                <label>비밀번호</label>
+                <input type="password" id="password" class="login-input" style="margin-bottom:0; padding: 14px;" placeholder="비밀번호">
+            </div>
+        </div>
+
         <label>1. 회의 전문 분야 (Domain)</label>
         <input type="text" id="adminDomainInput" class="login-input" placeholder="ex) Highway Engineering">
         
@@ -37,12 +38,12 @@
         
         <label>3. 회의 제목 (Title)</label>
         <input type="text" id="adminMeetingTitleInput" class="login-input" placeholder="회의명 입력">
-        <label>4. 방장 이름 (Native Name)</label>
-        <input type="text" id="adminNativeNameInput" class="login-input" placeholder="홍길동 소장">
-        <label>5. 영문 발음 (English Name)</label>
-        <input type="text" id="adminEnglishNameInput" class="login-input" placeholder="Hong" onkeyup="if(event.key==='Enter') startAdminMeeting()">
         
-        <button class="login-btn" onclick="startAdminMeeting()">회의 시작하기</button>
+        <!-- 이름 입력 칸 하나로 통합 -->
+        <label>4. 방장 이름 (Name)</label>
+        <input type="text" id="adminNameInput" class="login-input" placeholder="이름 (영문 또는 한글)" onkeyup="if(event.key==='Enter') attemptLoginAndStart()">
+        
+        <button class="login-btn" onclick="attemptLoginAndStart()">접속 및 회의 시작</button>
     </div>
 </div>
 
@@ -55,10 +56,9 @@
             <option value="" disabled selected>언어를 선택하세요</option>
         </select>
         <div id="joinNameSection" style="display: none;">
-            <label>2. 모국어 이름</label>
-            <input type="text" id="joinNativeNameInput" class="login-input" placeholder="홍길동">
-            <label>3. 영문 발음</label>
-            <input type="text" id="joinEnglishNameInput" class="login-input" placeholder="Hong" onkeyup="if(event.key==='Enter') joinMeeting()">
+            <!-- 참가자 이름 입력 칸도 하나로 통합 -->
+            <label>2. 내 이름 (Name)</label>
+            <input type="text" id="joinNameInput" class="login-input" placeholder="이름 (영문 또는 한글)" onkeyup="if(event.key==='Enter') joinMeeting()">
         </div>
         <button id="joinBtn" class="login-btn" onclick="joinMeeting()" disabled>회의 입장하기</button>
     </div>
@@ -276,6 +276,12 @@
     window.addEventListener('DOMContentLoaded', () => {
         const pwdInput = document.getElementById('password');
         if(pwdInput) pwdInput.value = '';
+        
+        // 🌟 저장된 회의 제목이 있으면 미리 불러오기
+        if(localStorage.getItem("savedMeetingTitle")) {
+            const titleInput = document.getElementById('adminMeetingTitleInput');
+            if (titleInput) titleInput.value = localStorage.getItem("savedMeetingTitle");
+        }
     });
 
     let wakeLock = null;
@@ -535,8 +541,8 @@
     let isDynamicSpeaker = false;
     let isTtsEnabled = false;
 
-    let meetingTitle = localStorage.getItem("savedMeetingTitle") || "실시간 현장 회의";
-    let transcriptLog = localStorage.getItem("savedTranscript") || "";
+    let meetingTitle = "실시간 현장 회의";
+    let transcriptLog = "";
     let currentTranscriptData = {};
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -584,64 +590,71 @@
     const urlRole = urlParams.get('role');
     const isHost = !roomToken; 
 
+    // URL 토큰 감지 후 UI 처리 (방장 vs 청중/발표자)
     if (roomToken) {
         authToken = roomToken;
-        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('adminSetupOverlay').style.display = 'none';
         document.getElementById('joinOverlay').style.display = 'flex';
         if (urlRole === 'speaker') { document.getElementById('joinTitle').innerText = "🎙️ 토론자로 입장"; } 
         else { document.getElementById('joinTitle').innerText = "👀 청중으로 입장"; }
-    } 
+    } else {
+        document.getElementById('adminSetupOverlay').style.display = 'flex';
+    }
 
-    async function attemptLogin() {
+    // 🌟 변경된 통합 로그인 및 설정 함수 🌟
+    async function attemptLoginAndStart() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
+        const domain = document.getElementById('adminDomainInput').value.trim() || 'General';
+        const adminLang = document.getElementById('adminLangSelect').value;
+        const title = document.getElementById('adminMeetingTitleInput').value.trim();
+        const adminName = document.getElementById('adminNameInput').value.trim();
+
+        if (!u || !p) return showToast("관리자 아이디와 비밀번호를 입력해주세요.", true);
+        if (!adminLang) return showToast("방장 언어를 먼저 선택해주세요.", true);
+        if (!title) return showToast("회의 제목을 입력해주세요.", true);
+        if (!adminName) return showToast("방장 이름(Name)을 입력해주세요.", true);
+
         try {
+            // 1. 서버에 로그인 요청
             const res = await fetch('/api/login', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p })
             });
             const data = await res.json();
+            
+            // 2. 인증 성공 시 회의 설정 바로 시작
             if (data.success) {
-                authToken = data.token; document.getElementById('password').value = '';
-                document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('adminSetupOverlay').style.display = 'flex';
-                document.getElementById('adminDomainInput').focus();
-                if(localStorage.getItem("savedMeetingTitle")) { document.getElementById('adminMeetingTitleInput').value = localStorage.getItem("savedMeetingTitle"); }
-            } else { showToast(data.message, true); }
-        } catch (e) { showToast("서버와 연결할 수 없습니다.", true); }
-    }
+                authToken = data.token;
+                document.getElementById('password').value = '';
 
-    function startAdminMeeting() {
-        const domain = document.getElementById('adminDomainInput').value.trim() || 'General';
-        const adminLang = document.getElementById('adminLangSelect').value;
-        const title = document.getElementById('adminMeetingTitleInput').value.trim();
-        const nativeName = document.getElementById('adminNativeNameInput').value.trim();
-        const englishName = document.getElementById('adminEnglishNameInput').value.trim();
-        
-        if (!adminLang) return showToast("방장 언어를 먼저 선택해주세요.", true);
-        if (!title) return showToast("회의 제목을 입력해주세요.", true);
-        if (!nativeName) return showToast("방장 모국어 이름을 입력해주세요.", true);
-        if (!englishName) return showToast("방장 영문 발음을 입력해주세요.", true);
-        
-        document.getElementById('viewerLangSelect').value = adminLang;
-        meetingTitle = title; clientName = `${nativeName} (${englishName})`;
+                document.getElementById('viewerLangSelect').value = adminLang;
+                meetingTitle = title;
+                clientName = adminName; 
 
-        localStorage.setItem("savedMeetingTitle", meetingTitle); localStorage.setItem("savedMeetingDomain", domain);
-        document.getElementById('mainNavTitle').innerText = `🌍 Global Customized Real-time Interpretation Support System for ${domain}`;
-        
-        const dateStr = new Date().toISOString().slice(0, 10);
-        transcriptLog = `=== [${meetingTitle} - ${domain}] 학술대회 현장 기록 (${dateStr}) ===\n`;
-        localStorage.setItem("savedTranscript", transcriptLog);
-        
-        document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
-        document.getElementById('liveDictation').innerHTML = "";
-        currentTranscriptData = {};
-        
-        document.getElementById('adminSetupOverlay').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('userBadge').innerText = clientName;
-        updateWindows(); getMicrophones();
-        showToast(`[${meetingTitle}] 새로운 회의가 시작되었습니다.`);
-        requestWakeLock();
+                localStorage.setItem("savedMeetingTitle", meetingTitle);
+                localStorage.setItem("savedMeetingDomain", domain);
+                document.getElementById('mainNavTitle').innerText = `🌍 Global Customized Real-time Interpretation Support System for ${domain}`;
+                
+                const dateStr = new Date().toISOString().slice(0, 10);
+                transcriptLog = `=== [${meetingTitle} - ${domain}] 학술대회 현장 기록 (${dateStr}) ===\n`;
+                localStorage.setItem("savedTranscript", transcriptLog);
+                
+                document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
+                document.getElementById('liveDictation').innerHTML = "";
+                currentTranscriptData = {};
+                
+                document.getElementById('adminSetupOverlay').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
+                document.getElementById('userBadge').innerText = clientName;
+                updateWindows(); getMicrophones();
+                showToast(`[${meetingTitle}] 새로운 회의가 시작되었습니다.`);
+                requestWakeLock();
+            } else { 
+                showToast(data.message, true); 
+            }
+        } catch (e) { 
+            showToast("서버와 연결할 수 없습니다.", true); 
+        }
     }
 
     function logout() { 
@@ -661,23 +674,24 @@
                 nameSection.style.display = 'block';
                 nameSection.classList.add('slide-in-anim');
             }
-            document.getElementById('joinNativeNameInput').focus();
+            document.getElementById('joinNameInput').focus();
             const btn = document.getElementById('joinBtn');
             btn.style.background = 'var(--primary)'; btn.style.color = '#fff'; btn.disabled = false;
         }
     }
 
+    // 🌟 참가자(뷰어/스피커) 입장 로직 변경 (이름 하나로 통합) 🌟
     function joinMeeting() {
         const lang = document.getElementById('joinLangSelect').value;
-        const nativeName = document.getElementById('joinNativeNameInput').value.trim();
-        const englishName = document.getElementById('joinEnglishNameInput').value.trim();
+        const name = document.getElementById('joinNameInput').value.trim();
         
         if (!lang) return showToast("언어를 먼저 선택해주세요.", true);
-        if (!nativeName) return showToast("모국어 이름(Native Name)을 입력해주세요.", true); 
-        if (!englishName) return showToast("영문 발음을 입력해주세요.", true); 
+        if (!name) return showToast("이름(Name)을 입력해주세요.", true); 
         
-        clientName = `${nativeName} (${englishName})`; document.getElementById('viewerLangSelect').value = lang;
-        document.getElementById('joinOverlay').style.display = 'none'; document.getElementById('appContainer').style.display = 'block';
+        clientName = name; 
+        document.getElementById('viewerLangSelect').value = lang;
+        document.getElementById('joinOverlay').style.display = 'none'; 
+        document.getElementById('appContainer').style.display = 'block';
         
         if (urlRole === 'viewer' || !urlRole) {
             document.body.classList.add('viewer-mode'); setTimeout(() => toggleConnection('viewer'), 500);
@@ -685,7 +699,7 @@
             document.body.classList.add('speaker-mode'); setTimeout(() => toggleConnection('speaker'), 500);
         }
 
-        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場しました。歓迎します！" };
+        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場했습니다. 환영합니다！" };
         const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
         const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다!`;
 
