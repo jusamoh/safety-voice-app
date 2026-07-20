@@ -96,7 +96,6 @@
         .admin-mute-btn { opacity: 0.5; transition: all 0.2s ease-in-out; border: 3px solid transparent !important; filter: grayscale(80%); }
         .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 900; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.2); filter: grayscale(0%); }
 
-        /* 💡 3단 분할 상태창 CSS */
         .status-banner { max-width: 1800px; margin: 0 auto 25px; padding: 20px 30px; background: #282a2c; color: white; border-radius: 16px; display: flex; flex-direction: column; align-items: stretch; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); transition: all 0.3s; border: 1px solid #444;}
         
         .status-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;}
@@ -152,12 +151,23 @@
         .win-close-btn { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #777; font-size: 1.5rem; cursor: pointer; padding: 8px; border-radius: 50%; font-weight: bold;}
         .win-close-btn:hover { color: var(--danger); background: #fce8e6; }
         
-        .content-box { flex: 1; overflow-y: auto; padding: 25px; background-color: #ffffff; border-radius: 0 0 16px 16px; font-size: 1.2rem; line-height: 1.8; scroll-behavior: smooth;}
+        /* 💡 띄어쓰기 있는 언어(한국어, 영어 등)를 위해 기본 줄바꿈(keep-all) 설정 */
+        .content-box { flex: 1; overflow-y: auto; padding: 25px; background-color: #ffffff; border-radius: 0 0 16px 16px; font-size: 1.2rem; line-height: 1.8; scroll-behavior: smooth; word-break: keep-all; overflow-wrap: break-word;}
+        
+        /* 💡 띄어쓰기 없는 언어(일본어, 중국어) 전용 줄바꿈(break-all) 예외 처리 */
+        .window[lang="ja"] .content-box,
+        .window[lang="zh"] .content-box {
+            word-break: break-all;
+            line-break: strict;
+        }
+
         .sentence { margin-bottom: 25px; padding-bottom: 25px; padding-right: 85px; border-bottom: 1px dashed var(--border); position: relative; word-wrap: break-word; overflow-wrap: break-word;}
         .draft-text { color: #777; font-style: italic; font-weight: 500;}
-        .latest-text { font-size: 1.6rem; font-weight: 800; color: var(--text-main); display: block; margin-top: 8px; word-break: break-all; }
+        /* 💡 기존의 잘못된 word-break: break-all 속성을 제거하여 부모(content-box)의 규칙을 따르게 함 */
+        .latest-text { font-size: 1.6rem; font-weight: 800; color: var(--text-main); display: block; margin-top: 8px; }
         .original-text { font-size: 1.05rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; }
-        .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; word-break: break-all; }
+        .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; }
+        
         .tts-btn { position: absolute; right: 0; top: 0; background: #e8eaed; border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: var(--text-main); font-weight: 800; }
         body.tts-disabled .tts-btn { display: none !important; }
         body.tts-disabled .sentence { padding-right: 0; }
@@ -702,13 +712,11 @@
     }
 
     async function fetchGlossaryFromGitHub() {
-        // 💡 전문가 최적화: 커밋 해시를 제거하여 항상 최신 버전의 단어장을 불러오도록 수정된 Raw URL
         const githubRawUrl = "https://gist.githubusercontent.com/jusamoh/c4e1bc84e35de57f878b6022c39f9c1a/raw/pavement_term_2026_7_16_.final.csv";
         
         try {
             showToast("⏳ Gist에서 최신 단어장을 불러오는 중...");
             
-            // 캐시 무효화를 위해 타임스탬프를 쿼리 파라미터로 추가 (Gist 캐시 지연 방지)
             const fetchUrl = githubRawUrl + "?t=" + new Date().getTime();
             const response = await fetch(fetchUrl);
             
@@ -1123,6 +1131,7 @@
             const win = document.createElement('div');
             win.className = 'window';
             win.id = `win_${lang}`;
+            win.setAttribute('lang', lang); /* 💡 다국어 줄바꿈 CSS 처리를 위한 언어 태그 추가 */
             win.draggable = true;
             
             win.innerHTML = `
