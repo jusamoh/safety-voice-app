@@ -10,13 +10,12 @@
 <body class="tts-disabled">
 <div id="toast"></div>
 
-<!-- 🌟 변경된 통합 설정/로그인 오버레이 🌟 -->
+<!-- 로그인 및 설정 오버레이 -->
 <div id="adminSetupOverlay">
     <div class="login-box" style="max-width: 500px;">
         <h2 style="color: var(--primary); margin-bottom: 10px;">⚙️ 시스템 접속 및 회의 설정</h2>
         <p class="subtitle" style="margin-bottom: 25px;">보안 인증 및 시스템 최적화를 위해 정보를 입력해주세요.</p>
         
-        <!-- 관리자 계정 통합 영역 -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <div style="flex: 1;">
                 <label>관리자 ID</label>
@@ -39,7 +38,6 @@
         <label>3. 회의 제목 (Title)</label>
         <input type="text" id="adminMeetingTitleInput" class="login-input" placeholder="회의명 입력">
         
-        <!-- 이름 입력 칸 하나로 통합 -->
         <label>4. 방장 이름 (Name)</label>
         <input type="text" id="adminNameInput" class="login-input" placeholder="이름 (영문 또는 한글)" onkeyup="if(event.key==='Enter') attemptLoginAndStart()">
         
@@ -56,7 +54,6 @@
             <option value="" disabled selected>언어를 선택하세요</option>
         </select>
         <div id="joinNameSection" style="display: none;">
-            <!-- 참가자 이름 입력 칸도 하나로 통합 -->
             <label>2. 내 이름 (Name)</label>
             <input type="text" id="joinNameInput" class="login-input" placeholder="이름 (영문 또는 한글)" onkeyup="if(event.key==='Enter') joinMeeting()">
         </div>
@@ -277,7 +274,6 @@
         const pwdInput = document.getElementById('password');
         if(pwdInput) pwdInput.value = '';
         
-        // 🌟 저장된 회의 제목이 있으면 미리 불러오기
         if(localStorage.getItem("savedMeetingTitle")) {
             const titleInput = document.getElementById('adminMeetingTitleInput');
             if (titleInput) titleInput.value = localStorage.getItem("savedMeetingTitle");
@@ -465,8 +461,8 @@
         const enterMode = () => {
             document.body.classList.add('projector-mode');
             updateWindows();
-            initializeFloatingLayout(); // 🌟 프로젝터 진입 시 플로팅 윈도우 초기 배열 실행
-            showToast("📽️ 빔 프로젝터 뷰가 실행되었습니다. (창을 자유롭게 이동하고 크기를 조절하세요)");
+            initializeFloatingLayout();
+            showToast("📽️ 빔 프로젝터 뷰가 실행되었습니다.");
         };
         if (elem.requestFullscreen) {
             elem.requestFullscreen().then(enterMode).catch(err => { enterMode(); });
@@ -590,18 +586,15 @@
     const urlRole = urlParams.get('role');
     const isHost = !roomToken; 
 
-    // URL 토큰 감지 후 UI 처리 (방장 vs 청중/발표자)
     if (roomToken) {
         authToken = roomToken;
         document.getElementById('adminSetupOverlay').style.display = 'none';
         document.getElementById('joinOverlay').style.display = 'flex';
         if (urlRole === 'speaker') { document.getElementById('joinTitle').innerText = "🎙️ 토론자로 입장"; } 
         else { document.getElementById('joinTitle').innerText = "👀 청중으로 입장"; }
-    } else {
-        document.getElementById('adminSetupOverlay').style.display = 'flex';
     }
 
-    // 🌟 변경된 통합 로그인 및 설정 함수 🌟
+    // 🌟 통합 로그인 및 회의 시작 🌟
     async function attemptLoginAndStart() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
@@ -616,17 +609,14 @@
         if (!adminName) return showToast("방장 이름(Name)을 입력해주세요.", true);
 
         try {
-            // 1. 서버에 로그인 요청
             const res = await fetch('/api/login', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p })
             });
             const data = await res.json();
             
-            // 2. 인증 성공 시 회의 설정 바로 시작
             if (data.success) {
                 authToken = data.token;
                 document.getElementById('password').value = '';
-
                 document.getElementById('viewerLangSelect').value = adminLang;
                 meetingTitle = title;
                 clientName = adminName; 
@@ -649,12 +639,8 @@
                 updateWindows(); getMicrophones();
                 showToast(`[${meetingTitle}] 새로운 회의가 시작되었습니다.`);
                 requestWakeLock();
-            } else { 
-                showToast(data.message, true); 
-            }
-        } catch (e) { 
-            showToast("서버와 연결할 수 없습니다.", true); 
-        }
+            } else { showToast(data.message, true); }
+        } catch (e) { showToast("서버와 연결할 수 없습니다.", true); }
     }
 
     function logout() { 
@@ -680,7 +666,6 @@
         }
     }
 
-    // 🌟 참가자(뷰어/스피커) 입장 로직 변경 (이름 하나로 통합) 🌟
     function joinMeeting() {
         const lang = document.getElementById('joinLangSelect').value;
         const name = document.getElementById('joinNameInput').value.trim();
@@ -755,15 +740,6 @@
         container.style.setProperty('--projector-rows', rows);
     }
 
-    window.removeLanguage = function(lang) {
-        const checkbox = document.querySelector(`#targetCheckboxes input[value="${lang}"]`);
-        const mainLang = document.getElementById('viewerLangSelect').value || 'ko';
-        
-        if (lang === mainLang || (checkbox && checkbox.disabled)) { showToast("발표자(기본) 언어는 닫을 수 없습니다.", true); return; }
-        
-        if (checkbox) { checkbox.checked = false; updateWindows(); showToast(`${langNames[lang] || lang} 번역 요청이 취소되었습니다.`); }
-    };
-
     function ensureWindowExists(lang) {
         let box = document.getElementById(`box_${lang}`);
         if (!box) {
@@ -774,7 +750,6 @@
             win.setAttribute('lang', lang); 
             win.draggable = true;
             
-            // 🌟 빔프로젝터용 OS 창 조작 버튼 (최대화/닫기) 추가 🌟
             win.innerHTML = `
                 <div class="window-header" title="헤더를 드래그하여 이동하거나 우측 하단을 끌어 크기를 조절하세요. (더블클릭: 최대화)">
                     ✥ ${langNames[lang] || lang}
@@ -787,7 +762,6 @@
             container.appendChild(win);
             box = document.getElementById(`box_${lang}`);
 
-            // 더블클릭으로 최대화 토글 기능 추가
             win.querySelector('.window-header').addEventListener('dblclick', (e) => {
                 if(e.target.tagName.toLowerCase() === 'button') return;
                 toggleMaximize(win.querySelector('.win-btn.maximize'), lang);
@@ -816,7 +790,6 @@
 
     let draggedItem = null;
     function handleDragStart(e) { 
-        // 🌟 빔프로젝터(자유 창 이동) 모드일 때는 브라우저 기본 드래그(Grid Swap) 기능 방지 🌟
         if(document.body.classList.contains('projector-mode')) { e.preventDefault(); return; }
         draggedItem = this; setTimeout(() => this.classList.add('dragging'), 0); 
     }
@@ -830,12 +803,10 @@
 
         if (draggedItem !== this) {
             if (draggedItem === mainWin || this === mainWin) { showToast("발표자(기본) 언어 창은 항상 첫 번째 위치에 고정됩니다.", true); return; }
-
             const container = document.getElementById('windowContainer');
             const allItems = [...container.querySelectorAll('.window')];
             const draggedIndex = allItems.indexOf(draggedItem);
             const droppedIndex = allItems.indexOf(this);
-            
             if (draggedIndex < droppedIndex) this.parentNode.insertBefore(draggedItem, this.nextSibling);
             else this.parentNode.insertBefore(draggedItem, this);
         }
@@ -850,9 +821,7 @@
             const isRehearsal = document.getElementById('rehearsalToggle').checked;
             const ttsEnabledToggle = document.getElementById('ttsEnabledToggle');
             const ttsEnabled = ttsEnabledToggle ? ttsEnabledToggle.checked : false;
-            
             ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(','), rehearsal_mode: isRehearsal, tts_enabled: ttsEnabled }));
-            
             const newLangMode = document.getElementById('speakerLang').value;
             try {
                 const currentUrl = new URL(ws.url);
@@ -876,45 +845,36 @@
         if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
 
         checkedLangs.forEach(lang => { ensureWindowExists(lang); });
-        
         Array.from(container.children).forEach(windowDiv => {
             const lang = windowDiv.id.replace('win_', '');
             if (!checkedLangs.includes(lang)) { windowDiv.style.display = 'none'; } else { windowDiv.style.display = 'flex'; }
         });
-
         const mainLang = document.getElementById('viewerLangSelect').value || 'ko';
         const mainWin = document.getElementById(`win_${mainLang}`);
         if (mainWin && mainWin.style.display !== 'none') { container.prepend(mainWin); }
-        
         syncWindowLayout();
-
         if (isHost) {
             const speakerLangSelect = document.getElementById('speakerLang');
             const currentVal = speakerLangSelect.value;
             speakerLangSelect.innerHTML = ''; 
-            
             const adminLang = document.getElementById('viewerLangSelect').value || 'ko';
             const optAdmin = document.createElement('option'); optAdmin.value = adminLang; optAdmin.innerText = `🚀 기본 언어 (${langNames[adminLang] || adminLang}) 집중 모드`;
             speakerLangSelect.appendChild(optAdmin);
-            
             checkedLangs.forEach(lang => {
                 if (lang !== adminLang) {
                     const opt = document.createElement('option'); opt.value = lang; opt.innerText = `🎙️ ${langNames[lang] || lang} 집중 모드`;
                     speakerLangSelect.appendChild(opt);
                 }
             });
-
             const multiOpt = document.createElement('option'); multiOpt.value = "multi_azure"; multiOpt.innerText = `🌍 다국어 자동 탐색 (AI 혼합 모드)`;
             speakerLangSelect.appendChild(multiOpt);
-
             if (currentVal && speakerLangSelect.querySelector(`option[value="${currentVal}"]`)) { speakerLangSelect.value = currentVal; } 
             else { speakerLangSelect.value = adminLang; }
         }
-
         sendConfigUpdate();
     }
 
-    // --- 🌟 플로팅 윈도우(OS 창 제어) 매니저 로직 🌟 ---
+    // 🌟 플로팅 윈도우(OS 창 제어) 매니저 로직 🌟
     let highestZIndex = 100;
     let isDraggingWin = false;
     let dragTargetWin = null;
@@ -923,27 +883,19 @@
 
     document.addEventListener('mousedown', (e) => {
         if (!document.body.classList.contains('projector-mode')) return;
-        
-        // 1. 헤더 클릭 시 드래그 시작
         const header = e.target.closest('.window-header');
         if (header && !e.target.closest('.win-btn')) {
             const win = header.closest('.window');
-            if (win.classList.contains('maximized')) return; // 최대화 시 드래그 불가
-            
+            if (win.classList.contains('maximized')) return;
             isDraggingWin = true;
             dragTargetWin = win;
             win.style.zIndex = ++highestZIndex;
-            
-            // 클릭된 창 포커스 강조
             document.querySelectorAll('.window').forEach(w => w.classList.remove('focused'));
             win.classList.add('focused');
-
             const rect = win.getBoundingClientRect();
             dragOffsetX = e.clientX - rect.left;
             dragOffsetY = e.clientY - rect.top;
-        } 
-        // 2. 창 내부 빈 공간 클릭 시 z-index 최상위로 올림 (포커스)
-        else {
+        } else {
             const win = e.target.closest('.window');
             if (win) {
                 win.style.zIndex = ++highestZIndex;
@@ -955,10 +907,9 @@
 
     document.addEventListener('mousemove', (e) => {
         if (!isDraggingWin || !dragTargetWin) return;
-        // 자유로운 창 이동
         dragTargetWin.style.left = (e.clientX - dragOffsetX) + 'px';
         dragTargetWin.style.top = (e.clientY - dragOffsetY) + 'px';
-        dragTargetWin.style.bottom = 'auto'; // 이동 충돌 방지
+        dragTargetWin.style.bottom = 'auto';
         dragTargetWin.style.right = 'auto';
     });
 
@@ -968,11 +919,9 @@
         dragTargetWin = null;
     });
 
-    // 창 최대화 / 이전 크기 복원 기능
     window.toggleMaximize = function(btn, lang) {
         const win = document.getElementById(`win_${lang}`);
         if (!win) return;
-        
         if (win.classList.contains('maximized')) {
             win.classList.remove('maximized');
             btn.innerText = "🗖";
@@ -985,12 +934,10 @@
         }
     };
 
-    // 빔프로젝터 모드 진입 시 초기 레이아웃(3+1) 좌표 및 크기 할당
     function initializeFloatingLayout() {
         const container = document.getElementById('windowContainer');
         const windows = Array.from(container.querySelectorAll('.window')).filter(w => w.style.display !== 'none');
         const winCount = windows.length;
-        
         windows.forEach((win, index) => {
             win.classList.remove('maximized');
             const btn = win.querySelector('.win-btn.maximize');
@@ -998,17 +945,15 @@
             win.style.zIndex = highestZIndex + index;
         });
 
-        if (winCount === 4) { // 완벽한 3+1 와이드 배치
+        if (winCount === 4) {
             const enWin = windows.find(w => w.id === 'win_en');
             const topWins = windows.filter(w => w.id !== 'win_en');
-            
             topWins.forEach((win, i) => {
                 win.style.top = '2vh';
                 win.style.left = (2 + i * 32.5) + 'vw';
                 win.style.width = '31vw';
                 win.style.height = '55vh';
             });
-            
             if (enWin) {
                 enWin.style.top = '60vh';
                 enWin.style.left = '2vw';
@@ -1016,7 +961,7 @@
                 enWin.style.height = '38vh';
             }
         } 
-        else if (winCount > 0) { // 창이 1~3개일 때 세로로 길게 자동 분할
+        else if (winCount > 0) {
             const width = 96 / winCount;
             windows.forEach((win, i) => {
                 win.style.top = '5vh';
@@ -1026,7 +971,6 @@
             });
         }
     }
-    // --- 🌟 플로팅 윈도우 로직 종료 🌟 ---
 
     function showQRCode(roleType) {
         const currentUrl = window.location.href.split('?')[0];
@@ -1035,16 +979,13 @@
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
         const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${checkedLangs.join(',')}&role=${roleType}`;
-        
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드"; document.getElementById('qrDesc').innerText = "스캔 즉시 상시 마이크 권한을 획득합니다.";
         } else {
             document.getElementById('qrTitle').innerText = "👀 청중(뷰어)용 QR코드"; document.getElementById('qrDesc').innerText = "스캔 후 자신의 모국어를 1번만 선택하세요.";
         }
-        
         let qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.6, 350); 
         if (qrSize < 150) qrSize = 150; 
-
         new QRCode(qrContainer, { text: qrUrl, width: qrSize, height: qrSize, colorDark : "#202124", colorLight : "#ffffff" });
         document.getElementById('qrModal').style.display = 'flex';
     }
@@ -1085,35 +1026,28 @@
         try {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') await audioCtx.resume();
-
             const micNode = audioCtx.createMediaStreamSource(inputStream);
             const analyser = audioCtx.createAnalyser(); analyser.fftSize = 512;
             const gainNode = audioCtx.createGain();
             const destNode = audioCtx.createMediaStreamDestination();
-
             micNode.connect(analyser); analyser.connect(gainNode); gainNode.connect(destNode);
             gainNode.gain.value = 0; let gateOpen = false;
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
-
             if (gateInterval) clearInterval(gateInterval);
-
             gateInterval = setInterval(() => {
                 const noiseInput = document.getElementById('noiseGateInput');
                 const thresholdVal = noiseInput ? parseInt(noiseInput.value) : 15;
                 const rmsThreshold = thresholdVal / 1000.0;
-
                 analyser.getByteTimeDomainData(dataArray);
                 let sum = 0;
                 for (let i = 0; i < bufferLength; i++) {
                     let val = (dataArray[i] - 128) / 128.0; sum += val * val;
                 }
                 let rms = Math.sqrt(sum / bufferLength);
-
                 if (liveDiagnostic.active && liveDiagnostic.captureStarted && rms > Math.max(rmsThreshold, 0.005)) {
                     liveDiagnostic.audioDetected = true; setDiagnosticIndicator("statusMic", "green");
                 }
-
                 if (rms > rmsThreshold) {
                     if (!gateOpen) { gainNode.gain.setTargetAtTime(1, audioCtx.currentTime, 0.05); gateOpen = true; }
                     if (gateHoldTimer) clearTimeout(gateHoldTimer);
@@ -1142,7 +1076,6 @@
         try {
             rawStream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } });
             gatedStream = await applyNoiseGate(rawStream); 
-            
             mediaRecorder = createSupportedMediaRecorder(gatedStream);
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0 && ws && ws.readyState === 1 && isDynamicSpeaker && !isAdminMuted) { ws.send(e.data); }
@@ -1204,16 +1137,6 @@
         }
     }
 
-    function loadGlossaryFile(event) {
-        const file = event.target.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('glossaryInput').value = e.target.result;
-            showToast("✅ 용어집이 로드되었습니다."); sendConfigUpdate();
-        };
-        reader.readAsText(file, "UTF-8");
-    }
-
     function clearAllLogs() {
         if (confirm("정말로 화면을 초기화하시겠습니까? 저장되지 않은 회의록은 유실됩니다.")) {
             document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
@@ -1272,11 +1195,12 @@
         const toggle = document.getElementById('ttsEnabledToggle'); applyTtsVisibility(toggle ? toggle.checked : true); sendConfigUpdate();
     }
 
-    function speakTargetText(text, lang) {
+    // 🌟 TTS 호출 시 화자 이름 제거 (순수 번역문만 호출) 🌟
+    function speakTargetText(cleanRawText, lang) {
         if (!isTtsEnabled) { showToast("사회자가 번역 음성 듣기를 껐습니다.", true); return; }
         if (!window.speechSynthesis) { showToast("이 기기는 음성 합성을 지원하지 않습니다.", true); return; }
         window.speechSynthesis.cancel(); 
-        const msg = new SpeechSynthesisUtterance(text);
+        const msg = new SpeechSynthesisUtterance(cleanRawText);
         if (lang === 'id') msg.lang = 'id-ID'; else if (lang === 'en') msg.lang = 'en-US'; else if (lang === 'ko') msg.lang = 'ko-KR'; else msg.lang = lang; 
         window.speechSynthesis.speak(msg);
     }
@@ -1362,11 +1286,10 @@
         else { scheduleReconnect(role, detail); }
     }
 
-    // 🌟 [핵심 업데이트] 자동 재연결 취소 방어 로직 추가
+    // 🌟 최종 수정된 toggleConnection (자동 재연결 취소 로직 포함) 🌟
     async function toggleConnection(role, options = {}) {
         const reconnecting = options.reconnecting === true;
 
-        // 🌟 재연결 대기 중 사용자가 버튼을 눌러 강제로 멈추려는 경우
         if (!reconnecting && reconnectTimer) {
             clearTimeout(reconnectTimer);
             reconnectTimer = null;
@@ -1375,7 +1298,7 @@
             reconnectAttempts = 0;
             resetUI();
             showToast("🛑 자동 재연결이 취소되었습니다. 마이크를 확인 후 다시 켜주세요.", true);
-            return; // 이후 연결 시도 로직 차단
+            return;
         }
 
         const speakerBtn = document.getElementById('speakerBtn');
@@ -1536,6 +1459,9 @@
                         if (!div) { div = document.createElement('div'); div.id = `${res.msg_id}_${lang}`; div.className = 'sentence'; box.appendChild(div); }
 
                         const rawText = res.text || ""; const cleanText = rawText.trim(); const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        // 🌟 TTS용 cleanRawText 생성 (이름 제거됨) 🌟
+                        const cleanRawText = (res.raw_text || "").trim().replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        
                         const highlightDesign = '<span style="color: #1a73e8; font-weight: 900; background-color: #e8f0fe; padding: 2px 6px; border-radius: 6px; border: 1px solid #d2e3fc; margin: 0 2px;">$1</span>';
                         const finalSafeText = safeText.replace(/\*\*(.*?)\*\*/g, highlightDesign); const finalCleanText = cleanText.replace(/\*\*(.*?)\*\*/g, highlightDesign);
 
@@ -1547,7 +1473,8 @@
                             if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalSafeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
                             else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
                         } else {
-                            const ttsBtnHTML = isTtsEnabled ? `<button class="tts-btn" onclick="speakTargetText('${safeText}', '${lang}')">🔊 듣기</button>` : '';
+                            // 🌟 TTS 버튼에 cleanRawText 전달 🌟
+                            const ttsBtnHTML = isTtsEnabled ? `<button class="tts-btn" onclick="speakTargetText('${cleanRawText}', '${lang}')">🔊 듣기</button>` : '';
                             if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalCleanText}</span> ${ttsBtnHTML}`;
                             else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
                             
