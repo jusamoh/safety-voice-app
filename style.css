@@ -225,13 +225,21 @@ body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #
 body.projector-mode { background-color: #000; padding: 0; margin: 0; width: 100vw; height: 100vh; overflow: hidden; }
 body.projector-mode .navbar, body.projector-mode .dashboard-layout, body.projector-mode .status-banner, body.projector-mode #viewerTopBar, body.projector-mode #mobileDictationBox, body.projector-mode #requestSpeakBtn, body.projector-mode #mobileMuteBtn { display: none !important; }
 
-/* 1. Grid 구조 해제 및 도화지화 */
+/* 1. Grid 구조 해제 및 도화지화 (기존 제약 완벽 해제) */
 body.projector-mode .window-container { 
     display: block !important; 
     position: relative; 
     width: 100vw; 
     height: 100vh; 
+    max-width: none !important; /* 🌟 1800px 너비 제한 완벽 해제 */
+    margin: 0 !important;       /* 🌟 중앙 정렬 강제 해제 */
+    padding: 0 !important;      /* 🌟 좌우 여백 강제 해제 */
     overflow: hidden; 
+}
+
+/* 🌟 추가: 앱 컨테이너의 하단 여백(80px)도 프로젝터 모드에선 제거하여 상하 100% 활용 */
+body.projector-mode #appContainer {
+    padding: 0 !important;
 }
 
 /* 2. 개별 창을 완전히 독립적인 레이어로 설정 */
