@@ -36,6 +36,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==========================================
+# 🛡️ [백신 모듈] 동음이의어 예외 사전 로드 및 주입
+# ==========================================
+def load_homophone_exceptions(filepath="homophone_exceptions.json") -> dict:
+    """서버 구동 시 단 한 번만 JSON 백신 파일을 메모리에 로드합니다."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            print("🛡️ [백신 로드 성공] 동음이의어 방어 사전(homophone_exceptions.json)이 적용되었습니다.", flush=True)
+            return json.load(f)
+    except FileNotFoundError:
+        print("⚠️ [백신 경고] homophone_exceptions.json 파일이 없습니다. 일반 번역 모드로 작동합니다.", flush=True)
+        return {}
+
+EXCEPTIONS_DICT = load_homophone_exceptions()
+
+def inject_exception_prompts(transcript: str, exceptions: dict) -> str:
+    """STT 텍스트에 위험 단어가 있을 때만 방어용 프롬프트를 동적으로 조립합니다."""
+    injected_rules = []
+    for risk_word, rule in exceptions.items():
+        if risk_word in transcript:
+            injected_rules.append(rule)
+    
+    if not injected_rules:
+        return ""
+    return "\n".join(injected_rules)
+# ==========================================
+
 def load_user_db() -> dict[str, str]:
     raw_users = os.environ.get("APP_USERS_JSON", "").strip()
     if not raw_users:
@@ -226,9 +253,7 @@ def normalize_targets(targets: str) -> list[str]:
             result.append(lang)
     return result
 
-# 2. 다국어(한/중/일/영) 문자를 모두 보존하도록 정규식 수정
 def is_filler_only(text: str) -> bool:
-    # \w는 유니코드 상의 한글, 한자, 일본어(히라가나/가타카나), 알파벳을 모두 포함합니다.
     normalized = re.sub(r'[^\w]+', '', text).lower()
     return normalized in FILLER_ONLY_PHRASES
 
@@ -324,7 +349,6 @@ Domain focus: Highway engineering, specifically Road Pavement and Airport Paveme
 {doc_section}
 
 CRITICAL INSTRUCTIONS (MUST OBEY):
-CRITICAL INSTRUCTIONS (MUST OBEY):
 1. [DOMAIN FORCED ANCHORING]: The absolute core context is 'Road and Airport Pavement Engineering'. All homophones, acronyms, and ambiguous terms MUST be translated exclusively into standard pavement engineering terminology.
 2. [NUMERICAL & UNIT IMMUTABILITY]: Numbers, dimensions, and engineering units (e.g., MPa, mm, °C, kg/m³, kN) MUST be preserved exactly as spoken. Convert any colloquial numbers into strict Arabic numerals without spacing before the unit.
 3. [STT MEDIA-BIAS CORRECTION]: The STT input may contain media-biased misrecognitions. You MUST logically auto-correct broadcast terms (e.g., "구독자/subscribers", "채널/channel") into academic terms (e.g., "참석자/attendees", "세미나/seminar") based on the academic context.
@@ -363,6 +387,12 @@ Respond EXACTLY in this tag format (DO NOT USE JSON):
 [original]
 clean current sentence
 """
+
+        # 🚨 [백신 주입] 현재 텍스트(문장)에 위험 단어가 있으면, 예외 프롬프트를 동적으로 추가합니다.
+        dynamic_exceptions = inject_exception_prompts(text, EXCEPTIONS_DICT)
+        if dynamic_exceptions:
+            system_prompt += f"\n\n🚨 IMPORTANT TRANSLATION RULES FOR THIS TURN:\n{dynamic_exceptions}\n"
+
         translations = {}
         original_text = text
         last_failure_detail = ""
