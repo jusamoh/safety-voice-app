@@ -63,7 +63,6 @@ select.styled-select { width: 100%; padding: 16px; border-radius: 8px; border: 2
 
 .add-lang-wrapper { display: flex; gap: 10px; align-items: center; background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
 
-/* 🌟 신규 숫자 입력창 전용 스타일 🌟 */
 .number-input-wrapper {
     flex: 1;
     min-width: 100px;
@@ -98,13 +97,11 @@ select.styled-select { width: 100%; padding: 16px; border-radius: 8px; border: 2
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
 }
-/* 숫자 화살표 버튼 최적화 */
 .styled-number::-webkit-inner-spin-button, 
 .styled-number::-webkit-outer-spin-button {
     opacity: 1;
     height: 30px;
 }
-/* 🌟 ========================================== 🌟 */
 
 textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 1.1rem; outline: none; resize: vertical; min-height: 100px; background: #fafafa; font-weight: 500;}
 
@@ -126,7 +123,6 @@ textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--b
 .admin-mute-btn.selected { opacity: 1; border-color: #202124 !important; font-weight: 900; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.2); filter: grayscale(0%); }
 
 .status-banner { max-width: 1800px; margin: 0 auto 25px; padding: 20px 30px; background: #282a2c; color: white; border-radius: 16px; display: flex; flex-direction: column; align-items: stretch; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); transition: all 0.3s; border: 1px solid #444;}
-
 .status-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;}
 .status-text { font-weight: 700; font-size: 1.3rem; display: flex; align-items: center; gap: 15px; flex: 1; min-width: 300px; letter-spacing: -0.5px;}
 .status-dot { width: 16px; height: 16px; border-radius: 50%; background: #9aa0a6; display: inline-block; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); transition: background 0.3s;}
@@ -143,7 +139,6 @@ textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--b
 
 .status-middle { display: flex; justify-content: center; gap: 15px; padding: 5px 0; flex-wrap: wrap;}
 .pacemaker-badge { background: #3c4043; color: #7f8489; padding: 10px 20px; border-radius: 20px; font-size: 1rem; font-weight: 800; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); border: 1px solid transparent;}
-
 .pacemaker-badge.active-warning { background: #f9ab00; color: #202124; border-color: #f9ab00; transform: scale(1.05); box-shadow: 0 0 15px rgba(249, 171, 0, 0.6); animation: pulseWarning 1s infinite; }
 .pacemaker-badge.active-danger { background: #d93025; color: #ffffff; border-color: #d93025; transform: scale(1.05); box-shadow: 0 0 15px rgba(217, 48, 37, 0.6); animation: pulseDanger 1s infinite; }
 
@@ -180,48 +175,21 @@ textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--b
 .win-close-btn { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #777; font-size: 1.5rem; cursor: pointer; padding: 8px; border-radius: 50%; font-weight: bold;}
 .win-close-btn:hover { color: var(--danger); background: #fce8e6; }
 
-/* 💡 띄어쓰기 있는 언어(한국어, 영어 등)를 위해 기본 줄바꿈(keep-all) 설정 */
 .content-box { flex: 1; overflow-y: auto; padding: 25px; background-color: #ffffff; border-radius: 0 0 16px 16px; font-size: 1.2rem; line-height: 1.8; scroll-behavior: smooth; word-break: keep-all; overflow-wrap: break-word;}
+.window[lang="ja"] .content-box, .window[lang="zh"] .content-box { word-break: break-all; line-break: strict; }
 
-/* 💡 띄어쓰기 없는 언어(일본어, 중국어) 전용 줄바꿈(break-all) 예외 처리 */
-.window[lang="ja"] .content-box,
-.window[lang="zh"] .content-box {
-    word-break: break-all;
-    line-break: strict;
-}
-
-/* 🌟 [핵심 업데이트] 3+1 와이드 레이아웃 (영어 하단 100% 배치) 🌟 */
+/* PC 대시보드 뷰에서는 기존 3+1 Grid 레이아웃 유지 */
 @media (min-width: 1100px) {
-    .window-container[data-window-count="4"] {
-        grid-template-columns: repeat(3, 1fr) !important;
-    }
-    .window-container[data-window-count="4"] .window {
-        height: 550px; 
-    }
-    .window-container[data-window-count="4"] #win_en {
-        height: 380px !important; 
-    }
+    .window-container[data-window-count="4"] { grid-template-columns: repeat(3, 1fr) !important; }
+    .window-container[data-window-count="4"] .window { height: 550px; }
+    .window-container[data-window-count="4"] #win_en { height: 380px !important; order: 99 !important; grid-column: 1 / -1 !important;}
 }
-
-/* 프로젝터 모드일 때 세로 6:4 비율 적용 */
-body.projector-mode .window-container[data-window-count="4"] {
-    grid-template-columns: repeat(3, 1fr) !important;
-    grid-template-rows: 6fr 4fr !important;
-}
-
-/* 4개 창일 때 영어를 무조건 맨 아래, 100% 와이드로 고정 */
-.window-container[data-window-count="4"] #win_en {
-    order: 99 !important;
-    grid-column: 1 / -1 !important;
-}
-/* 🌟 ========================================== 🌟 */
 
 .sentence { margin-bottom: 25px; padding-bottom: 25px; padding-right: 85px; border-bottom: 1px dashed var(--border); position: relative; word-wrap: break-word; overflow-wrap: break-word;}
 .draft-text { color: #777; font-style: italic; font-weight: 500;}
 .latest-text { font-size: 1.6rem; font-weight: 800; color: var(--text-main); display: block; margin-top: 8px; }
 .original-text { font-size: 1.05rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 600; }
 .same-lang-text { color: var(--text-main); font-weight: 800; font-size: 1.6rem; display: block; }
-
 .tts-btn { position: absolute; right: 0; top: 0; background: #e8eaed; border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: var(--text-main); font-weight: 800; }
 body.tts-disabled .tts-btn { display: none !important; }
 body.tts-disabled .sentence { padding-right: 0; }
@@ -231,9 +199,7 @@ body.tts-disabled .sentence { padding-right: 0; }
 .tts-control-help { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
 .tts-toggle-status { min-width: 42px; color: var(--primary); font-size: 0.95rem; font-weight: 900; text-align: center; }
 
-@media (max-width: 1100px) { 
-    .dashboard-layout { grid-template-columns: repeat(2, 1fr); } 
-}
+@media (max-width: 1100px) { .dashboard-layout { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) {
     html { font-size: 16px; }
     .dashboard-layout { grid-template-columns: 1fr; margin: 15px auto; padding: 0 15px; gap: 20px; }
@@ -254,21 +220,95 @@ body.viewer-mode .latest-text, body.viewer-mode .same-lang-text, body.speaker-mo
 body.viewer-mode .original-text, body.speaker-mode .original-text { color: #bbb; font-size: 1.1rem; }
 body.viewer-mode .sentence, body.speaker-mode .sentence { border-bottom-color: #333; }
 
+/* 🌟 [핵심 업데이트] 빔프로젝터 모드 전용 '자유 플로팅 OS 윈도우' 스타일 🌟 */
 body.projector-mode { background-color: #000; padding: 0; margin: 0; width: 100vw; height: 100vh; overflow: hidden; }
 body.projector-mode .navbar, body.projector-mode .dashboard-layout, body.projector-mode .status-banner, body.projector-mode #viewerTopBar, body.projector-mode #mobileDictationBox, body.projector-mode #requestSpeakBtn, body.projector-mode #mobileMuteBtn { display: none !important; }
-body.projector-mode .window-container { display: grid; width: 100vw; height: 100vh; padding: 1.5vw; gap: 1.5vw; max-width: 100%; box-sizing: border-box; grid-template-columns: repeat(var(--projector-columns, 1), minmax(0, 1fr)); grid-template-rows: repeat(var(--projector-rows, 1), minmax(0, 1fr)); }
 
-body.projector-mode .window { border: 3px solid #444; border-radius: 1vw; background: #0f0f0f; height: 100%; min-width: 0; min-height: 0; margin: 0; transition: all 0.5s ease; overflow: hidden;}
-body.projector-mode .window-header { background: #1a1a1a; color: #fff; border-bottom: 3px solid #555; font-size: 3.5vh; padding: 2vh; border-radius: 0.8vw 0.8vw 0 0; }
-body.projector-mode .content-box { background: #0f0f0f; color: #fff; padding: 4vh; font-size: 3.5vh; border-radius: 0 0 0.8vw 0.8vw; height: 100%;}
+/* 1. Grid 구조 해제 및 도화지화 */
+body.projector-mode .window-container { 
+    display: block !important; 
+    position: relative; 
+    width: 100vw; 
+    height: 100vh; 
+    overflow: hidden; 
+}
+
+/* 2. 개별 창을 완전히 독립적인 레이어로 설정 */
+body.projector-mode .window { 
+    position: absolute !important; 
+    border: 3px solid #444; 
+    border-radius: 1vw; 
+    background: #0f0f0f; 
+    margin: 0; 
+    overflow: hidden; /* 크기 조절을 위해 필수 */
+    resize: both; /* 💡 브라우저 네이티브 모서리 드래그 크기 조절 활성화 */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: box-shadow 0.2s;
+}
+
+/* 3. 드래그/포커스 시 입체감 부여 */
+body.projector-mode .window.focused {
+    box-shadow: 0 0 0 2px var(--primary), 0 20px 50px rgba(0,0,0,0.8);
+}
+
+/* 4. 전체화면 최대화 상태 */
+body.projector-mode .window.maximized {
+    top: 1vh !important;
+    left: 1vw !important;
+    width: 98vw !important;
+    height: 98vh !important;
+    resize: none !important; /* 최대화 상태에선 수동 조절 금지 */
+    z-index: 9999 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.projector-mode .window-header { 
+    background: #1a1a1a; 
+    color: #fff; 
+    border-bottom: 3px solid #555; 
+    font-size: 3.5vh; 
+    padding: 2vh; 
+    border-radius: 0.8vw 0.8vw 0 0; 
+    cursor: move; /* 헤더 드래그 가능 아이콘 */
+}
+
+body.projector-mode .content-box { background: #0f0f0f; color: #fff; padding: 4vh; font-size: 3.5vh; border-radius: 0 0 0.8vw 0.8vw; height: calc(100% - 8vh);} /* 헤더 높이만큼 뺌 */
 body.projector-mode .latest-text, body.projector-mode .same-lang-text { color: #fff; font-size: 6vh; line-height: 1.5; font-weight: 900;}
 body.projector-mode .original-text { color: #aaa; font-size: 2.8vh; margin-bottom: 1.5vh; font-weight: 600;}
 body.projector-mode .tts-btn { display: none; }
 body.projector-mode .sentence { border-bottom: 2px dashed #333; padding-bottom: 2.5vh; margin-bottom: 2.5vh;}
 
+/* 창 우측 상단 OS 컨트롤 버튼들 (확대, 닫기) */
+.win-controls {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 8px;
+}
+.win-btn {
+    background: transparent;
+    border: none;
+    color: #777;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    transition: all 0.2s;
+}
+.win-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.win-btn.close:hover { background: #d93025; color: #fff; }
+
 #exitProjectorBtn { display: none; position: fixed; top: 1vw; right: 1vw; background: rgba(255,255,255,0.15); color: white; border: 2px solid rgba(255,255,255,0.4); padding: 1.5vh 2.5vw; border-radius: 3vw; z-index: 10000; font-size: 2.2vh; font-weight: 800; cursor: pointer; backdrop-filter: blur(10px); transition: background 0.3s;}
 #exitProjectorBtn:hover { background: rgba(217, 48, 37, 0.9); border-color: transparent;}
-body.projector-mode #exitProjectorBtn { display: block; }
+body.projector-mode #exitProjectorBtn { display: block; z-index: 100000 !important;}
 
 #viewerTopBar { display: none; position: fixed; top: 0; left: 0; width: 100%; background: rgba(18, 18, 20, 0.95); padding: 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
 body.viewer-mode #viewerTopBar, body.speaker-mode #viewerTopBar { display: flex; justify-content: center; }
