@@ -171,6 +171,7 @@ textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--b
 .window.error-glow { animation: amberGlow 2s infinite !important; }
 .window.error-glow .window-header { background: rgba(249, 171, 0, 0.1); color: var(--danger); border-bottom-color: rgba(249, 171, 0, 1); }
 
+/* 일반 대시보드 뷰용 헤더 */
 .window-header { position: relative; padding: 22px; border-bottom: 2px solid var(--border); text-align: center; font-weight: 900; font-size: 1.25rem; color: var(--primary); background: #f8fafd; border-radius: 14px 14px 0 0; cursor: grab; user-select: none; transition: all 0.5s ease;}
 .win-close-btn { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #777; font-size: 1.5rem; cursor: pointer; padding: 8px; border-radius: 50%; font-weight: bold;}
 .win-close-btn:hover { color: var(--danger); background: #fce8e6; }
