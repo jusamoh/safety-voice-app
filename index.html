@@ -674,7 +674,7 @@
         
         if (!lang) return showToast("언어를 먼저 선택해주세요.", true);
         if (!nativeName) return showToast("모국어 이름(Native Name)을 입력해주세요.", true); 
-        if (!englishName) return showToast("영문 발음(English Name)을 입력해주세요.", true); 
+        if (!englishName) return showToast("영문 발음을 입력해주세요.", true); 
         
         clientName = `${nativeName} (${englishName})`; document.getElementById('viewerLangSelect').value = lang;
         document.getElementById('joinOverlay').style.display = 'none'; document.getElementById('appContainer').style.display = 'block';
@@ -685,7 +685,7 @@
             document.body.classList.add('speaker-mode'); setTimeout(() => toggleConnection('speaker'), 500);
         }
 
-        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場했습니다. 환영합니다！" };
+        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場しました。歓迎します！" };
         const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
         const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다!`;
 
@@ -1348,8 +1348,22 @@
         else { scheduleReconnect(role, detail); }
     }
 
+    // 🌟 [핵심 업데이트] 자동 재연결 취소 방어 로직 추가
     async function toggleConnection(role, options = {}) {
         const reconnecting = options.reconnecting === true;
+
+        // 🌟 재연결 대기 중 사용자가 버튼을 눌러 강제로 멈추려는 경우
+        if (!reconnecting && reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+            desiredConnectionRole = null;
+            intentionalDisconnect = true;
+            reconnectAttempts = 0;
+            resetUI();
+            showToast("🛑 자동 재연결이 취소되었습니다. 마이크를 확인 후 다시 켜주세요.", true);
+            return; // 이후 연결 시도 로직 차단
+        }
+
         const speakerBtn = document.getElementById('speakerBtn');
         const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!targetLangs.includes('ko')) targetLangs.unshift('ko');
@@ -1359,6 +1373,7 @@
                 if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
                 if (!reconnecting) { desiredConnectionRole = role; reconnectAttempts = 0; }
                 intentionalDisconnect = false;
+                
                 if (role === 'admin' && isHost) {
                     const selectedMic = document.getElementById('audioInputSelect');
                     if (!selectedMic || !selectedMic.value) {
@@ -1366,6 +1381,7 @@
                         if (liveDiagnostic.active) finishLiveDiagnostic(false, "마이크가 선택되지 않았습니다.", "statusMic"); return;
                     }
                 }
+                
                 if (role === 'viewer') { document.body.classList.add('viewer-mode'); filterViewerWindows(); } 
                 else if (role === 'speaker' && window.location.search.includes('room_token')) { document.body.classList.add('speaker-mode'); filterViewerWindows(); }
 
