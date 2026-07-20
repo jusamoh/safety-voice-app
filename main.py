@@ -511,8 +511,8 @@ async def websocket_endpoint(
     client_id: str = Query(None),
     name: str = Query(None),
     ui_lang: str = Query("ko"), 
-    endpointing: int = Query(500), 
-    max_chars: int = Query(30), 
+    endpointing: int = Query(800), 
+    max_chars: int = Query(50), 
     glossary: str = Query("") 
 ):
     if token not in ACTIVE_TOKENS:
@@ -758,7 +758,7 @@ async def websocket_endpoint(
                     replace_rules = ["구독자:참석자", "payment:pavement", "Payment:Pavement", "payments:pavements", "Payments:Pavements", "computer:computing"]
                     replace_param = "".join([f"&replace={r}" for r in replace_rules])
 
-                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&utterance_end_ms=1200&vad_events=true{keywords_param}{replace_param}"
+                    dg_url = f"wss://api.deepgram.com/v1/listen?model=nova-2&language={dg_lang}&smart_format=true&interim_results=true&endpointing={endpointing}&utterance_end_ms=1300&vad_events=true{keywords_param}{replace_param}"
                     headers = {"Authorization": f"Token {DEEPGRAM_API_KEY}"}
 
                     ws_kwargs = {}
