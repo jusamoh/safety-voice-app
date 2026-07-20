@@ -213,7 +213,9 @@ manager = ConnectionManager()
 translation_semaphore = asyncio.Semaphore(2)
 
 FILLER_ONLY_PHRASES = {
-    "아", "어", "음", "흠", "uh", "um", "hmm"
+   "아", "어", "음", "흠", "uh", "um", "hmm",
+    "あの", "えっと", "えーと", "えー", "んー", "うーん", "まあ",
+    "嗯", "啊", "那个", "这个", "呃"
 }
 
 def normalize_targets(targets: str) -> list[str]:
@@ -224,8 +226,10 @@ def normalize_targets(targets: str) -> list[str]:
             result.append(lang)
     return result
 
+# 2. 다국어(한/중/일/영) 문자를 모두 보존하도록 정규식 수정
 def is_filler_only(text: str) -> bool:
-    normalized = re.sub(r'[^0-9a-zA-Z가-힣]+', '', text).lower()
+    # \w는 유니코드 상의 한글, 한자, 일본어(히라가나/가타카나), 알파벳을 모두 포함합니다.
+    normalized = re.sub(r'[^\w]+', '', text).lower()
     return normalized in FILLER_ONLY_PHRASES
 
 async def run_until_first_complete(*coroutines):
