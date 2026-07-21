@@ -185,11 +185,17 @@ textarea.styled-textarea { width: 100%; padding: 16px; border: 2px solid var(--b
 .content-box { flex: 1; overflow-y: auto; padding: 25px; background-color: #ffffff; border-radius: 0 0 16px 16px; font-size: 1.2rem; line-height: 1.8; scroll-behavior: smooth; word-break: keep-all; overflow-wrap: break-word;}
 .window[lang="ja"] .content-box, .window[lang="zh"] .content-box { word-break: break-all; line-break: strict; }
 
-/* PC 대시보드 뷰에서는 기존 3+1 Grid 레이아웃 유지 */
+/* 영어를 포함해 3개 이상 표시할 때: 나머지 언어는 위쪽 열, 영어는 아래쪽 전체 너비 */
 @media (min-width: 1100px) {
-    .window-container[data-window-count="4"] { grid-template-columns: repeat(3, 1fr) !important; }
-    .window-container[data-window-count="4"] .window { height: 550px; }
-    .window-container[data-window-count="4"] #win_en { height: 380px !important; order: 99 !important; grid-column: 1 / -1 !important;}
+    .window-container[data-english-wide-layout] {
+        grid-template-columns: repeat(var(--top-language-count), minmax(0, 1fr)) !important;
+    }
+    .window-container[data-english-wide-layout] .window { height: 550px; }
+    .window-container[data-english-wide-layout] #win_en {
+        height: 380px !important;
+        order: 99 !important;
+        grid-column: 1 / -1 !important;
+    }
 }
 
 .sentence { margin-bottom: 25px; padding-bottom: 25px; padding-right: 85px; border-bottom: 1px dashed var(--border); position: relative; word-wrap: break-word; overflow-wrap: break-word;}
