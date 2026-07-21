@@ -1,12 +1,12 @@
-const CACHE_VERSION = 'global-interpreter-v1';
+const CACHE_VERSION = 'global-interpreter-v2';
 const APP_SHELL = [
   '/',
   '/style.css',
   '/i18n.js',
   '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-maskable-512.png'
+  '/icons/icon-conference-192.png',
+  '/icons/icon-conference-512.png',
+  '/icons/icon-conference-maskable-512.png'
 ];
 const CACHEABLE_PATHS = new Set(APP_SHELL);
 
