@@ -259,7 +259,15 @@ class ConnectionManager:
         self.floor_owner = None
         asyncio.create_task(self.broadcast_floor_state())
 
-manager = ConnectionManager()
+room_managers: dict[str, ConnectionManager] = {}
+
+def get_room_manager(room_token: str) -> ConnectionManager:
+    manager = room_managers.get(room_token)
+    if manager is None:
+        manager = ConnectionManager()
+        room_managers[room_token] = manager
+    return manager
+
 translation_semaphore = asyncio.Semaphore(2)
 
 FILLER_ONLY_PHRASES = {
@@ -275,6 +283,29 @@ def normalize_targets(targets: str) -> list[str]:
         if lang and re.fullmatch(r'[a-z-]+', lang) and lang not in result:
             result.append(lang)
     return result
+
+LANGUAGE_TAG_PATTERN = re.compile(
+    r'(?im)^\s*\[(original|[a-z]{2,3}(?:-[a-z0-9]+)*)\]\s*'
+)
+
+def parse_tagged_response(response_text: str, allowed_targets: list[str]) -> dict[str, str]:
+    """Parse every language tag as a boundary, then keep only requested targets.
+
+    The model can occasionally emit an unrequested tag such as [ja] or [zh].
+    Treating only requested tags as delimiters would append those sections to the
+    preceding requested language. Recognising every language-like tag prevents
+    that content from leaking into another language's result.
+    """
+    allowed = {"original", *allowed_targets}
+    matches = list(LANGUAGE_TAG_PATTERN.finditer(response_text))
+    parsed: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        tag = match.group(1).lower()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(response_text)
+        value = response_text[match.end():end].strip()
+        if tag in allowed and value:
+            parsed[tag] = value
+    return parsed
 
 def is_filler_only(text: str) -> bool:
     normalized = re.sub(r'[^\w]+', '', text).lower()
@@ -292,7 +323,10 @@ async def run_until_first_complete(*coroutines):
             raise exception
 
 @app.post("/api/upload_context")
-async def upload_context(file: UploadFile = File(...)):
+async def upload_context(token: str = Query(...), file: UploadFile = File(...)):
+    if token not in ACTIVE_TOKENS:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    manager = get_room_manager(token)
     content = await file.read()
     ext = file.filename.split('.')[-1].lower()
     extracted_text = ""
@@ -337,7 +371,7 @@ async def update_sliding_summary(summary_state: dict, new_sentences: list):
     except Exception as e:
         print(f"Summary Error: {e}", flush=True)
 
-async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str):
+async def translate_and_send(text: str, source_lang: str, targets: str, recent_history: list, summary_state: dict, glossary_text: str, msg_id: str, role: str, name: str, manager: ConnectionManager):
     had_error = False
     try:
         target_list = normalize_targets(targets)
@@ -376,7 +410,7 @@ CRITICAL INSTRUCTIONS (MUST OBEY):
 9. [STRICT NO FABRICATION]: Do not over-infer or complete fragmented sentences. If the STT input is an incomplete fragment (e.g., "Therefore...", "This is..."), translate ONLY the fragment. NEVER fabricate technical facts, verbs, or complete the sentence based on past context.
 10. [ACRONYM & REGULATION PRESERVATION]: Internationally recognized civil engineering acronyms (e.g., GPR, IMU) MUST be kept in English capital letters across all outputs. Additionally, keep local country-specific standards (e.g., KS, JIS, GB) in their original names. Do not arbitrarily localize them.
 11. [OPERATIONAL PHRASE TRANSLATION & TRIMMING]: NEVER output [SKIP]. You must translate functional meeting phrases (e.g., "마이크 테스트", "다음 슬라이드") without omission. However, drastically trim overly lengthy ceremonial greetings down to their core meaning (e.g., "Thank you for attending") to save display space.
-12. [CROSS-LINGUAL CONSISTENCY]: Ensure the core engineering concept remains identical across KR, EN, CN, and JP translations. Use the English standard as the semantic anchor.
+12. [CROSS-LINGUAL CONSISTENCY]: Ensure the core engineering concept remains identical across the requested target languages. Use the English standard as the semantic anchor when English is requested.
 13. [GLOSSARY OVERRIDE & HIGHLIGHTING]: If a [REFERENCE DOCUMENT / GLOSSARY] is provided, its terminology ABSOLUTELY OVERRIDES your pre-trained knowledge. Whenever you use a translated term from this glossary, you MUST wrap it in double asterisks (e.g., Flexible Pavement, 소성변형).
 14. [COMPLETE TARGET COVERAGE]: Every requested language tag MUST contain a non-empty translation. Never omit a tag and never leave its content blank.
 15. [SPEAKER PERSPECTIVE ALIGNMENT]: Maintain the speaker's first-person perspective as the researcher/engineer. Do not translate as a third-party observer.
@@ -398,6 +432,7 @@ CRITICAL INSTRUCTIONS (MUST OBEY):
 31. [EQUATION DICTATION FORMATTING]: If the speaker dictates an equation verbally (e.g., "A equals B divided by C squared"), format it into actual mathematical symbols ("A = B / C^2") rather than spelling it out in words.
 32. [MODERATOR TRANSITION TAGGING]: Translate the moderator's procedural phrases indicating session transitions (e.g., "Let's welcome the next speaker", "We will now take questions") into the most clear, concise, and action-oriented sentences, preventing them from mixing with academic content.
 33. [ZERO META-TALK]: ABSOLUTELY NEVER output your internal reasoning, "CRITICAL CONTEXT ANALYSIS", warnings, or explanations. Any extra words besides the pure translation will critically break the UI system.
+34. [REQUESTED LANGUAGES ONLY]: Output ONLY [original] and these requested language tags: {', '.join(target_list)}. NEVER output an unrequested language or tag.
 {lang_instruction}
 
 Respond EXACTLY in this tag format (DO NOT USE JSON).
@@ -424,12 +459,6 @@ ABSOLUTELY NO METADATA, NO REASONING, NO ANALYSIS. JUST THE FINAL TEXT.
             for target in missing_targets: 
                 attempt_prompt += f"[{target}]\n"
             
-            allowed_tag_pattern = '|'.join(re.escape(tag) for tag in ['original', *missing_targets])
-            response_pattern = re.compile(
-                rf'\[({allowed_tag_pattern})\]\s*(.*?)(?=\[(?:{allowed_tag_pattern})\]|$)',
-                re.DOTALL | re.IGNORECASE
-            )
-
             buffer = ""
             stop_reason = None
             try:
@@ -445,10 +474,8 @@ ABSOLUTELY NO METADATA, NO REASONING, NO ANALYSIS. JUST THE FINAL TEXT.
                     async for event in stream:
                         if event.type == "content_block_delta" and getattr(event.delta, "text", None):
                             buffer += event.delta.text
-                            matches = response_pattern.finditer(buffer)
-                            for match in matches:
-                                lang = match.group(1).lower().strip()
-                                text_so_far = match.group(2).strip()
+                            partial_results = parse_tagged_response(buffer, missing_targets)
+                            for lang, text_so_far in partial_results.items():
                                 if lang in missing_targets and text_so_far and "[SKIP]" not in text_so_far.upper():
                                     await manager.broadcast_json({
                                         "type": "stream_update", 
@@ -461,9 +488,7 @@ ABSOLUTELY NO METADATA, NO REASONING, NO ANALYSIS. JUST THE FINAL TEXT.
                         elif event.type == "message_delta":
                             stop_reason = getattr(event.delta, "stop_reason", None)
 
-                parsed = {}
-                for match in response_pattern.finditer(buffer): 
-                    parsed[match.group(1).lower().strip()] = match.group(2).strip()
+                parsed = parse_tagged_response(buffer, missing_targets)
                 
                 if parsed.get('original'): 
                     original_text = parsed['original']
@@ -570,6 +595,7 @@ async def websocket_endpoint(
     if not name: 
         name = f"User_{client_id}"
 
+    manager = get_room_manager(token)
     await manager.connect(websocket, client_id, name, role, ui_lang)
     recent_history = [] 
     summary_state = {"text": ""} 
@@ -755,7 +781,7 @@ async def websocket_endpoint(
                                     elif msg["type"] == "final":
                                         await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
                                         detected_lang = raw_lid[:2] if raw_lid != "unknown" else "multi_azure"
-                                        asyncio.create_task(translate_and_send(text, detected_lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
+                                        asyncio.create_task(translate_and_send(text, detected_lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name, manager))
                                         current_msg_id = secrets.token_hex(4)
                                         sentence_start_time = time.time() 
                         except Exception as e:
@@ -913,7 +939,7 @@ async def websocket_endpoint(
                                     last_translated_text = final_text
                                     last_translated_at = now
                                     await manager.broadcast_json({"type": "status", "text": "⏳ 다국어 번역 중..."})
-                                    asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name))
+                                    asyncio.create_task(translate_and_send(final_text, lang, manager.global_targets, recent_history, summary_state, manager.global_glossary, current_msg_id, role, name, manager))
                                 current_sentence = ""
                                 current_msg_id = secrets.token_hex(4)
                                 sentence_start_time = now

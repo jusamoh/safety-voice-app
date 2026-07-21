@@ -446,7 +446,7 @@
         statusDiv.innerHTML = "⏳ 문서 문맥 준비 중... 잠시만 기다려주세요.";
         
         try {
-            const res = await fetch('/api/upload_context', { method: 'POST', body: formData });
+            const res = await fetch(`/api/upload_context?token=${encodeURIComponent(authToken)}`, { method: 'POST', body: formData });
             if (!res.ok) {
                 const errorText = await res.text();
                 statusDiv.innerHTML = `❌ <b>[서버 오류 ${res.status}]</b> 상세: ${errorText}`;
@@ -579,6 +579,8 @@
                 adminLangSelect.appendChild(adminOpt);
             }
         });
+
+        if (roomToken) applyRoomTargetOptions();
         
         const savedDomain = localStorage.getItem("savedMeetingDomain");
         if (savedDomain) { document.getElementById('mainNavTitle').innerText = `🌍 Global Customized Real-time Interpretation Support System for ${savedDomain}`; }
@@ -594,7 +596,32 @@
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
     const urlRole = urlParams.get('role');
+    const roomTargetLangs = (urlParams.get('targets') || '')
+        .split(',')
+        .map(lang => lang.trim().toLowerCase())
+        .filter((lang, index, items) => /^[a-z]{2,3}(?:-[a-z0-9]+)*$/.test(lang) && items.indexOf(lang) === index);
     const isHost = !roomToken; 
+
+    function getEffectiveTargetLangs() {
+        if (!isHost && roomTargetLangs.length) return [...roomTargetLangs];
+        const selected = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+        if (!selected.includes('ko')) selected.unshift('ko');
+        return selected;
+    }
+
+    function applyRoomTargetOptions() {
+        if (!roomTargetLangs.length) return;
+        ['joinLangSelect', 'viewerLangSelect'].forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            Array.from(select.options).forEach(option => {
+                const allowed = !option.value || roomTargetLangs.includes(option.value);
+                option.hidden = !allowed;
+                option.disabled = !allowed;
+            });
+            if (select.value && !roomTargetLangs.includes(select.value)) select.value = '';
+        });
+    }
 
     if (roomToken) {
         authToken = roomToken;
@@ -1310,8 +1337,7 @@
         }
 
         const speakerBtn = document.getElementById('speakerBtn');
-        const targetLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
-        if (!targetLangs.includes('ko')) targetLangs.unshift('ko');
+        const targetLangs = getEffectiveTargetLangs();
 
         if (!isConnected) {
             try {
@@ -1449,6 +1475,7 @@
                         }
 
                         let langsToUpdate = (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode')) ? res.targets || [] : Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
+                        if (!isHost && roomTargetLangs.length) langsToUpdate = langsToUpdate.filter(lang => roomTargetLangs.includes(lang));
                         if (!langsToUpdate.includes('ko')) langsToUpdate.push('ko');
 
                         langsToUpdate.forEach(lang => {
@@ -1462,7 +1489,9 @@
                     else if (res.type === "stream_update" || res.type === "stream_end") {
                         if (res.original_text) recordLiveDiagnosticStt(res.original_text);
                         recordLiveDiagnosticTranslation(res);
-                        const lang = res.lang; const box = ensureWindowExists(lang); let div = document.getElementById(`${res.msg_id}_${lang}`);
+                        const lang = res.lang;
+                        if (!isHost && roomTargetLangs.length && !roomTargetLangs.includes(lang)) return;
+                        const box = ensureWindowExists(lang); let div = document.getElementById(`${res.msg_id}_${lang}`);
                         if(isHost && res.type === "stream_update") { document.getElementById('statusAi').className = 'status-indicator status-green'; }
                         if (!div) { div = document.createElement('div'); div.id = `${res.msg_id}_${lang}`; div.className = 'sentence'; box.appendChild(div); }
 
