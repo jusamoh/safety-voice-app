@@ -222,12 +222,11 @@
                 <span id="statusIndicator" class="status-dot"></span>
                 <span id="statusMessage">[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.</span>
             </div>
-            <div class="rehearsal-wrapper" title="ON: 뱃지 점멸로 발표자 페이스 조절 유도 / OFF: 사회자 팝업으로만 은밀히 전송">
-                <span class="rehearsal-label">🎓 발표자 리허설 모드</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="rehearsalToggle" onchange="sendConfigUpdate()">
-                    <span class="slider-round"></span>
-                </label>
+            <div class="status-feedback" aria-label="발표 품질 안내">
+                <div id="badge-pause" class="pacemaker-badge">⏸️ 문장 간 숨 고르기</div>
+                <div id="badge-mic" class="pacemaker-badge">🎙️ 발음 명확히 (마이크)</div>
+                <div id="badge-speed" class="pacemaker-badge">🐢 말하는 속도 조절</div>
+                <div id="badge-length" class="pacemaker-badge">✂️ 한 문장 길이 단축</div>
             </div>
         </div>
 
@@ -238,13 +237,6 @@
                 <summary>상세 원인 보기</summary>
                 <div id="systemIssueDetail"></div>
             </details>
-        </div>
-        
-        <div class="status-middle">
-            <div id="badge-pause" class="pacemaker-badge">⏸️ 문장 간 숨 고르기</div>
-            <div id="badge-mic" class="pacemaker-badge">🎙️ 발음 명확히 (마이크)</div>
-            <div id="badge-speed" class="pacemaker-badge">🐢 말하는 속도 조절</div>
-            <div id="badge-length" class="pacemaker-badge">✂️ 한 문장 길이 단축</div>
         </div>
         
         <div class="status-bottom">
@@ -857,10 +849,9 @@
             const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
             if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
             const glossaryData = document.getElementById('glossaryInput').value;
-            const isRehearsal = document.getElementById('rehearsalToggle').checked;
             const ttsEnabledToggle = document.getElementById('ttsEnabledToggle');
             const ttsEnabled = ttsEnabledToggle ? ttsEnabledToggle.checked : false;
-            ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(','), rehearsal_mode: isRehearsal, tts_enabled: ttsEnabled }));
+            ws.send(JSON.stringify({ type: "config", glossary: glossaryData, targets: checkedLangs.join(','), tts_enabled: ttsEnabled }));
             const newLangMode = document.getElementById('speakerLang').value;
             try {
                 const currentUrl = new URL(ws.url);
@@ -1455,11 +1446,10 @@
                     else if (res.type === "speak_revoked") { stopDynamicSpeaking(); showToast("🛑 사회자에 의해 발언권이 회수되었습니다.", true); }
                     else if (res.type === "alert") triggerAlert();
                     else if (res.type === "speaker_feedback") {
-                        const isRehearsalOn = document.getElementById('rehearsalToggle') ? document.getElementById('rehearsalToggle').checked : false;
-                        if (isHost && !isRehearsalOn) {
+                        if (isHost) {
                             let reason = ""; if (res.code === "speed") reason = "말하기 속도 초과"; if (res.code === "pause") reason = "숨 고르기 필요"; if (res.code === "mic") reason = "마이크 발음 저하"; if (res.code === "length") reason = "문장 길이 초과";
                             showToast(`⚠️ [${res.speaker_name}] ${reason}`, true);
-                        } 
+                        }
                         const badge = document.getElementById(`badge-${res.code}`);
                         if (badge) {
                             const activeClass = (res.code === "mic") ? 'active-danger' : 'active-warning'; badge.classList.add(activeClass);
