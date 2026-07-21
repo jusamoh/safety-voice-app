@@ -162,7 +162,6 @@ class ConnectionManager:
         self.global_glossary = ""
         self.global_document_context = "" 
         self.speaking_allowed_clients = set()
-        self.is_rehearsal_mode = False 
         self.is_tts_enabled = False
 
     async def connect(self, websocket: WebSocket, client_id: str, name: str, role: str, ui_lang: str):
@@ -238,14 +237,9 @@ class ConnectionManager:
             except Exception: 
                 pass
             
-    async def broadcast_feedback(self, message: dict, speaker_id: str):
+    async def broadcast_feedback(self, message: dict):
         for ws, info in self.clients.items():
-            is_target = False
-            if info["role"] == "admin": 
-                is_target = True
-            elif self.is_rehearsal_mode and info["id"] == speaker_id: 
-                is_target = True
-            if is_target:
+            if info["role"] == "admin":
                 try: 
                     await ws.send_json(message)
                 except Exception: 
@@ -728,8 +722,6 @@ async def websocket_endpoint(
                                                     manager.global_glossary = msg.get("glossary", "")
                                                 if "targets" in msg: 
                                                     manager.global_targets = msg.get("targets", manager.global_targets)
-                                                if "rehearsal_mode" in msg: 
-                                                    manager.is_rehearsal_mode = msg["rehearsal_mode"]
                                                 if "tts_enabled" in msg: 
                                                     manager.is_tts_enabled = bool(msg["tts_enabled"])
                                                     await manager.broadcast_display_settings()
@@ -768,10 +760,10 @@ async def websocket_endpoint(
                                     if msg["type"] == "interim":
                                         elapsed_time = time.time() - sentence_start_time
                                         if elapsed_time > 8:
-                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
-                                            sentence_start_time = time.time() 
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name})
+                                            sentence_start_time = time.time()
                                         if len(text) > max_chars:
-                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name}, client_id)
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name})
                                             
                                         await manager.broadcast_json({
                                             "type": "interim", 
@@ -896,8 +888,6 @@ async def websocket_endpoint(
                                                         manager.global_glossary = msg.get("glossary", "")
                                                     if "targets" in msg: 
                                                         manager.global_targets = msg.get("targets", manager.global_targets)
-                                                    if "rehearsal_mode" in msg: 
-                                                        manager.is_rehearsal_mode = msg["rehearsal_mode"]
                                                     if "tts_enabled" in msg: 
                                                         manager.is_tts_enabled = bool(msg["tts_enabled"])
                                                         await manager.broadcast_display_settings()
@@ -991,12 +981,12 @@ async def websocket_endpoint(
                                         elapsed_time = time.time() - sentence_start_time
 
                                         if confidence > 0 and confidence < 0.6: 
-                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "mic", "speaker_name": name}, client_id)
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "mic", "speaker_name": name})
                                         elif elapsed_time > 8 and len(current_sentence) > 20:
-                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name}, client_id)
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "pause", "speaker_name": name})
                                             sentence_start_time = time.time()
                                         elif len(display_text) > max_chars: 
-                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name}, client_id)
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "length", "speaker_name": name})
 
                                         await manager.broadcast_json({
                                             "type": "interim", 
@@ -1009,7 +999,7 @@ async def websocket_endpoint(
                                         current_sentence = f"{current_sentence} {transcript}".strip()
                                         elapsed_time = time.time() - sentence_start_time
                                         if elapsed_time > 0 and (len(transcript) / elapsed_time) > 13: 
-                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "speed", "speaker_name": name}, client_id)
+                                            await manager.broadcast_feedback({"type": "speaker_feedback", "code": "speed", "speaker_name": name})
 
                                     is_semantic_end = current_sentence.endswith(('.', '?', '!'))
                                     if speech_final or len(current_sentence) > max_chars or is_semantic_end: 
