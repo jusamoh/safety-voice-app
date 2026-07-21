@@ -573,7 +573,7 @@
                 viewOpt.value = code; viewOpt.innerText = langNames[code];
                 viewerSelect.appendChild(viewOpt);
             }
-            if (['ko', 'en', 'ja', 'zh'].includes(code) && adminLangSelect && !adminLangSelect.querySelector(`option[value="${code}"]`)) {
+            if (adminLangSelect && !adminLangSelect.querySelector(`option[value="${code}"]`)) {
                 const adminOpt = document.createElement('option');
                 adminOpt.value = code; adminOpt.innerText = langNames[code];
                 adminLangSelect.appendChild(adminOpt);
@@ -868,7 +868,7 @@
             const adminLang = document.getElementById('viewerLangSelect').value || 'ko';
             const optAdmin = document.createElement('option'); optAdmin.value = adminLang; optAdmin.innerText = `🚀 기본 언어 (${localizedLanguageName(adminLang)}) 집중 모드`;
             speakerLangSelect.appendChild(optAdmin);
-            checkedLangs.forEach(lang => {
+            Object.keys(langNames).forEach(lang => {
                 if (lang !== adminLang) {
                     const opt = document.createElement('option'); opt.value = lang; opt.innerText = `🎙️ ${localizedLanguageName(lang)} 집중 모드`;
                     speakerLangSelect.appendChild(opt);
