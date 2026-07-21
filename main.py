@@ -131,7 +131,14 @@ async def get_service_worker():
         headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/"}
     )
 
-PWA_ICONS = {"icon-192.png", "icon-512.png", "icon-maskable-512.png"}
+PWA_ICONS = {
+    "icon-192.png",
+    "icon-512.png",
+    "icon-maskable-512.png",
+    "icon-conference-192.png",
+    "icon-conference-512.png",
+    "icon-conference-maskable-512.png",
+}
 
 @app.get("/icons/{icon_name}", include_in_schema=False)
 async def get_pwa_icon(icon_name: str):
