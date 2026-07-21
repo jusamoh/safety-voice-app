@@ -766,7 +766,11 @@
         while (rows > 1 && windowCount % rows !== 0) rows--;
 
         const columns = windowCount > 0 ? windowCount / rows : 1;
+        const hasVisibleEnglish = visibleWindows.some(windowDiv => windowDiv.id === 'win_en');
+        const useEnglishWideLayout = hasVisibleEnglish && windowCount >= 3;
         container.setAttribute('data-window-count', windowCount);
+        container.toggleAttribute('data-english-wide-layout', useEnglishWideLayout);
+        container.style.setProperty('--top-language-count', Math.max(1, windowCount - 1));
         container.style.setProperty('--projector-columns', columns);
         container.style.setProperty('--projector-rows', rows);
     }
@@ -975,21 +979,23 @@
             win.style.zIndex = highestZIndex + index;
         });
 
-        if (winCount === 4) {
-            const enWin = windows.find(w => w.id === 'win_en');
+        const enWin = windows.find(w => w.id === 'win_en');
+        const useEnglishWideLayout = Boolean(enWin) && winCount >= 3;
+
+        if (useEnglishWideLayout) {
             const topWins = windows.filter(w => w.id !== 'win_en');
+            const gap = 1.5;
+            const width = (96 - ((topWins.length - 1) * gap)) / topWins.length;
             topWins.forEach((win, i) => {
                 win.style.top = '2vh';
-                win.style.left = (2 + i * 32.5) + 'vw';
-                win.style.width = '31vw';
+                win.style.left = (2 + i * (width + gap)) + 'vw';
+                win.style.width = width + 'vw';
                 win.style.height = '55vh';
             });
-            if (enWin) {
-                enWin.style.top = '60vh';
-                enWin.style.left = '2vw';
-                enWin.style.width = '96vw';
-                enWin.style.height = '38vh';
-            }
+            enWin.style.top = '60vh';
+            enWin.style.left = '2vw';
+            enWin.style.width = '96vw';
+            enWin.style.height = '38vh';
         } 
         else if (winCount > 0) {
             const width = 96 / winCount;
