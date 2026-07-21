@@ -533,9 +533,10 @@ ABSOLUTELY NO METADATA, NO REASONING, NO ANALYSIS. JUST THE FINAL TEXT.
 
         if translations:
             recent_history.append(original_text)
-            if len(recent_history) >= 5:
-                sentences_to_summarize = recent_history[:3]
-                del recent_history[:3]
+            # 5에서 3 또는 4로 낮추어 더 빨리 요약 사이클을 돌립니다.
+            if len(recent_history) >= 3:
+                sentences_to_summarize = recent_history[:2]
+                del recent_history[:2]
                 asyncio.create_task(update_sliding_summary(summary_state, sentences_to_summarize))
 
         for lang in target_list:
