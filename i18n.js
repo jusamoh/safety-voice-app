@@ -78,7 +78,6 @@
         '🎙️ 토론자(패널) QR': ['🎙️ Panelist QR', '🎙️ パネリスト用QR', '🎙️ 嘉宾二维码'],
         '[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.': ['[ ⏸️ System Ready ] Start the microphone to begin interpretation.', '[ ⏸️ システム待機中 ] マイクを開始すると通訳が始まります。', '[ ⏸️ 系统待机 ] 开启麦克风后开始口译。'],
         'ON: 뱃지 점멸로 발표자 페이스 조절 유도 / OFF: 사회자 팝업으로만 은밀히 전송': ['ON: show pacing cues to the speaker / OFF: show them only to the moderator', 'ON：発表者にもペース通知／OFF：司会者のみに通知', '开启：向发言人显示节奏提示／关闭：仅向主持人显示'],
-        '🎓 발표자 리허설 모드': ['🎓 Speaker Rehearsal Mode', '🎓 発表者リハーサルモード', '🎓 发言人彩排模式'],
         '상세 원인 보기': ['View Details', '詳細を表示', '查看详细原因'],
         '추가 상세 정보가 없습니다.': ['No additional details are available.', '追加の詳細情報はありません。', '没有更多详细信息。'],
         '⏸️ 문장 간 숨 고르기': ['⏸️ Pause Between Sentences', '⏸️ 文の間で一呼吸', '⏸️ 句间停顿'],
