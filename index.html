@@ -382,14 +382,18 @@
         }
 
         setTimeout(() => {
+            clearSystemIssue('diagnostic');
             if (isConnected && mediaRecorder && mediaRecorder.state === "recording") {
                 updateStatus("[ 🔴 ON AIR ] 실시간 AI 통역 엔진 가동 중...", true);
+            } else {
+                updateStatus("[ ⏸️ 시스템 대기 중 ] 마이크를 켜면 통역이 시작됩니다.", false);
             }
         }, 4000);
     }
 
     async function runLiveDiagnostic() {
         if (liveDiagnostic.active) return;
+        clearSystemIssue('diagnostic');
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showToast("이 브라우저는 마이크 진단을 지원하지 않습니다.", true); return; }
 
         const audioSelect = document.getElementById("audioInputSelect");
