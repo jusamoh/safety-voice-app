@@ -22,6 +22,14 @@ body {
     font-variant-numeric: tabular-nums; 
 }
 
+@media (display-mode: standalone) {
+    body { padding-top: env(safe-area-inset-top); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+    #viewerTopBar { padding-top: max(15px, env(safe-area-inset-top)); }
+    #mobileMuteBtn, #activeMicBtn, #requestSpeakBtn { bottom: max(30px, env(safe-area-inset-bottom)); }
+}
+
+#installAppBtn { align-items: center; justify-content: center; }
+
 #loginOverlay, #adminSetupOverlay, #joinOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(32, 33, 36, 0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(8px); overflow-y: auto;}
 
 .login-box { background: var(--card-bg); padding: 45px 30px; border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); width: 90%; max-width: 480px; text-align: center; margin: auto;}

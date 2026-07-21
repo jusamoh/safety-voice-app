@@ -111,6 +111,34 @@ async def get():
 async def get_css():
     return FileResponse("style.css")
 
+@app.get("/i18n.js", include_in_schema=False)
+async def get_i18n():
+    return FileResponse("i18n.js", media_type="application/javascript")
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+async def get_manifest():
+    return FileResponse(
+        "manifest.webmanifest",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache"}
+    )
+
+@app.get("/service-worker.js", include_in_schema=False)
+async def get_service_worker():
+    return FileResponse(
+        "service-worker.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/"}
+    )
+
+PWA_ICONS = {"icon-192.png", "icon-512.png", "icon-maskable-512.png"}
+
+@app.get("/icons/{icon_name}", include_in_schema=False)
+async def get_pwa_icon(icon_name: str):
+    if icon_name not in PWA_ICONS:
+        raise HTTPException(status_code=404, detail="Icon not found")
+    return FileResponse(os.path.join("icons", icon_name), media_type="image/png")
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     from fastapi import Response
@@ -276,7 +304,7 @@ async def upload_context(file: UploadFile = File(...)):
         
         extracted_text = extracted_text[:50000]
         manager.global_document_context = extracted_text
-        return JSONResponse({"success": True, "message": "문서 파싱 및 AI 학습 준비 완료"})
+        return JSONResponse({"success": True, "message": "문서 문맥 준비 완료"})
     except Exception as e:
         return JSONResponse({"success": False, "message": f"문서 처리 중 오류 발생: {str(e)}"})
 

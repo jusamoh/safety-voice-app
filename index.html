@@ -3,9 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Global Interpreter">
     <title>글로벌 맞춤형 실시간 통역 지원 시스템</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/i18n.js"></script>
 </head>
 <body class="tts-disabled">
 <div id="toast"></div>
@@ -31,7 +40,7 @@
         <input type="text" id="adminDomainInput" class="login-input" placeholder="ex) Highway Engineering">
         
         <label>2. 방장 언어 선택 (Admin Lang)</label>
-        <select id="adminLangSelect" class="login-input">
+        <select id="adminLangSelect" class="login-input" onchange="setUiLanguage(this.value)">
             <option value="" disabled selected>언어를 선택하세요</option>
         </select>
         
@@ -50,7 +59,7 @@
         <h2 id="joinTitle" style="color: var(--warning);">👋 환영합니다</h2>
         <p class="subtitle">설정을 완료해주세요.</p>
         <label>1. 내 언어 선택</label>
-        <select id="joinLangSelect" class="login-input" onchange="checkJoinForm()">
+        <select id="joinLangSelect" class="login-input" onchange="setUiLanguage(this.value); checkJoinForm()">
             <option value="" disabled selected>언어를 선택하세요</option>
         </select>
         <div id="joinNameSection" style="display: none;">
@@ -66,6 +75,7 @@
         <div id="mainNavTitle" class="nav-brand">🌍 Global Customized Real-time Interpretation Support System</div>
         <div class="nav-actions">
             <span id="userBadge" class="user-badge"></span>
+            <button id="installAppBtn" class="btn-outline" style="display:none;" onclick="installPwaApp()">📲 앱 설치</button>
             <button id="projectorBtn" class="btn-outline" onclick="toggleProjectorMode()">📽️ 빔 프로젝터 뷰</button>
             <button class="btn-outline" onclick="clearAllLogs()">🗑️ 화면정리</button>
             <button id="downloadBtn" class="btn-outline" onclick="downloadTranscript()">📄 기록저장</button>
@@ -98,7 +108,7 @@
                 <button class="btn-primary" onclick="addExtraLanguage()">추가</button>
             </div>
             <div class="chip-group" id="targetCheckboxes">
-                <label class="lang-chip"><input type="checkbox" value="ko" checked disabled> <span>🇰🇷 한국어</span></label>
+                <label class="lang-chip"><input type="checkbox" value="ko" checked disabled> <span data-language-code="ko">🇰🇷 한국어</span></label>
             </div>
         </div>
         
@@ -306,9 +316,9 @@
         const issue = Array.from(systemIssues.values()).at(-1);
 
         if (!issue) { panel.classList.remove('visible'); return; }
-        document.getElementById('systemIssueTitle').innerText = `⚠️ ${issue.code}`;
-        document.getElementById('systemIssueMessage').innerText = issue.message;
-        document.getElementById('systemIssueDetail').innerText = issue.detail || '추가 상세 정보가 없습니다.';
+        document.getElementById('systemIssueTitle').innerText = `⚠️ ${uiText(issue.code)}`;
+        document.getElementById('systemIssueMessage').innerText = uiText(issue.message);
+        document.getElementById('systemIssueDetail').innerText = uiText(issue.detail || '추가 상세 정보가 없습니다.');
         panel.classList.add('visible');
     }
 
@@ -345,7 +355,7 @@
         if (!isCrossLingual) return;
         liveDiagnostic.translationReceived = true;
         setDiagnosticIndicator("statusAi", "green");
-        finishLiveDiagnostic(true, `실제 마이크 음성이 STT와 ${langNames[targetLang] || targetLang} 번역까지 정상 처리되었습니다.`);
+        finishLiveDiagnostic(true, `실제 마이크 음성이 STT와 ${localizedLanguageName(targetLang)} 번역까지 정상 처리되었습니다.`);
     }
 
     function finishLiveDiagnostic(success, message, failedIndicator = null) {
@@ -433,7 +443,7 @@
         formData.append("file", file);
         
         const statusDiv = document.getElementById('contextUploadStatus');
-        statusDiv.innerHTML = "⏳ 문서 분석 및 AI 학습 중... 잠시만 기다려주세요.";
+        statusDiv.innerHTML = "⏳ 문서 문맥 준비 중... 잠시만 기다려주세요.";
         
         try {
             const res = await fetch('/api/upload_context', { method: 'POST', body: formData });
@@ -444,8 +454,8 @@
             }
             const data = await res.json();
             if (data.success) {
-                statusDiv.innerHTML = `✅ <b>${file.name}</b> 학습 완료!<br>이제 AI가 이 문서의 문맥을 참고하여 통역합니다.`;
-                showToast("✅ 문서 기반 AI 학습이 완료되었습니다.");
+                statusDiv.innerHTML = `✅ <b>${file.name}</b><br>${uiText('문서 문맥 준비 완료')}`;
+                showToast(uiText("✅ 문서 문맥 준비가 완료되었습니다."));
             } else {
                 statusDiv.innerHTML = `❌ 오류 발생: ${data.message || '알 수 없는 시스템 거부'}`;
                 showToast("문서 업로드 실패", true);
@@ -507,7 +517,7 @@
 
     function showToast(message, isError = false) {
         const toast = document.getElementById("toast");
-        toast.innerText = message;
+        toast.innerText = uiText(message);
         if(isError) toast.classList.add("error");
         else toast.classList.remove("error");
         toast.className = "show";
@@ -517,7 +527,7 @@
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     const langNames = {
-        "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "zh": "🇨🇳 중국어", "ja": "🇯🇵 일본어",
+        "ko": "🇰🇷 한국어", "en": "🇺🇸 영어", "ja": "🇯🇵 일본어", "zh": "🇨🇳 중국어",
         "id": "🇮🇩 인니어", "vi": "🇻🇳 베트남어", "th": "🇹🇭 태국어", "tl": "🇵🇭 필리핀어",
         "ms": "🇲🇾 말레이어", "my": "🇲🇲 미얀마어", "km": "🇰🇭 크메르어", "ne": "🇳🇵 네팔어",
         "hi": "🇮🇳 힌디어", "bn": "🇧🇩 벵골어", "ur": "🇵🇰 우르두어", "si": "🇱🇰 싱할라어",
@@ -563,7 +573,7 @@
                 viewOpt.value = code; viewOpt.innerText = langNames[code];
                 viewerSelect.appendChild(viewOpt);
             }
-            if (adminLangSelect && !adminLangSelect.querySelector(`option[value="${code}"]`)) {
+            if (['ko', 'en', 'ja', 'zh'].includes(code) && adminLangSelect && !adminLangSelect.querySelector(`option[value="${code}"]`)) {
                 const adminOpt = document.createElement('option');
                 adminOpt.value = code; adminOpt.innerText = langNames[code];
                 adminLangSelect.appendChild(adminOpt);
@@ -684,9 +694,7 @@
             document.body.classList.add('speaker-mode'); setTimeout(() => toggleConnection('speaker'), 500);
         }
 
-        const welcomeMessages = { "ko": "한국어로 입장했습니다. 환영합니다!", "en": "Entered in English. Welcome!", "zh": "已进入中文模式。欢迎！", "ja": "日本語で入場했습니다. 환영합니다！" };
-        const langName = langNames[lang] ? langNames[lang].split(' ')[1] : lang;
-        const welcomeText = welcomeMessages[lang] || `${langName} 모드로 입장했습니다. 환영합니다!`;
+        const welcomeText = `${localizedLanguageName(lang)} — ${uiText('환영합니다!')}`;
 
         setTimeout(() => {
             const box = ensureWindowExists(lang);
@@ -699,7 +707,7 @@
     }
 
     function leaveMeeting() {
-        if (confirm("회의에서 나가시겠습니까?")) {
+        if (confirm(uiText("회의에서 나가시겠습니까?"))) {
             if (ws && ws.readyState === WebSocket.OPEN) ws.close();
             if (rawStream) rawStream.getTracks().forEach(t => t.stop());
             if (gatedStream) gatedStream.getTracks().forEach(t => t.stop());
@@ -752,7 +760,7 @@
             
             win.innerHTML = `
                 <div class="window-header" title="헤더를 드래그하여 이동하거나 우측 하단을 끌어 크기를 조절하세요. (더블클릭: 최대화)">
-                    ✥ ${langNames[lang] || lang}
+                    ✥ <span data-language-code="${lang}">${localizedLanguageName(lang)}</span>
                     <div class="win-controls">
                         <button class="win-btn maximize" onclick="toggleMaximize(this, '${lang}')" title="창 최대화/복원">🗖</button>
                         <button class="win-btn close" onclick="removeLanguage('${lang}')" title="이 언어 번역 닫기">✖</button>
@@ -858,11 +866,11 @@
             const currentVal = speakerLangSelect.value;
             speakerLangSelect.innerHTML = ''; 
             const adminLang = document.getElementById('viewerLangSelect').value || 'ko';
-            const optAdmin = document.createElement('option'); optAdmin.value = adminLang; optAdmin.innerText = `🚀 기본 언어 (${langNames[adminLang] || adminLang}) 집중 모드`;
+            const optAdmin = document.createElement('option'); optAdmin.value = adminLang; optAdmin.innerText = `🚀 기본 언어 (${localizedLanguageName(adminLang)}) 집중 모드`;
             speakerLangSelect.appendChild(optAdmin);
             checkedLangs.forEach(lang => {
                 if (lang !== adminLang) {
-                    const opt = document.createElement('option'); opt.value = lang; opt.innerText = `🎙️ ${langNames[lang] || lang} 집중 모드`;
+                    const opt = document.createElement('option'); opt.value = lang; opt.innerText = `🎙️ ${localizedLanguageName(lang)} 집중 모드`;
                     speakerLangSelect.appendChild(opt);
                 }
             });
@@ -1138,7 +1146,7 @@
     }
 
     function clearAllLogs() {
-        if (confirm("정말로 화면을 초기화하시겠습니까? 저장되지 않은 회의록은 유실됩니다.")) {
+        if (confirm(uiText("정말로 화면을 초기화하시겠습니까? 저장되지 않은 회의록은 유실됩니다."))) {
             document.querySelectorAll('.content-box').forEach(box => box.innerHTML = '');
             const dateStr = new Date().toISOString().slice(0, 10);
             transcriptLog = `=== [${meetingTitle}] 학술대회 현장 기록 (${dateStr}) ===\n`;
@@ -1177,9 +1185,9 @@
         const select = document.getElementById('extraLangSelect'); const langCode = select.value;
         if (document.querySelector(`#targetCheckboxes input[value="${langCode}"]`)) { showToast("이미 추가된 언어 화면입니다.", true); return; }
         const newLabel = document.createElement('label'); newLabel.className = 'lang-chip';
-        newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> <span>${langNames[langCode]}</span>`;
+        newLabel.innerHTML = `<input type="checkbox" value="${langCode}" checked> <span data-language-code="${langCode}">${localizedLanguageName(langCode)}</span>`;
         document.getElementById('targetCheckboxes').appendChild(newLabel);
-        newLabel.querySelector('input').addEventListener('change', updateWindows); updateWindows(); showToast(`${langNames[langCode]} 채널이 추가되었습니다.`);
+        newLabel.querySelector('input').addEventListener('change', updateWindows); updateWindows(); showToast(`${localizedLanguageName(langCode)} 채널이 추가되었습니다.`);
     }
 
     function applyTtsVisibility(enabled) {
@@ -1227,7 +1235,7 @@
     function updateStatus(text, isRecording = false) {
         if(isErrorState) return; 
         const msg = document.getElementById('statusMessage'); const dot = document.getElementById('statusIndicator'); const banner = document.getElementById('statusBanner');
-        msg.innerText = text;
+        msg.innerText = uiText(text);
         if (isRecording) { dot.classList.add('live'); banner.style.borderColor = "#b71c1c"; banner.style.boxShadow = "0 8px 24px rgba(183, 28, 28, 0.4)"; } 
         else { dot.classList.remove('live'); banner.style.borderColor = "#444"; banner.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)"; }
     }
@@ -1240,12 +1248,12 @@
         attendees.forEach(u => { const lang = u.ui_lang || 'ko'; if (!grouped[lang]) grouped[lang] = []; grouped[lang].push(u); });
         let html = '';
         for (const lang in grouped) {
-            const langDisplayName = langNames[lang] || lang; const count = grouped[lang].length;
-            html += `<div style="margin-bottom: 15px;"><div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); border-bottom: 2px solid var(--bg-color); padding-bottom: 5px;">${langDisplayName} (총 ${count}명)</div><ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;">`;
+            const langDisplayName = localizedLanguageName(lang); const count = grouped[lang].length;
+            html += `<div style="margin-bottom: 15px;"><div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); border-bottom: 2px solid var(--bg-color); padding-bottom: 5px;">${uiText(`${langDisplayName} (총 ${count}명)`)}</div><ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;">`;
             grouped[lang].forEach(u => {
-                const isSpeaker = u.is_speaker; const icon = isSpeaker ? '🎙️ [토론]' : '👀 [청취]'; const color = isSpeaker ? 'var(--warning)' : 'var(--primary)';
+                const isSpeaker = u.is_speaker; const icon = uiText(isSpeaker ? '🎙️ [토론]' : '👀 [청취]'); const color = isSpeaker ? 'var(--warning)' : 'var(--primary)';
                 html += `<li style="font-size: 1rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; background: #fafafa; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);"><div style="display:flex; align-items:center; gap: 10px;"><span style="color: ${color}; font-size: 1rem; font-weight: 800; min-width: 60px;">${icon}</span><span style="font-weight: 700;">${u.name}</span></div>`;
-                if (isSpeaker && u.role === 'viewer') { html += `<button class="btn-sm" style="background:var(--danger); padding:6px 10px; font-size:0.9rem;" onclick="revokeSpeak('${u.id}')">회수</button>`; }
+                if (isSpeaker && u.role === 'viewer') { html += `<button class="btn-sm" style="background:var(--danger); padding:6px 10px; font-size:0.9rem;" onclick="revokeSpeak('${u.id}')">${uiText('회수')}</button>`; }
                 html += `</li>`;
             });
             html += `</ul></div>`;
@@ -1399,7 +1407,7 @@
                         if (res.key === 'translation' && res.msg_id && Array.isArray(res.targets)) {
                             res.targets.forEach(lang => {
                                 const div = document.getElementById(`${res.msg_id}_${lang}`);
-                                if (div) div.innerHTML = `<span class="original-text">번역 실패: 자동 재시도 3회 완료</span><span class="draft-text">${langNames[lang] || lang} 결과를 받지 못했습니다.</span>`;
+                                if (div) div.innerHTML = `<span class="original-text">${uiText('번역 실패: 자동 재시도 3회 완료')}</span><span class="draft-text">${uiText(`${localizedLanguageName(lang)} 결과를 받지 못했습니다.`)}</span>`;
                             });
                         }
                     }
@@ -1447,7 +1455,7 @@
                             const box = ensureWindowExists(lang);
                             let div = document.getElementById(`${currentSentenceId}_${lang}`);
                             if (!div) { div = document.createElement('div'); div.id = `${currentSentenceId}_${lang}`; div.className = 'sentence'; box.appendChild(div); }
-                            div.innerHTML = `<span class="draft-text">듣는 중 ✍️: ${res.text} ...</span>`; box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                            div.innerHTML = `<span class="draft-text">${uiText('듣는 중 ✍️:')} ${res.text} ...</span>`; box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                         });
                     } 
                     else if (res.type === "status") { updateStatus(res.text, res.text.includes("방송") || res.text.includes("가동 중")); } 
@@ -1458,7 +1466,8 @@
                         if(isHost && res.type === "stream_update") { document.getElementById('statusAi').className = 'status-indicator status-green'; }
                         if (!div) { div = document.createElement('div'); div.id = `${res.msg_id}_${lang}`; div.className = 'sentence'; box.appendChild(div); }
 
-                        const rawText = res.text || ""; const cleanText = rawText.trim(); const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        const rawText = (res.type === 'stream_end' && res.role === 'admin') ? `[${uiText('사회자')}] ${res.raw_text || ''}` : (res.text || "");
+                        const cleanText = rawText.trim(); const safeText = cleanText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                         // 🌟 TTS용 cleanRawText 생성 (이름 제거됨) 🌟
                         const cleanRawText = (res.raw_text || "").trim().replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                         
@@ -1471,12 +1480,12 @@
 
                         if (res.type === "stream_update") {
                             if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalSafeText}</span><span style="color:var(--primary); animation: pulseBlue 1s infinite;"> ▌</span>`;
-                            else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
+                            else div.innerHTML = `<span class="original-text">${timeBadge}${uiText('원문:')} ${res.original_text || "..." }</span><span class="latest-text">${finalSafeText}</span><span style="color:var(--danger); animation: pulseRed 1s infinite;"> ▌</span>`;
                         } else {
                             // 🌟 TTS 버튼에 cleanRawText 전달 🌟
-                            const ttsBtnHTML = isTtsEnabled ? `<button class="tts-btn" onclick="speakTargetText('${cleanRawText}', '${lang}')">🔊 듣기</button>` : '';
+                            const ttsBtnHTML = isTtsEnabled ? `<button class="tts-btn" onclick="speakTargetText('${cleanRawText}', '${lang}')">${uiText('🔊 듣기')}</button>` : '';
                             if (isSame) div.innerHTML = `${timeBadge}<span class="same-lang-text">${finalCleanText}</span> ${ttsBtnHTML}`;
-                            else div.innerHTML = `<span class="original-text">${timeBadge}원문: ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
+                            else div.innerHTML = `<span class="original-text">${timeBadge}${uiText('원문:')} ${res.original_text || "..." }</span><span class="latest-text">${finalCleanText}</span> ${ttsBtnHTML}`;
                             
                             if (!currentTranscriptData[res.msg_id]) {
                                 const timeLogStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
@@ -1494,7 +1503,7 @@
 
                             let logEntry = `\n[${data.time}] ${iconStr} ${data.name} - ${roleStr}\n원문: ${data.original}\n`;
                             const langs = Object.keys(data.translations);
-                            langs.forEach((l, idx) => { const prefix = (idx === langs.length - 1) ? ' ┗ ' : ' ┣ '; logEntry += `${prefix}${langNames[l] || l} : ${data.translations[l]}\n`; });
+                            langs.forEach((l, idx) => { const prefix = (idx === langs.length - 1) ? ' ┗ ' : ' ┣ '; logEntry += `${prefix}${localizedLanguageName(l)} : ${data.translations[l]}\n`; });
                             logEntry += `--------------------------------------------------\n`; transcriptLog += logEntry; delete currentTranscriptData[tid];
                         }
                         localStorage.setItem("savedTranscript", transcriptLog); checkAndTriggerAutoDownload();
