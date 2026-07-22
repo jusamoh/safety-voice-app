@@ -973,7 +973,9 @@ async def websocket_endpoint(
                                     confidence = alternative.get("confidence", 1.0)
 
                                     has_recent_audio = time.monotonic() - last_audio_activity_at <= 3.0
-                                    is_reliable_transcript = confidence >= 0.65
+                                    # 실제 음성 활동이 확인된 경우에는 억양·전문용어로
+                                    # 신뢰도가 다소 낮아도 번역하고, 극단적으로 낮은 결과만 차단한다.
+                                    is_reliable_transcript = confidence >= 0.35
                                     if transcript and (not has_recent_audio or not is_reliable_transcript):
                                         transcript = ""
                                         speech_final = False
