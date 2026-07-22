@@ -579,6 +579,7 @@ async def websocket_endpoint(
     ui_lang: str = Query("ko"), 
     endpointing: int = Query(800), 
     max_chars: int = Query(50), 
+    confidence_threshold: float = Query(0.35, ge=0.0, le=1.0),
     glossary: str = Query("") 
 ):
     if token not in ACTIVE_TOKENS:
@@ -975,7 +976,7 @@ async def websocket_endpoint(
                                     has_recent_audio = time.monotonic() - last_audio_activity_at <= 3.0
                                     # 실제 음성 활동이 확인된 경우에는 억양·전문용어로
                                     # 신뢰도가 다소 낮아도 번역하고, 극단적으로 낮은 결과만 차단한다.
-                                    is_reliable_transcript = confidence >= 0.35
+                                    is_reliable_transcript = confidence >= confidence_threshold
                                     if transcript and (not has_recent_audio or not is_reliable_transcript):
                                         transcript = ""
                                         speech_final = False
