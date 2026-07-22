@@ -287,7 +287,6 @@
         <p id="qrDesc" style="color: var(--text-muted); font-size: 1rem; font-weight:600;">별도 설치 없이 즉시 접속됩니다.</p>
         <div id="qrcode"></div>
         <div style="display:grid; gap:10px; margin-top:20px;">
-            <button id="qrShareBtn" class="btn-primary" style="width:100%; font-size:17px;" onclick="shareQRCodeAndLink()">📤 QR·접속 링크 공유</button>
             <button class="btn-outline" style="width:100%; font-size:17px;" onclick="copyQRCodeLink()">🔗 접속 링크 복사</button>
             <button class="btn-outline" style="width:100%; font-size:17px;" onclick="downloadQRCodeImage()">💾 QR 이미지 저장</button>
         </div>
@@ -1095,8 +1094,6 @@
         const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${checkedLangs.join(',')}&role=${roleType}`;
         currentQrUrl = qrUrl;
         currentQrRole = roleType;
-        const shareButton = document.getElementById('qrShareBtn');
-        if (shareButton) shareButton.style.display = roleType === 'viewer' ? 'none' : 'block';
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드"; document.getElementById('qrDesc').innerText = "스캔 즉시 상시 마이크 권한을 획득합니다.";
         } else {
@@ -1108,11 +1105,6 @@
         document.getElementById('qrModal').style.display = 'flex';
     }
 
-    function qrInvitationText() {
-        const roleName = currentQrRole === 'speaker' ? '토론자(패널)' : '청중(뷰어)';
-        return `실시간 통역 회의에 ${roleName}로 참여해 주세요.\n${currentQrUrl}`;
-    }
-
     function qrImageBlob() {
         const qrContainer = document.getElementById('qrcode');
         const canvas = qrContainer.querySelector('canvas');
@@ -1121,28 +1113,6 @@
         const image = qrContainer.querySelector('img');
         if (!image) return Promise.resolve(null);
         return fetch(image.src).then(response => response.blob()).catch(() => null);
-    }
-
-    async function shareQRCodeAndLink() {
-        if (!currentQrUrl) return showToast('먼저 QR 코드를 생성해 주세요.', true);
-        const shareData = {
-            title: '실시간 통역 회의 초대',
-            text: qrInvitationText(),
-            url: currentQrUrl
-        };
-
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-            } else {
-                const copied = await copyQRCodeLink(false);
-                if (copied) showToast('이 브라우저에서는 공유창을 열 수 없어 접속 링크를 복사했습니다.');
-            }
-        } catch (error) {
-            if (error && error.name === 'AbortError') return;
-            const copied = await copyQRCodeLink(false);
-            if (copied) showToast('공유창을 열 수 없어 접속 링크를 복사했습니다.');
-        }
     }
 
     async function copyQRCodeLink(showResult = true) {
