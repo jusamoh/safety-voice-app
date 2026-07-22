@@ -106,10 +106,18 @@
             <div class="card-header">
                 <div class="card-header-title"><span>📺</span> 동시통역 채널 및 송출</div>
             </div>
-            <label class="form-label" style="color:var(--primary);">1. 회의 진행 단계 (사회자/발표자 언어 선택)</label>
+            <label class="form-label" style="color:var(--text-main);">1. 현장 마이크 제어 (통역 엔진 가동)</label>
+            <div style="display: flex; gap: 10px; align-items: stretch; margin-bottom: 20px;">
+                <select id="audioInputSelect" class="styled-select" style="flex: 1;" title="오디오 인터페이스 채널 지정">
+                    <option value="">마이크를 선택하세요</option>
+                </select>
+                <button id="speakerBtn" class="btn-primary" style="white-space: nowrap; font-size: 1.1rem; padding: 0 24px; font-weight: 800; border-radius: 8px; margin: 0; min-height: 52px; background: var(--primary);" onclick="toggleConnection('admin')">▶️ 현장 마이크 켜기</button>
+            </div>
+
+            <label class="form-label" style="color:var(--primary);">2. 회의 진행 단계 (사회자/발표자 언어 선택)</label>
             <select id="speakerLang" class="styled-select" style="border-color: var(--primary); font-weight: 800; background-color: #e8f0fe; margin-bottom: 20px;" onchange="sendConfigUpdate()"></select>
 
-            <label class="form-label">2. 통역 수신 채널 추가</label>
+            <label class="form-label">3. 통역 수신 채널 추가</label>
             <div class="add-lang-wrapper">
                 <select id="extraLangSelect" class="styled-select"></select>
                 <button class="btn-primary" onclick="addExtraLanguage()">추가</button>
@@ -119,7 +127,7 @@
             </div>
             <div class="confidence-setting">
                 <div class="number-input-wrapper">
-                    <label for="confidenceInput" class="number-input-label" title="STT가 인식 결과를 확신하는 최소 수준입니다. 이 값보다 낮은 문장은 번역하지 않습니다.">Confidence 수준 (%)</label>
+                    <label for="confidenceInput" class="number-input-label" title="STT가 인식 결과를 확신하는 최소 수준입니다. 이 값보다 낮은 문장은 번역하지 않습니다.">4. Confidence 수준 (%)</label>
                     <input type="number" id="confidenceInput" class="styled-number" min="0" max="100" step="1" value="35" aria-describedby="confidenceHelp">
                 </div>
                 <p id="confidenceHelp">35% 미만의 매우 불확실한 STT 문장은 번역하지 않습니다. 변경 후 마이크를 다시 켜면 적용됩니다.</p>
@@ -140,15 +148,7 @@
                 <div class="pipe-step"><span class="status-indicator status-gray" id="statusAi"></span> 🧠 AI 번역</div>
             </div>
 
-            <label class="form-label" style="color:var(--text-main);">1. 현장 마이크 제어 (통역 엔진 가동)</label>
-            <div style="display: flex; gap: 10px; align-items: stretch; margin-bottom: 20px;">
-                <select id="audioInputSelect" class="styled-select" style="flex: 1;" title="오디오 인터페이스 채널 지정">
-                    <option value="">마이크를 선택하세요</option>
-                </select>
-                <button id="speakerBtn" class="btn-primary" style="white-space: nowrap; font-size: 1.1rem; padding: 0 24px; font-weight: 800; border-radius: 8px; margin: 0; min-height: 52px; background: var(--primary);" onclick="toggleConnection('admin')">▶️ 현장 마이크 켜기</button>
-            </div>
-            
-            <label class="form-label">2. 통역 엔진 & 마이크 최적화</label>
+            <label class="form-label">1. 통역 엔진 & 마이크 최적화</label>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <div class="number-input-wrapper">
                     <label for="endpointingInput" class="number-input-label" title="문장을 끊고 번역을 시작하는 침묵 대기 시간입니다.">침묵 감지 (초)</label>
@@ -166,7 +166,7 @@
 
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">3. 전문 용어집 (GitHub 원격 동기화)</label>
+                    <label class="form-label" style="margin:0;">2. 전문 용어집 (GitHub 원격 동기화)</label>
                     <button class="btn-outline" style="padding: 4px 12px; font-size: 0.9rem; min-height: 30px; border-color: #24292e; color: #24292e; background-color: #f6f8fa;" onclick="fetchGlossaryFromGitHub()">🐙 최신 단어장 불러오기</button>
                 </div>
                 <textarea id="glossaryInput" class="styled-textarea" placeholder="버튼을 누르면 GitHub의 단어장이 동기화됩니다." onchange="sendConfigUpdate()"></textarea>
@@ -174,7 +174,7 @@
 
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                    <label class="form-label" style="margin:0;">4. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
+                    <label class="form-label" style="margin:0;">3. 발표 자료 사전 학습 (PDF, DOCX, TXT)</label>
                     <button class="btn-outline" style="padding: 4px 8px; font-size: 12px; border-color: var(--primary); color: var(--primary); min-height: 30px;" onclick="document.getElementById('contextFile').click()">📄 문서 업로드</button>
                     <input type="file" id="contextFile" accept=".txt,.pdf,.docx" style="display: none;" onchange="uploadContextFile(event)">
                 </div>
