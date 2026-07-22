@@ -287,7 +287,7 @@
         <p id="qrDesc" style="color: var(--text-muted); font-size: 1rem; font-weight:600;">별도 설치 없이 즉시 접속됩니다.</p>
         <div id="qrcode"></div>
         <div style="display:grid; gap:10px; margin-top:20px;">
-            <button class="btn-primary" style="width:100%; font-size:17px;" onclick="shareQRCodeAndLink()">📤 QR·접속 링크 공유</button>
+            <button id="qrShareBtn" class="btn-primary" style="width:100%; font-size:17px;" onclick="shareQRCodeAndLink()">📤 QR·접속 링크 공유</button>
             <button class="btn-outline" style="width:100%; font-size:17px;" onclick="copyQRCodeLink()">🔗 접속 링크 복사</button>
             <button class="btn-outline" style="width:100%; font-size:17px;" onclick="downloadQRCodeImage()">💾 QR 이미지 저장</button>
         </div>
@@ -1095,6 +1095,8 @@
         const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${checkedLangs.join(',')}&role=${roleType}`;
         currentQrUrl = qrUrl;
         currentQrRole = roleType;
+        const shareButton = document.getElementById('qrShareBtn');
+        if (shareButton) shareButton.style.display = roleType === 'viewer' ? 'none' : 'block';
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드"; document.getElementById('qrDesc').innerText = "스캔 즉시 상시 마이크 권한을 획득합니다.";
         } else {
