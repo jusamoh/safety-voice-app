@@ -817,8 +817,10 @@ async def websocket_endpoint(
 
                     async with websockets.connect(dg_url, **ws_kwargs) as dg_ws:
                         await manager.broadcast_json({"type": "status", "text": "🚀 첨단 언어 모드 가동 중..."})
+                        last_audio_activity_at = 0.0
                         
                         async def sender():
+                            nonlocal last_audio_activity_at
                             try:
                                 while True:
                                     data = await websocket.receive()
@@ -833,6 +835,8 @@ async def websocket_endpoint(
                                                 
                                                 if msg_type == "downgrade_to_viewer": 
                                                     raise DowngradeException()
+                                                if msg_type == "audio_activity" and msg.get("active"):
+                                                    last_audio_activity_at = time.monotonic()
                                                     
                                                 if msg_type == "admin_action" and role == "admin":
                                                     action = msg.get("action")
@@ -967,6 +971,12 @@ async def websocket_endpoint(
                                     alternative = dg_json.get("channel", {}).get("alternatives", [{}])[0]
                                     transcript = alternative.get("transcript", "").strip()
                                     confidence = alternative.get("confidence", 1.0)
+
+                                    has_recent_audio = time.monotonic() - last_audio_activity_at <= 3.0
+                                    is_reliable_transcript = confidence >= 0.65
+                                    if transcript and (not has_recent_audio or not is_reliable_transcript):
+                                        transcript = ""
+                                        speech_final = False
 
                                     if transcript:
                                         if manager.floor_owner is None and not manager.is_admin_muted and role != "admin": 
