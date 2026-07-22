@@ -310,6 +310,9 @@
     });
 
     let isErrorState = false;
+    const MIC_TEST_PROMPT = "마이크 입력 대기 중입니다. ‘마이크 테스트’라고 말해 주세요!";
+    const MIC_TEST_SUCCESS = "음성 입력이 정상적으로 입력되고 있습니다.";
+    let micInputVerification = "idle";
     const LIVE_DIAGNOSTIC_TIMEOUT_MS = 25000;
     let liveDiagnosticTimer = null;
     let liveDiagnostic = { active: false, captureStarted: false, audioDetected: false, sttReceived: false, translationReceived: false };
@@ -331,11 +334,28 @@
     function clearSystemIssue(key) { systemIssues.delete(key); renderSystemIssue(); }
     function setDiagnosticIndicator(id, state) { const indicator = document.getElementById(id); if (indicator) indicator.className = `status-indicator status-${state}`; }
 
+    function beginMicInputVerification() {
+        micInputVerification = "awaiting";
+        updateStatus(MIC_TEST_PROMPT, true);
+    }
+
+    function verifyMicTestPhrase(text) {
+        if (micInputVerification !== "awaiting" || !text) return false;
+        const normalizedText = String(text).replace(/[\s.,!?~'‘’"“”·-]/g, "").toLowerCase();
+        if (!normalizedText.includes("마이크테스트")) return false;
+
+        micInputVerification = "confirmed";
+        setDiagnosticIndicator("statusMic", "green");
+        setDiagnosticIndicator("statusStt", "green");
+        updateStatus(MIC_TEST_SUCCESS, true);
+        return true;
+    }
+
     function beginLiveDiagnosticCapture() {
         if (!liveDiagnostic.active || liveDiagnostic.captureStarted) return;
         liveDiagnostic.captureStarted = true;
-        updateStatus("[ 🩺 실시간 진단 ] 선택한 마이크에 ‘마이크 시험입니다. 번역 기능을 확인합니다.’라고 말해주세요.", true);
-        showToast("25초 안에 테스트 문장을 또렷하게 말해주세요.");
+        updateStatus(MIC_TEST_PROMPT, true);
+        showToast("25초 안에 ‘마이크 테스트’라고 또렷하게 말해 주세요.");
         clearTimeout(liveDiagnosticTimer);
         liveDiagnosticTimer = setTimeout(() => {
             if (!liveDiagnostic.audioDetected) { finishLiveDiagnostic(false, "선택한 마이크에서 음성 신호가 감지되지 않았습니다.", "statusMic");
@@ -345,10 +365,11 @@
     }
 
     function recordLiveDiagnosticStt(text) {
+        const micPhraseConfirmed = verifyMicTestPhrase(text);
         if (!liveDiagnostic.active || !text) return;
         liveDiagnostic.sttReceived = true;
         setDiagnosticIndicator("statusStt", "green");
-        updateStatus("[ 🩺 실시간 진단 ] STT 통과 — 실제 번역 응답을 기다리는 중...", true);
+        if (!micPhraseConfirmed) updateStatus("[ 🩺 실시간 진단 ] STT 통과 — 실제 번역 응답을 기다리는 중...", true);
     }
 
     function recordLiveDiagnosticTranslation(res) {
@@ -1436,6 +1457,7 @@
                             }
                         };
                         mediaRecorder.start(100); 
+                        beginMicInputVerification();
                         if (liveDiagnostic.active) beginLiveDiagnosticCapture();
                     } else if (role === 'viewer') { updateStatus("👀 청중(뷰어) 모드 수신 중"); }
                 };
@@ -1508,7 +1530,9 @@
                             div.innerHTML = `<span class="draft-text">${uiText('듣는 중 ✍️:')} ${res.text} ...</span>`; box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                         });
                     } 
-                    else if (res.type === "status") { updateStatus(res.text, res.text.includes("방송") || res.text.includes("가동 중")); } 
+                    else if (res.type === "status") {
+                        if (micInputVerification === "idle") updateStatus(res.text, res.text.includes("방송") || res.text.includes("가동 중"));
+                    }
                     else if (res.type === "stream_update" || res.type === "stream_end") {
                         if (res.original_text) recordLiveDiagnosticStt(res.original_text);
                         recordLiveDiagnosticTranslation(res);
@@ -1593,7 +1617,7 @@
     }
 
     function resetUI(options = {}) {
-        stopLocalMedia(); isConnected = false; isFirstFloorState = true; isDynamicSpeaker = false;
+        stopLocalMedia(); isConnected = false; isFirstFloorState = true; isDynamicSpeaker = false; micInputVerification = "idle";
         if (isHost) {
             document.body.classList.remove('viewer-mode'); document.body.classList.remove('speaker-mode');
             const placeholder = document.getElementById('viewerPlaceholder'); if (placeholder) placeholder.style.display = 'none';
