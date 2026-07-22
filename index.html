@@ -782,7 +782,10 @@
             const pwdInput = document.getElementById('password');
             if(pwdInput) pwdInput.value = '';
             if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
-            window.location.replace(`${window.location.pathname}?left=1`);
+            const qrModal = document.getElementById('qrModal');
+            if (qrModal) qrModal.style.display = 'none';
+            document.documentElement.classList.add('participant-left-state');
+            window.history.replaceState(null, '', `${window.location.pathname}?left=1`);
         }
     }
 
@@ -1111,7 +1114,7 @@
             const gainNode = audioCtx.createGain();
             const destNode = audioCtx.createMediaStreamDestination();
             micNode.connect(analyser); analyser.connect(gainNode); gainNode.connect(destNode);
-            gainNode.gain.value = 0; let gateOpen = false;
+            gainNode.gain.value = 0; let gateOpen = false; let lastAudioActivitySignalAt = 0;
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
             if (gateInterval) clearInterval(gateInterval);
@@ -1129,9 +1132,21 @@
                     liveDiagnostic.audioDetected = true; setDiagnosticIndicator("statusMic", "green");
                 }
                 if (rms > rmsThreshold) {
-                    if (!gateOpen) { gainNode.gain.setTargetAtTime(1, audioCtx.currentTime, 0.05); gateOpen = true; }
+                    if (!gateOpen) {
+                        gainNode.gain.setTargetAtTime(1, audioCtx.currentTime, 0.05);
+                        gateOpen = true;
+                    }
+                    const now = performance.now();
+                    if (now - lastAudioActivitySignalAt >= 750 && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: "audio_activity", active: true }));
+                        lastAudioActivitySignalAt = now;
+                    }
                     if (gateHoldTimer) clearTimeout(gateHoldTimer);
-                    gateHoldTimer = setTimeout(() => { gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1); gateOpen = false; }, 800); 
+                    gateHoldTimer = setTimeout(() => {
+                        gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+                        gateOpen = false;
+                        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "audio_activity", active: false }));
+                    }, 800);
                 }
             }, 50);
             return destNode.stream;
