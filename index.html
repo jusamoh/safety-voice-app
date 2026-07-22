@@ -72,6 +72,11 @@
         <div id="joinNameSection" style="display: none;">
             <label>2. 내 이름 (Name)</label>
             <input type="text" id="joinNameInput" class="login-input" placeholder="이름 (영문 또는 한글)" onkeyup="if(event.key==='Enter') joinMeeting()">
+            <label for="participantAutoAudio" style="display:flex; align-items:center; gap:12px; cursor:pointer; margin:2px 0 20px; font-size:17px;">
+                <input type="checkbox" id="participantAutoAudio" style="width:22px; height:22px; flex:none;">
+                <span>3. 번역 오디오 자동 재생</span>
+            </label>
+            <p style="margin:-12px 0 20px; color:var(--text-muted); font-size:17px;">선택하면 내 언어의 번역이 완료될 때 음성이 자동으로 재생됩니다.</p>
         </div>
         <button id="joinBtn" class="login-btn" onclick="joinMeeting()" disabled>회의 입장하기</button>
     </div>
@@ -281,6 +286,11 @@
         <h2 id="qrTitle" style="margin-top:0; color:var(--text-main);">스캔하세요</h2>
         <p id="qrDesc" style="color: var(--text-muted); font-size: 1rem; font-weight:600;">별도 설치 없이 즉시 접속됩니다.</p>
         <div id="qrcode"></div>
+        <div style="display:grid; gap:10px; margin-top:20px;">
+            <button class="btn-primary" style="width:100%; font-size:17px;" onclick="shareQRCodeAndLink()">📤 QR·접속 링크 공유</button>
+            <button class="btn-outline" style="width:100%; font-size:17px;" onclick="copyQRCodeLink()">🔗 접속 링크 복사</button>
+            <button class="btn-outline" style="width:100%; font-size:17px;" onclick="downloadQRCodeImage()">💾 QR 이미지 저장</button>
+        </div>
         <button class="btn-outline" style="width:100%; margin-top:20px; border-color:var(--text-main);" onclick="document.getElementById('qrModal').style.display='none'">닫기</button>
     </div>
 </div>
@@ -619,6 +629,7 @@
     let intentionalDisconnect = false; let reconnectAttempts = 0; let reconnectTimer = null;
     let isLeavingMeeting = false;
     let audioCtx = null; let gateInterval = null; let gateHoldTimer = null;
+    let participantAutoAudio = false;
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
@@ -661,6 +672,7 @@
         document.getElementById('joinOverlay').style.display = 'flex';
         if (urlRole === 'speaker') { document.getElementById('joinTitle').innerText = "🎙️ 토론자로 입장"; } 
         else { document.getElementById('joinTitle').innerText = "👀 청중으로 입장"; }
+        document.getElementById('participantAutoAudio').checked = localStorage.getItem('participantAutoAudio') === 'true';
     }
 
     // 🌟 통합 로그인 및 회의 시작 🌟
@@ -741,7 +753,9 @@
         if (!lang) return showToast("언어를 먼저 선택해주세요.", true);
         if (!name) return showToast("이름(Name)을 입력해주세요.", true); 
         
-        clientName = name; 
+        clientName = name;
+        participantAutoAudio = document.getElementById('participantAutoAudio').checked;
+        localStorage.setItem('participantAutoAudio', String(participantAutoAudio));
         document.getElementById('viewerLangSelect').value = lang;
         document.getElementById('joinOverlay').style.display = 'none'; 
         document.getElementById('appContainer').style.display = 'block';
@@ -1069,6 +1083,9 @@
         }
     }
 
+    let currentQrUrl = '';
+    let currentQrRole = 'viewer';
+
     function showQRCode(roleType) {
         const currentUrl = window.location.href.split('?')[0];
         const qrContainer = document.getElementById('qrcode');
@@ -1076,6 +1093,8 @@
         const checkedLangs = Array.from(document.querySelectorAll('#targetCheckboxes input:checked')).map(cb => cb.value);
         if (!checkedLangs.includes('ko')) checkedLangs.unshift('ko');
         const qrUrl = `${currentUrl}?room_token=${authToken}&targets=${checkedLangs.join(',')}&role=${roleType}`;
+        currentQrUrl = qrUrl;
+        currentQrRole = roleType;
         if (roleType === 'speaker') {
             document.getElementById('qrTitle').innerText = "🎙️ 토론자(패널)용 QR코드"; document.getElementById('qrDesc').innerText = "스캔 즉시 상시 마이크 권한을 획득합니다.";
         } else {
@@ -1085,6 +1104,80 @@
         if (qrSize < 150) qrSize = 150; 
         new QRCode(qrContainer, { text: qrUrl, width: qrSize, height: qrSize, colorDark : "#202124", colorLight : "#ffffff" });
         document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    function qrInvitationText() {
+        const roleName = currentQrRole === 'speaker' ? '토론자(패널)' : '청중(뷰어)';
+        return `실시간 통역 회의에 ${roleName}로 참여해 주세요.\n${currentQrUrl}`;
+    }
+
+    function qrImageBlob() {
+        const qrContainer = document.getElementById('qrcode');
+        const canvas = qrContainer.querySelector('canvas');
+        if (canvas) return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+        const image = qrContainer.querySelector('img');
+        if (!image) return Promise.resolve(null);
+        return fetch(image.src).then(response => response.blob()).catch(() => null);
+    }
+
+    async function shareQRCodeAndLink() {
+        if (!currentQrUrl) return showToast('먼저 QR 코드를 생성해 주세요.', true);
+        const shareData = {
+            title: '실시간 통역 회의 초대',
+            text: qrInvitationText(),
+            url: currentQrUrl
+        };
+
+        try {
+            const blob = await qrImageBlob();
+            if (blob) {
+                const file = new File([blob], `translation-meeting-${currentQrRole}-qr.png`, { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) shareData.files = [file];
+            }
+            if (navigator.share) {
+                await navigator.share(shareData);
+                showToast('공유할 앱과 받는 사람을 선택해 전송하세요.');
+            } else {
+                await copyQRCodeLink();
+            }
+        } catch (error) {
+            if (error && error.name === 'AbortError') return;
+            showToast('공유창을 열 수 없어 접속 링크를 복사합니다.');
+            await copyQRCodeLink();
+        }
+    }
+
+    async function copyQRCodeLink() {
+        if (!currentQrUrl) return showToast('먼저 QR 코드를 생성해 주세요.', true);
+        try {
+            await navigator.clipboard.writeText(currentQrUrl);
+            showToast('접속 링크가 복사되었습니다.');
+        } catch (_) {
+            const textArea = document.createElement('textarea');
+            textArea.value = currentQrUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            const copied = document.execCommand('copy');
+            textArea.remove();
+            showToast(copied ? '접속 링크가 복사되었습니다.' : '링크 복사에 실패했습니다.', !copied);
+        }
+    }
+
+    async function downloadQRCodeImage() {
+        const blob = await qrImageBlob();
+        if (!blob) return showToast('QR 이미지를 만들 수 없습니다.', true);
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = `translation-meeting-${currentQrRole}-qr.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+        showToast('QR 이미지가 저장되었습니다.');
     }
 
     function triggerAlert() {
@@ -1307,8 +1400,8 @@
     }
 
     // 🌟 TTS 호출 시 화자 이름 제거 (순수 번역문만 호출) 🌟
-    function speakTargetText(cleanRawText, lang) {
-        if (!isTtsEnabled) { showToast("사회자가 번역 음성 듣기를 껐습니다.", true); return; }
+    function speakTargetText(cleanRawText, lang, silent = false) {
+        if (!isTtsEnabled) { if (!silent) showToast("사회자가 번역 음성 듣기를 껐습니다.", true); return; }
         if (!window.speechSynthesis) { showToast("이 기기는 음성 합성을 지원하지 않습니다.", true); return; }
         window.speechSynthesis.cancel(); 
         const msg = new SpeechSynthesisUtterance(cleanRawText);
@@ -1601,6 +1694,11 @@
                                 currentTranscriptData[res.msg_id] = { time: timeLogStr, name: res.name || clientName, role: res.role || 'speaker', original: res.original_text, translations: {} };
                             }
                             currentTranscriptData[res.msg_id].translations[lang] = res.raw_text || cleanText;
+
+                            const participantLang = document.getElementById('viewerLangSelect').value;
+                            if (!isHost && participantAutoAudio && lang === participantLang && cleanText) {
+                                speakTargetText(cleanText, lang, true);
+                            }
                         }
                         box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
                     }
