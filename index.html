@@ -38,9 +38,14 @@
         <h2 style="color: var(--primary); margin-bottom: 10px;">⚙️ 시스템 접속 및 회의 설정</h2>
         <p class="subtitle" style="margin-bottom: 25px;">보안 인증 및 시스템 최적화를 위해 정보를 입력해주세요.</p>
         
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <label>1. 방장 언어 선택 (Admin Lang)</label>
+        <select id="adminLangSelect" class="login-input" onchange="setUiLanguage(this.value)">
+            <option value="" disabled selected>언어를 선택하세요</option>
+        </select>
+
+        <div class="admin-credentials-row">
             <div style="flex: 1;">
-                <label>관리자 ID</label>
+                <label>2. 관리자 ID</label>
                 <input type="text" id="username" class="login-input" style="margin-bottom:0; padding: 14px;" placeholder="admin">
             </div>
             <div style="flex: 1;">
@@ -49,18 +54,7 @@
             </div>
         </div>
 
-        <label>1. 회의 전문 분야 (Domain)</label>
-        <input type="text" id="adminDomainInput" class="login-input" placeholder="ex) Highway Engineering">
-        
-        <label>2. 방장 언어 선택 (Admin Lang)</label>
-        <select id="adminLangSelect" class="login-input" onchange="setUiLanguage(this.value)">
-            <option value="" disabled selected>언어를 선택하세요</option>
-        </select>
-        
-        <label>3. 회의 제목 (Title)</label>
-        <input type="text" id="adminMeetingTitleInput" class="login-input" placeholder="회의명 입력">
-        
-        <label>4. 방장 이름 (Name)</label>
+        <label>3. 방장 이름 (Name)</label>
         <input type="text" id="adminNameInput" class="login-input" placeholder="이름 (영문 또는 한글)" onkeyup="if(event.key==='Enter') attemptLoginAndStart()">
         
         <button class="login-btn" onclick="attemptLoginAndStart()">접속 및 회의 시작</button>
@@ -122,6 +116,13 @@
             </div>
             <div class="chip-group" id="targetCheckboxes">
                 <label class="lang-chip"><input type="checkbox" value="ko" checked disabled> <span data-language-code="ko">🇰🇷 한국어</span></label>
+            </div>
+            <div class="confidence-setting">
+                <div class="number-input-wrapper">
+                    <label for="confidenceInput" class="number-input-label" title="STT가 인식 결과를 확신하는 최소 수준입니다. 이 값보다 낮은 문장은 번역하지 않습니다.">Confidence 수준 (%)</label>
+                    <input type="number" id="confidenceInput" class="styled-number" min="0" max="100" step="1" value="35" aria-describedby="confidenceHelp">
+                </div>
+                <p id="confidenceHelp">35% 미만의 매우 불확실한 STT 문장은 번역하지 않습니다. 변경 후 마이크를 다시 켜면 적용됩니다.</p>
             </div>
         </div>
         
@@ -288,11 +289,6 @@
     window.addEventListener('DOMContentLoaded', () => {
         const pwdInput = document.getElementById('password');
         if(pwdInput) pwdInput.value = '';
-        
-        if(localStorage.getItem("savedMeetingTitle")) {
-            const titleInput = document.getElementById('adminMeetingTitleInput');
-            if (titleInput) titleInput.value = localStorage.getItem("savedMeetingTitle");
-        }
     });
 
     let wakeLock = null;
@@ -671,14 +667,13 @@
     async function attemptLoginAndStart() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
-        const domain = document.getElementById('adminDomainInput').value.trim() || 'General';
         const adminLang = document.getElementById('adminLangSelect').value;
-        const title = document.getElementById('adminMeetingTitleInput').value.trim();
         const adminName = document.getElementById('adminNameInput').value.trim();
+        const domain = 'General';
+        const title = '실시간 통역 회의';
 
         if (!u || !p) return showToast("관리자 아이디와 비밀번호를 입력해주세요.", true);
         if (!adminLang) return showToast("방장 언어를 먼저 선택해주세요.", true);
-        if (!title) return showToast("회의 제목을 입력해주세요.", true);
         if (!adminName) return showToast("방장 이름(Name)을 입력해주세요.", true);
 
         try {
@@ -1425,11 +1420,13 @@
                 const ep = epInput ? Math.floor(parseFloat(epInput.value) * 1000) : 900;
                 const mxInput = document.getElementById('maxCharInput');
                 const mx = mxInput ? parseInt(mxInput.value) : 53;
+                const confidenceInput = document.getElementById('confidenceInput');
+                const confidencePercent = confidenceInput ? Math.min(100, Math.max(0, parseInt(confidenceInput.value) || 0)) : 35;
                 
                 let uiLang = "ko"; if (!isHost) { uiLang = document.getElementById('viewerLangSelect').value || "ko"; }
 
                 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&candidates=${targetLangs.join(',')}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&client_id=${clientId}&name=${encodeURIComponent(clientName)}&ui_lang=${uiLang}`);
+                const socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws?token=${authToken}&lang=${spkLang}&candidates=${targetLangs.join(',')}&targets=${targetLangs.join(',')}&role=${role}&endpointing=${ep}&max_chars=${mx}&confidence_threshold=${confidencePercent / 100}&client_id=${clientId}&name=${encodeURIComponent(clientName)}&ui_lang=${uiLang}`);
                 ws = socket;
                 
                 socket.onopen = async () => {
