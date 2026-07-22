@@ -13,11 +13,24 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-conference-192.png">
     <link rel="apple-touch-icon" href="/icons/icon-conference-192.png">
     <link rel="stylesheet" href="style.css">
+    <script>
+        if (new URLSearchParams(window.location.search).get('left') === '1') {
+            document.documentElement.classList.add('participant-left-state');
+        }
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="/i18n.js"></script>
 </head>
 <body class="tts-disabled">
 <div id="toast"></div>
+
+<div id="participantExitScreen" role="status" aria-live="polite">
+    <div class="participant-exit-card">
+        <div class="participant-exit-icon">✓</div>
+        <h1>회의에서 나갔습니다</h1>
+        <p>이 창을 닫으셔도 됩니다.</p>
+    </div>
+</div>
 
 <!-- 로그인 및 설정 오버레이 -->
 <div id="adminSetupOverlay">
@@ -587,11 +600,13 @@
     let authToken = ""; let currentSentenceId = null;
     let isFirstFloorState = true; let desiredConnectionRole = null;
     let intentionalDisconnect = false; let reconnectAttempts = 0; let reconnectTimer = null;
+    let isLeavingMeeting = false;
     let audioCtx = null; let gateInterval = null; let gateHoldTimer = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room_token');
     const urlRole = urlParams.get('role');
+    const hasParticipantLeft = urlParams.get('left') === '1';
     const roomTargetLangs = (urlParams.get('targets') || '')
         .split(',')
         .map(lang => lang.trim().toLowerCase())
@@ -619,7 +634,11 @@
         });
     }
 
-    if (roomToken) {
+    if (hasParticipantLeft) {
+        document.getElementById('adminSetupOverlay').style.display = 'none';
+        document.getElementById('joinOverlay').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'none';
+    } else if (roomToken) {
         authToken = roomToken;
         document.getElementById('adminSetupOverlay').style.display = 'none';
         document.getElementById('joinOverlay').style.display = 'flex';
@@ -731,6 +750,10 @@
 
     function leaveMeeting() {
         if (confirm(uiText("회의에서 나가시겠습니까?"))) {
+            isLeavingMeeting = true;
+            intentionalDisconnect = true;
+            desiredConnectionRole = null;
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
             if (ws && ws.readyState === WebSocket.OPEN) ws.close();
             if (rawStream) rawStream.getTracks().forEach(t => t.stop());
             if (gatedStream) gatedStream.getTracks().forEach(t => t.stop());
@@ -738,7 +761,7 @@
             const pwdInput = document.getElementById('password');
             if(pwdInput) pwdInput.value = '';
             if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
-            window.location.href = window.location.pathname;
+            window.location.replace(`${window.location.pathname}?left=1`);
         }
     }
 
@@ -1590,7 +1613,7 @@
     }
 
     window.addEventListener('beforeunload', (e) => {
-        if (isConnected && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
+        if (!isLeavingMeeting && isConnected && (document.body.classList.contains('viewer-mode') || document.body.classList.contains('speaker-mode'))) {
             if (transcriptLog && transcriptLog.split('\n').length > 3) { e.preventDefault(); e.returnValue = ''; }
         }
     });
