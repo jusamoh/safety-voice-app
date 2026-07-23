@@ -26,9 +26,14 @@
 
 <div id="participantExitScreen" role="status" aria-live="polite">
     <div class="participant-exit-card">
-        <div class="participant-exit-icon">✓</div>
+        <div class="participant-exit-icon" aria-hidden="true">✓</div>
         <h1>회의에서 나갔습니다</h1>
-        <p>이 창을 닫으셔도 됩니다.</p>
+        <p>다시 입장하거나 이 창을 닫을 수 있습니다.</p>
+        <div class="participant-exit-actions">
+            <button type="button" class="participant-rejoin-btn" onclick="rejoinMeeting()">다시 입장</button>
+            <button type="button" class="participant-close-btn" onclick="closeParticipantWindow()">창 닫기</button>
+        </div>
+        <p id="participantCloseHelp" class="participant-close-help" role="alert" aria-live="assertive"></p>
     </div>
 </div>
 
@@ -793,8 +798,24 @@
             const qrModal = document.getElementById('qrModal');
             if (qrModal) qrModal.style.display = 'none';
             document.documentElement.classList.add('participant-left-state');
-            window.history.replaceState(null, '', `${window.location.pathname}?left=1`);
+            const exitUrl = new URL(window.location.href);
+            exitUrl.searchParams.set('left', '1');
+            window.history.replaceState(null, '', exitUrl);
         }
+    }
+
+    function rejoinMeeting() {
+        const rejoinUrl = new URL(window.location.href);
+        rejoinUrl.searchParams.delete('left');
+        window.location.replace(rejoinUrl);
+    }
+
+    function closeParticipantWindow() {
+        const closeHelp = document.getElementById('participantCloseHelp');
+        window.close();
+        window.setTimeout(() => {
+            if (closeHelp) closeHelp.textContent = '브라우저가 창 닫기를 허용하지 않았습니다. 위쪽 탭의 ×를 눌러 닫아주세요.';
+        }, 250);
     }
 
     function filterViewerWindows() {
