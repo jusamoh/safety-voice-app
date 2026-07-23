@@ -444,3 +444,44 @@ body.speaker-mode #mobileMuteBtn { display: block; }
     color: #5f6368;
     font-size: 1.1rem;
 }
+
+.participant-exit-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.participant-exit-actions button {
+    min-height: 52px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.participant-rejoin-btn {
+    border: 1px solid #1a73e8;
+    background: #1a73e8;
+    color: #fff;
+}
+
+.participant-close-btn {
+    border: 1px solid #5f6368;
+    background: #fff;
+    color: #3c4043;
+}
+
+.participant-exit-card .participant-close-help {
+    min-height: 1.5em;
+    margin-top: 16px;
+    color: #c5221f;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+@media (max-width: 480px) {
+    .participant-exit-actions {
+        grid-template-columns: 1fr;
+    }
+}
